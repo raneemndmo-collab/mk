@@ -1,0 +1,155 @@
+import { useI18n } from "@/lib/i18n";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Heart, MapPin, BedDouble, Bath, Maximize2, Star, CheckCircle } from "lucide-react";
+import { Link } from "wouter";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { toast } from "sonner";
+
+interface PropertyCardProps {
+  property: {
+    id: number;
+    titleEn: string;
+    titleAr: string;
+    propertyType: string;
+    city?: string | null;
+    cityAr?: string | null;
+    district?: string | null;
+    districtAr?: string | null;
+    monthlyRent: string;
+    bedrooms?: number | null;
+    bathrooms?: number | null;
+    sizeSqm?: number | null;
+    photos?: string[] | null;
+    isVerified?: boolean | null;
+    isFeatured?: boolean | null;
+    furnishedLevel?: string | null;
+  };
+  compact?: boolean;
+}
+
+export default function PropertyCard({ property, compact }: PropertyCardProps) {
+  const { t, lang } = useI18n();
+  const { isAuthenticated } = useAuth();
+  const utils = trpc.useUtils();
+
+  const favCheck = trpc.favorite.check.useQuery(
+    { propertyId: property.id },
+    { enabled: isAuthenticated }
+  );
+  const toggleFav = trpc.favorite.toggle.useMutation({
+    onSuccess: () => {
+      utils.favorite.check.invalidate({ propertyId: property.id });
+      utils.favorite.list.invalidate();
+    },
+  });
+
+  const title = lang === "ar" ? property.titleAr : property.titleEn;
+  const city = lang === "ar" ? property.cityAr : property.city;
+  const district = lang === "ar" ? property.districtAr : property.district;
+  const typeKey = `type.${property.propertyType}` as any;
+  const photo = property.photos?.[0] || "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&h=400&fit=crop";
+
+  const handleFavorite = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      toast.error(lang === "ar" ? "يرجى تسجيل الدخول أولاً" : "Please sign in first");
+      return;
+    }
+    toggleFav.mutate({ propertyId: property.id });
+  };
+
+  return (
+    <Link href={`/property/${property.id}`}>
+      <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer border-border/50 py-0 gap-0">
+        {/* Image */}
+        <div className="relative aspect-[4/3] overflow-hidden">
+          <img
+            src={photo}
+            alt={title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+          {/* Badges */}
+          <div className="absolute top-3 start-3 flex gap-1.5">
+            {property.isVerified && (
+              <Badge className="bg-primary text-primary-foreground text-[10px] gap-1">
+                <CheckCircle className="h-3 w-3" />
+                {t("property.verified")}
+              </Badge>
+            )}
+            {property.isFeatured && (
+              <Badge className="bg-desert-gold text-deep-charcoal text-[10px]">
+                {t("property.featured")}
+              </Badge>
+            )}
+          </div>
+          {/* Favorite */}
+          <button
+            onClick={handleFavorite}
+            className="absolute top-3 end-3 h-8 w-8 rounded-full bg-white/90 backdrop-blur flex items-center justify-center hover:bg-white transition-colors"
+          >
+            <Heart
+              className={`h-4 w-4 transition-colors ${
+                favCheck.data?.isFavorite ? "fill-destructive text-destructive" : "text-muted-foreground"
+              }`}
+            />
+          </button>
+          {/* Price tag */}
+          <div className="absolute bottom-3 start-3 bg-white/95 backdrop-blur rounded-lg px-3 py-1.5 shadow-sm">
+            <span className="font-bold text-primary text-lg">
+              {Number(property.monthlyRent).toLocaleString()} {t("payment.sar")}
+            </span>
+            <span className="text-muted-foreground text-xs ms-1">{t("property.perMonth")}</span>
+          </div>
+        </div>
+
+        {/* Content */}
+        <CardContent className="p-4">
+          <div className="mb-2">
+            <Badge variant="secondary" className="text-[10px] mb-2">
+              {t(typeKey)}
+            </Badge>
+            <h3 className="font-heading font-semibold text-sm line-clamp-1 group-hover:text-primary transition-colors">
+              {title}
+            </h3>
+          </div>
+
+          {(city || district) && (
+            <div className="flex items-center gap-1 text-muted-foreground text-xs mb-3">
+              <MapPin className="h-3 w-3 shrink-0" />
+              <span className="line-clamp-1">
+                {district && `${district}، `}{city}
+              </span>
+            </div>
+          )}
+
+          {!compact && (
+            <div className="flex items-center gap-3 text-xs text-muted-foreground pt-3 border-t border-border/50">
+              {property.bedrooms != null && (
+                <span className="flex items-center gap-1">
+                  <BedDouble className="h-3.5 w-3.5" />
+                  {property.bedrooms}
+                </span>
+              )}
+              {property.bathrooms != null && (
+                <span className="flex items-center gap-1">
+                  <Bath className="h-3.5 w-3.5" />
+                  {property.bathrooms}
+                </span>
+              )}
+              {property.sizeSqm != null && (
+                <span className="flex items-center gap-1">
+                  <Maximize2 className="h-3.5 w-3.5" />
+                  {property.sizeSqm} {t("property.sqm")}
+                </span>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}

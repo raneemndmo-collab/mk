@@ -1,0 +1,284 @@
+import { useI18n } from "@/lib/i18n";
+import { trpc } from "@/lib/trpc";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import PropertyCard from "@/components/PropertyCard";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
+import { Search as SearchIcon, SlidersHorizontal, Grid3X3, List, MapPin, X, Building2 } from "lucide-react";
+import { useState, useMemo } from "react";
+
+export default function Search() {
+  const { t, lang } = useI18n();
+  const [city, setCity] = useState("");
+  const [propertyType, setPropertyType] = useState("");
+  const [minPrice, setMinPrice] = useState<number | undefined>();
+  const [maxPrice, setMaxPrice] = useState<number | undefined>();
+  const [bedrooms, setBedrooms] = useState<number | undefined>();
+  const [furnishedLevel, setFurnishedLevel] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [showFilters, setShowFilters] = useState(true);
+  const [page, setPage] = useState(0);
+
+  const searchInput = useMemo(() => ({
+    city: city || undefined,
+    propertyType: propertyType || undefined,
+    minPrice,
+    maxPrice,
+    bedrooms,
+    furnishedLevel: furnishedLevel || undefined,
+    limit: 12,
+    offset: page * 12,
+  }), [city, propertyType, minPrice, maxPrice, bedrooms, furnishedLevel, page]);
+
+  const results = trpc.property.search.useQuery(searchInput);
+
+  const propertyTypes = [
+    { value: "apartment", label: t("type.apartment") },
+    { value: "villa", label: t("type.villa") },
+    { value: "studio", label: t("type.studio") },
+    { value: "duplex", label: t("type.duplex") },
+    { value: "furnished_room", label: t("type.furnished_room") },
+    { value: "compound", label: t("type.compound") },
+    { value: "hotel_apartment", label: t("type.hotel_apartment") },
+  ];
+
+  const clearFilters = () => {
+    setCity(""); setPropertyType(""); setMinPrice(undefined); setMaxPrice(undefined);
+    setBedrooms(undefined); setFurnishedLevel(""); setPage(0);
+  };
+
+  const hasFilters = city || propertyType || minPrice || maxPrice || bedrooms || furnishedLevel;
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
+
+      <div className="container py-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-heading font-bold">{t("search.title")}</h1>
+            {results.data && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {results.data.total} {lang === "ar" ? "نتيجة" : "results"}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="md:hidden"
+            >
+              <SlidersHorizontal className="h-4 w-4 me-1.5" />
+              {t("search.filters")}
+            </Button>
+            <div className="hidden md:flex border rounded-lg overflow-hidden">
+              <Button
+                variant={viewMode === "grid" ? "secondary" : "ghost"}
+                size="icon"
+                className="h-9 w-9 rounded-none"
+                onClick={() => setViewMode("grid")}
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "secondary" : "ghost"}
+                size="icon"
+                className="h-9 w-9 rounded-none"
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-6">
+          {/* Filters Sidebar */}
+          <div className={`${showFilters ? "block" : "hidden"} md:block w-full md:w-72 shrink-0`}>
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">{t("search.filters")}</CardTitle>
+                  {hasFilters && (
+                    <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs h-7">
+                      <X className="h-3 w-3 me-1" />
+                      {t("search.clearFilters")}
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {/* City */}
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">{t("search.city")}</label>
+                  <Input
+                    placeholder={t("search.city")}
+                    value={city}
+                    onChange={(e) => { setCity(e.target.value); setPage(0); }}
+                  />
+                </div>
+
+                {/* Property Type */}
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">{t("search.propertyType")}</label>
+                  <Select value={propertyType} onValueChange={(v) => { setPropertyType(v); setPage(0); }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("search.propertyType")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {propertyTypes.map(pt => (
+                        <SelectItem key={pt.value} value={pt.value}>{pt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Price Range */}
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">{t("search.priceRange")}</label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      placeholder={t("search.minPrice")}
+                      value={minPrice ?? ""}
+                      onChange={(e) => { setMinPrice(e.target.value ? Number(e.target.value) : undefined); setPage(0); }}
+                    />
+                    <Input
+                      type="number"
+                      placeholder={t("search.maxPrice")}
+                      value={maxPrice ?? ""}
+                      onChange={(e) => { setMaxPrice(e.target.value ? Number(e.target.value) : undefined); setPage(0); }}
+                    />
+                  </div>
+                </div>
+
+                {/* Bedrooms */}
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">{t("search.bedrooms")}</label>
+                  <div className="flex gap-1.5">
+                    {[1, 2, 3, 4, 5].map(n => (
+                      <Button
+                        key={n}
+                        variant={bedrooms === n ? "default" : "outline"}
+                        size="sm"
+                        className="h-9 w-9 p-0"
+                        onClick={() => { setBedrooms(bedrooms === n ? undefined : n); setPage(0); }}
+                      >
+                        {n}{n === 5 ? "+" : ""}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Furnished Level */}
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">{t("search.furnished")}</label>
+                  <Select value={furnishedLevel} onValueChange={(v) => { setFurnishedLevel(v); setPage(0); }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("search.furnished")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unfurnished">{t("search.unfurnished")}</SelectItem>
+                      <SelectItem value="semi_furnished">{t("search.semi_furnished")}</SelectItem>
+                      <SelectItem value="fully_furnished">{t("search.fully_furnished")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Results */}
+          <div className="flex-1">
+            {/* Active filters */}
+            {hasFilters && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {city && (
+                  <Badge variant="secondary" className="gap-1">
+                    <MapPin className="h-3 w-3" /> {city}
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setCity("")} />
+                  </Badge>
+                )}
+                {propertyType && (
+                  <Badge variant="secondary" className="gap-1">
+                    {propertyTypes.find(p => p.value === propertyType)?.label}
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setPropertyType("")} />
+                  </Badge>
+                )}
+                {bedrooms && (
+                  <Badge variant="secondary" className="gap-1">
+                    {bedrooms} {t("search.bedrooms")}
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setBedrooms(undefined)} />
+                  </Badge>
+                )}
+              </div>
+            )}
+
+            {results.isLoading ? (
+              <div className={`grid gap-6 ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}>
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <Card key={i} className="overflow-hidden">
+                    <Skeleton className="aspect-[4/3]" />
+                    <CardContent className="p-4 space-y-3">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-5 w-full" />
+                      <Skeleton className="h-4 w-32" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : results.data && results.data.items.length > 0 ? (
+              <>
+                <div className={`grid gap-6 ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}>
+                  {results.data.items.map((prop) => (
+                    <PropertyCard key={prop.id} property={prop} />
+                  ))}
+                </div>
+                {/* Pagination */}
+                {results.data.total > 12 && (
+                  <div className="flex justify-center gap-2 mt-8">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page === 0}
+                      onClick={() => setPage(p => p - 1)}
+                    >
+                      {t("common.previous")}
+                    </Button>
+                    <span className="flex items-center px-3 text-sm text-muted-foreground">
+                      {page + 1} / {Math.ceil(results.data.total / 12)}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={(page + 1) * 12 >= results.data.total}
+                      onClick={() => setPage(p => p + 1)}
+                    >
+                      {t("common.next")}
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <Card className="p-12 text-center">
+                <Building2 className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+                <p className="text-muted-foreground">{t("search.noResults")}</p>
+              </Card>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <Footer />
+    </div>
+  );
+}

@@ -1,22 +1,30 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import {
+  int,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  varchar,
+  boolean,
+  decimal,
+  json,
+} from "drizzle-orm/mysql-core";
 
-/**
- * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
- * Columns use camelCase to match both database fields and generated types.
- */
+// ─── Users ───────────────────────────────────────────────────────────
 export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
   id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
+  nameAr: text("nameAr"),
   email: varchar("email", { length: 320 }),
+  phone: varchar("phone", { length: 20 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: mysqlEnum("role", ["user", "admin", "landlord", "tenant"]).default("user").notNull(),
+  avatarUrl: text("avatarUrl"),
+  bio: text("bio"),
+  bioAr: text("bioAr"),
+  preferredLang: mysqlEnum("preferredLang", ["ar", "en"]).default("ar"),
+  isVerified: boolean("isVerified").default(false),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -25,4 +33,234 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+// ─── Properties ──────────────────────────────────────────────────────
+export const properties = mysqlTable("properties", {
+  id: int("id").autoincrement().primaryKey(),
+  landlordId: int("landlordId").notNull(),
+  titleEn: varchar("titleEn", { length: 255 }).notNull(),
+  titleAr: varchar("titleAr", { length: 255 }).notNull(),
+  descriptionEn: text("descriptionEn"),
+  descriptionAr: text("descriptionAr"),
+  propertyType: mysqlEnum("propertyType", [
+    "apartment", "villa", "studio", "duplex", "furnished_room", "compound", "hotel_apartment"
+  ]).notNull(),
+  status: mysqlEnum("status", ["draft", "pending", "active", "inactive", "rejected"]).default("draft").notNull(),
+  // Location
+  city: varchar("city", { length: 100 }),
+  cityAr: varchar("cityAr", { length: 100 }),
+  district: varchar("district", { length: 100 }),
+  districtAr: varchar("districtAr", { length: 100 }),
+  address: text("address"),
+  addressAr: text("addressAr"),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }),
+  // Details
+  bedrooms: int("bedrooms").default(1),
+  bathrooms: int("bathrooms").default(1),
+  sizeSqm: int("sizeSqm"),
+  floor: int("floor"),
+  totalFloors: int("totalFloors"),
+  yearBuilt: int("yearBuilt"),
+  furnishedLevel: mysqlEnum("furnishedLevel", ["unfurnished", "semi_furnished", "fully_furnished"]).default("unfurnished"),
+  // Pricing
+  monthlyRent: decimal("monthlyRent", { precision: 10, scale: 2 }).notNull(),
+  securityDeposit: decimal("securityDeposit", { precision: 10, scale: 2 }),
+  // Amenities stored as JSON array
+  amenities: json("amenities").$type<string[]>(),
+  // Utilities included
+  utilitiesIncluded: json("utilitiesIncluded").$type<string[]>(),
+  // Rules
+  houseRules: text("houseRules"),
+  houseRulesAr: text("houseRulesAr"),
+  // Booking settings
+  minStayMonths: int("minStayMonths").default(1),
+  maxStayMonths: int("maxStayMonths").default(12),
+  instantBook: boolean("instantBook").default(false),
+  // Media
+  photos: json("photos").$type<string[]>(),
+  videoUrl: text("videoUrl"),
+  virtualTourUrl: text("virtualTourUrl"),
+  // Flags
+  isVerified: boolean("isVerified").default(false),
+  isFeatured: boolean("isFeatured").default(false),
+  viewCount: int("viewCount").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Property = typeof properties.$inferSelect;
+export type InsertProperty = typeof properties.$inferInsert;
+
+// ─── Property Availability ──────────────────────────────────────────
+export const propertyAvailability = mysqlTable("propertyAvailability", {
+  id: int("id").autoincrement().primaryKey(),
+  propertyId: int("propertyId").notNull(),
+  startDate: timestamp("startDate").notNull(),
+  endDate: timestamp("endDate").notNull(),
+  isBlocked: boolean("isBlocked").default(false),
+  priceOverride: decimal("priceOverride", { precision: 10, scale: 2 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ─── Favorites ───────────────────────────────────────────────────────
+export const favorites = mysqlTable("favorites", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  propertyId: int("propertyId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ─── Bookings ────────────────────────────────────────────────────────
+export const bookings = mysqlTable("bookings", {
+  id: int("id").autoincrement().primaryKey(),
+  propertyId: int("propertyId").notNull(),
+  tenantId: int("tenantId").notNull(),
+  landlordId: int("landlordId").notNull(),
+  status: mysqlEnum("status", [
+    "pending", "approved", "rejected", "active", "completed", "cancelled"
+  ]).default("pending").notNull(),
+  moveInDate: timestamp("moveInDate").notNull(),
+  moveOutDate: timestamp("moveOutDate").notNull(),
+  durationMonths: int("durationMonths").notNull(),
+  monthlyRent: decimal("monthlyRent", { precision: 10, scale: 2 }).notNull(),
+  securityDeposit: decimal("securityDeposit", { precision: 10, scale: 2 }),
+  totalAmount: decimal("totalAmount", { precision: 10, scale: 2 }),
+  // Lease
+  leaseTerms: text("leaseTerms"),
+  leaseTermsAr: text("leaseTermsAr"),
+  contractUrl: text("contractUrl"),
+  // Notes
+  tenantNotes: text("tenantNotes"),
+  landlordNotes: text("landlordNotes"),
+  rejectionReason: text("rejectionReason"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Booking = typeof bookings.$inferSelect;
+export type InsertBooking = typeof bookings.$inferInsert;
+
+// ─── Payments ────────────────────────────────────────────────────────
+export const payments = mysqlTable("payments", {
+  id: int("id").autoincrement().primaryKey(),
+  bookingId: int("bookingId").notNull(),
+  tenantId: int("tenantId").notNull(),
+  landlordId: int("landlordId").notNull(),
+  type: mysqlEnum("type", ["rent", "deposit", "service_fee", "refund"]).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).default("SAR"),
+  status: mysqlEnum("status", ["pending", "processing", "completed", "failed", "refunded"]).default("pending").notNull(),
+  stripePaymentId: varchar("stripePaymentId", { length: 255 }),
+  stripeSessionId: varchar("stripeSessionId", { length: 255 }),
+  description: text("description"),
+  descriptionAr: text("descriptionAr"),
+  paidAt: timestamp("paidAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = typeof payments.$inferInsert;
+
+// ─── Messages ────────────────────────────────────────────────────────
+export const conversations = mysqlTable("conversations", {
+  id: int("id").autoincrement().primaryKey(),
+  propertyId: int("propertyId"),
+  tenantId: int("tenantId").notNull(),
+  landlordId: int("landlordId").notNull(),
+  lastMessageAt: timestamp("lastMessageAt").defaultNow(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const messages = mysqlTable("messages", {
+  id: int("id").autoincrement().primaryKey(),
+  conversationId: int("conversationId").notNull(),
+  senderId: int("senderId").notNull(),
+  content: text("content").notNull(),
+  messageType: mysqlEnum("messageType", ["text", "image", "file"]).default("text"),
+  fileUrl: text("fileUrl"),
+  isRead: boolean("isRead").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Message = typeof messages.$inferSelect;
+export type InsertMessage = typeof messages.$inferInsert;
+
+// ─── Maintenance Requests ────────────────────────────────────────────
+export const maintenanceRequests = mysqlTable("maintenanceRequests", {
+  id: int("id").autoincrement().primaryKey(),
+  propertyId: int("propertyId").notNull(),
+  tenantId: int("tenantId").notNull(),
+  landlordId: int("landlordId").notNull(),
+  bookingId: int("bookingId"),
+  title: varchar("title", { length: 255 }).notNull(),
+  titleAr: varchar("titleAr", { length: 255 }),
+  description: text("description").notNull(),
+  descriptionAr: text("descriptionAr"),
+  category: mysqlEnum("category", [
+    "plumbing", "electrical", "hvac", "appliance", "structural", "pest_control", "cleaning", "other"
+  ]).default("other"),
+  priority: mysqlEnum("priority", ["low", "medium", "high", "emergency"]).default("medium"),
+  status: mysqlEnum("status", ["submitted", "acknowledged", "in_progress", "completed", "cancelled"]).default("submitted").notNull(),
+  photos: json("photos").$type<string[]>(),
+  landlordResponse: text("landlordResponse"),
+  landlordResponseAr: text("landlordResponseAr"),
+  estimatedCost: decimal("estimatedCost", { precision: 10, scale: 2 }),
+  resolvedAt: timestamp("resolvedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MaintenanceRequest = typeof maintenanceRequests.$inferSelect;
+export type InsertMaintenanceRequest = typeof maintenanceRequests.$inferInsert;
+
+// ─── Reviews ─────────────────────────────────────────────────────────
+export const reviews = mysqlTable("reviews", {
+  id: int("id").autoincrement().primaryKey(),
+  propertyId: int("propertyId").notNull(),
+  tenantId: int("tenantId").notNull(),
+  bookingId: int("bookingId"),
+  rating: int("rating").notNull(),
+  comment: text("comment"),
+  commentAr: text("commentAr"),
+  isPublished: boolean("isPublished").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ─── Notifications ───────────────────────────────────────────────────
+export const notifications = mysqlTable("notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  type: mysqlEnum("type", [
+    "booking_request", "booking_approved", "booking_rejected",
+    "payment_received", "payment_due", "message_new",
+    "maintenance_update", "lease_expiring", "system"
+  ]).notNull(),
+  titleEn: varchar("titleEn", { length: 255 }).notNull(),
+  titleAr: varchar("titleAr", { length: 255 }),
+  contentEn: text("contentEn"),
+  contentAr: text("contentAr"),
+  relatedId: int("relatedId"),
+  relatedType: varchar("relatedType", { length: 50 }),
+  isRead: boolean("isRead").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ─── Saved Searches ──────────────────────────────────────────────────
+export const savedSearches = mysqlTable("savedSearches", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 255 }),
+  filters: json("filters").$type<Record<string, unknown>>(),
+  alertEnabled: boolean("alertEnabled").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ─── Platform Settings ──────────────────────────────────────────────
+export const platformSettings = mysqlTable("platformSettings", {
+  id: int("id").autoincrement().primaryKey(),
+  settingKey: varchar("settingKey", { length: 100 }).notNull().unique(),
+  settingValue: text("settingValue"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
