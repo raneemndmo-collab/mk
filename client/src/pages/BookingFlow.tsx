@@ -18,6 +18,7 @@ import { useState, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
+import { useSiteSettings } from "@/contexts/SiteSettingsContext";
 
 export default function BookingFlow() {
   const { t, lang, dir } = useI18n();
@@ -27,11 +28,16 @@ export default function BookingFlow() {
   const propertyId = Number(params?.id);
 
   const property = trpc.property.getById.useQuery({ id: propertyId }, { enabled: !!propertyId });
+  const { get: setting } = useSiteSettings();
+
+  // Dynamic rental duration limits from CMS settings
+  const platformMinMonths = parseInt(setting("rental.minMonths", "1")) || 1;
+  const platformMaxMonths = parseInt(setting("rental.maxMonths", "12")) || 12;
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     moveInDate: "",
-    durationMonths: 6,
+    durationMonths: platformMinMonths,
     tenantNotes: "",
   });
 
@@ -168,7 +174,7 @@ export default function BookingFlow() {
               <div>
                 <Label>{t("booking.duration")}</Label>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {Array.from({ length: (prop.maxStayMonths ?? 12) - (prop.minStayMonths ?? 1) + 1 }, (_, i) => i + (prop.minStayMonths ?? 1)).slice(0, 12).map(m => (
+                  {Array.from({ length: Math.min(prop.maxStayMonths ?? platformMaxMonths, platformMaxMonths) - Math.max(prop.minStayMonths ?? platformMinMonths, platformMinMonths) + 1 }, (_, i) => i + Math.max(prop.minStayMonths ?? platformMinMonths, platformMinMonths)).map(m => (
                     <Button
                       key={m}
                       variant={form.durationMonths === m ? "default" : "outline"}
@@ -195,7 +201,7 @@ export default function BookingFlow() {
                   rows={3}
                 />
               </div>
-              <Button className="w-full gradient-saudi text-white border-0" onClick={() => setStep(2)} disabled={!form.moveInDate}>
+              <Button className="w-full bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold" onClick={() => setStep(2)} disabled={!form.moveInDate}>
                 {t("common.next")}
               </Button>
             </CardContent>
@@ -235,7 +241,7 @@ export default function BookingFlow() {
               </div>
               <div className="flex gap-3">
                 <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>{t("common.back")}</Button>
-                <Button className="flex-1 gradient-saudi text-white border-0" onClick={() => setStep(3)}>{t("common.next")}</Button>
+                <Button className="flex-1 bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold" onClick={() => setStep(3)}>{t("common.next")}</Button>
               </div>
             </CardContent>
           </Card>
@@ -273,7 +279,7 @@ export default function BookingFlow() {
               <div className="flex gap-3">
                 <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>{t("common.back")}</Button>
                 <Button
-                  className="flex-1 gradient-saudi text-white border-0"
+                  className="flex-1 bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold"
                   onClick={handleSubmit}
                   disabled={createBooking.isPending}
                 >
@@ -300,7 +306,7 @@ export default function BookingFlow() {
               </p>
               <div className="flex gap-3 justify-center">
                 <Button variant="outline" onClick={() => setLocation("/dashboard")}>{t("dashboard.tenant")}</Button>
-                <Button onClick={() => setLocation("/search")} className="gradient-saudi text-white border-0">{t("nav.search")}</Button>
+                <Button onClick={() => setLocation("/search")} className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold">{t("nav.search")}</Button>
               </div>
             </CardContent>
           </Card>

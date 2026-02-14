@@ -191,7 +191,7 @@ export default function MaintenanceRequest() {
             {/* Submit */}
             <div className="flex gap-3 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => setLocation("/dashboard")}>{t("common.cancel")}</Button>
-              <Button className="flex-1 gradient-saudi text-white border-0" onClick={handleSubmit} disabled={createRequest.isPending}>
+              <Button className="flex-1 bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold" onClick={handleSubmit} disabled={createRequest.isPending}>
                 {createRequest.isPending && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
                 {t("common.submit")}
               </Button>

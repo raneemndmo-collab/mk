@@ -230,3 +230,29 @@
 - [x] Seed 8 Saudi cities with regions and coordinates
 - [x] Tests for city and district CRUD operations (13 tests, all passing)
 - [x] All 130 tests passing (5 test files)
+
+## Design Redesign - CoBnB KSA Style Match
+- [x] Fix esbuild error in routers.ts line 897
+- [x] Rewrite CSS theme: dark navy #0B1E2D, teal accent #3ECFC0, gold #C9A96E
+- [x] Rewrite Navbar: dark navy sticky, teal accents, RTL menu
+- [x] Rewrite Home page: hero (dark navy bg, badge, large heading, two CTAs)
+- [x] Home: stats bar with animated counters in teal
+- [x] Home: services grid (6 cards) on light gray bg with teal icons
+- [x] Home: "how it works" 3 steps on dark bg
+- [x] Home: featured properties carousel
+- [x] Home: cities section with district counts
+- [x] Home: testimonials carousel
+- [x] Home: CTA section "حقق أقصى استفادة من عقارك"
+- [x] Rewrite Footer: dark navy, teal accents
+- [x] Update all pages to use new dark/teal theme (Login, Register, KnowledgeBase, LandlordDashboard, CityDistrict, etc.)
+- [x] Configurable rental duration (dynamic from CMS settings)
+- [x] Update booking flow validation with dynamic limits
+- [ ] WhatsApp floating button (pending)
+
+## Configurable Rental Duration Limits
+- [x] Add rental.minMonths and rental.maxMonths to platform_settings seed defaults
+- [x] Add rental duration fields to Admin CMS page (Platform Fees section)
+- [x] Update BookingFlow to read min/max months from site settings
+- [x] Update backend booking validation to use dynamic limits from settings
+- [x] Update property creation form to show dynamic duration info
+- [x] Write vitest tests for dynamic rental duration validation (6 tests, all passing)

@@ -40,7 +40,7 @@ export const appRouter = router({
       }),
   }),
 
-  // ─── Properties ──────────────────────────────────────────────────
+  // Properties
   property: router({
     create: protectedProcedure
       .input(z.object({
@@ -211,7 +211,7 @@ export const appRouter = router({
       }),
   }),
 
-  // ─── Favorites ───────────────────────────────────────────────────
+  // Favorites
   favorite: router({
     toggle: protectedProcedure
       .input(z.object({ propertyId: z.number() }))
@@ -235,7 +235,7 @@ export const appRouter = router({
       }),
   }),
 
-  // ─── Bookings ────────────────────────────────────────────────────
+  // Bookings
   booking: router({
     create: protectedProcedure
       .input(z.object({
@@ -248,6 +248,12 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const prop = await db.getPropertyById(input.propertyId);
         if (!prop) throw new Error("Property not found");
+        // Dynamic rental duration validation from settings
+        const minMonths = parseInt(await db.getSetting("rental.minMonths") || "1");
+        const maxMonths = parseInt(await db.getSetting("rental.maxMonths") || "12");
+        if (input.durationMonths < minMonths || input.durationMonths > maxMonths) {
+          throw new Error(`Duration must be between ${minMonths} and ${maxMonths} months`);
+        }
         const totalAmount = Number(prop.monthlyRent) * input.durationMonths;
         const id = await db.createBooking({
           propertyId: input.propertyId,
@@ -319,7 +325,7 @@ export const appRouter = router({
     }),
   }),
 
-  // ─── Payments ────────────────────────────────────────────────────
+  // Payments
   payment: router({
     create: protectedProcedure
       .input(z.object({
@@ -360,7 +366,7 @@ export const appRouter = router({
       }),
   }),
 
-  // ─── Messages ────────────────────────────────────────────────────
+  // Messages
   message: router({
     getConversations: protectedProcedure.query(async ({ ctx }) => {
       return db.getConversationsByUser(ctx.user.id);
@@ -426,7 +432,7 @@ export const appRouter = router({
     }),
   }),
 
-  // ─── Maintenance ─────────────────────────────────────────────────
+  // Maintenance
   maintenance: router({
     create: protectedProcedure
       .input(z.object({
@@ -504,7 +510,7 @@ export const appRouter = router({
       }),
   }),
 
-  // ─── Notifications ───────────────────────────────────────────────
+  // Notifications
   notification: router({
     list: protectedProcedure.query(async ({ ctx }) => {
       return db.getNotificationsByUser(ctx.user.id);
@@ -520,7 +526,7 @@ export const appRouter = router({
     }),
   }),
 
-  // ─── Reviews ─────────────────────────────────────────────────────
+  // Reviews
   review: router({
     create: protectedProcedure
       .input(z.object({
@@ -536,7 +542,7 @@ export const appRouter = router({
       }),
   }),
 
-  // ─── Saved Searches ──────────────────────────────────────────────
+  // Saved Searches
   savedSearch: router({
     create: protectedProcedure
       .input(z.object({ name: z.string(), filters: z.record(z.string(), z.unknown()) }))
@@ -555,7 +561,7 @@ export const appRouter = router({
       }),
   }),
 
-  // ─── Admin ───────────────────────────────────────────────────────
+  // Admin
   admin: router({
     stats: adminProcedure.query(async () => {
       const [userCount, propertyCount, activeProperties, pendingProperties, bookingCount, activeBookings, totalRevenue] = await Promise.all([
@@ -603,7 +609,7 @@ export const appRouter = router({
       }),
   }),
 
-  // ─── Site Settings (CMS) ─────────────────────────────────────────
+  // Site Settings (CMS)
   siteSettings: router({
     getAll: publicProcedure.query(async () => {
       return db.getAllSettings();
@@ -661,6 +667,12 @@ export const appRouter = router({
         "fees.maxRent": "100000",
         "fees.depositMonths": "2",
         "fees.vatPercent": "15",
+        "rental.minMonths": "1",
+        "rental.maxMonths": "12",
+        "rental.minMonthsLabelAr": "الحد الأدنى لمدة الإيجار (بالأشهر)",
+        "rental.minMonthsLabelEn": "Minimum Rental Duration (months)",
+        "rental.maxMonthsLabelAr": "الحد الأقصى لمدة الإيجار (بالأشهر)",
+        "rental.maxMonthsLabelEn": "Maximum Rental Duration (months)",
         "footer.aboutAr": "منصة إيجار هي المنصة الرائدة للإيجار الشهري في المملكة العربية السعودية",
         "footer.aboutEn": "Ijar is the leading monthly rental platform in Saudi Arabia",
         "footer.email": "info@ijar.sa",
@@ -680,7 +692,7 @@ export const appRouter = router({
     }),
   }),
 
-  // ─── AI Assistant ────────────────────────────────────────────────
+  // AI Assistant
   ai: router({
     // Create or get conversations
     conversations: protectedProcedure.query(async ({ ctx }) => {
@@ -746,7 +758,7 @@ export const appRouter = router({
       }),
   }),
 
-  // ─── Knowledge Base ─────────────────────────────────────────────
+  // Knowledge Base
   knowledge: router({
     list: protectedProcedure
       .input(z.object({ category: z.string().optional() }).optional())
@@ -802,7 +814,7 @@ export const appRouter = router({
     }),
   }),
 
-  // ─── Lease Contract ───────────────────────────────────────────────
+  // Lease Contract
   lease: router({
     generate: protectedProcedure
       .input(z.object({ bookingId: z.number() }))
@@ -812,7 +824,7 @@ export const appRouter = router({
       }),
   }),
 
-  // ─── User Activity Tracking ────────────────────────────────────
+  // User Activity Tracking
   activity: router({
     track: publicProcedure
       .input(z.object({
@@ -855,7 +867,7 @@ export const appRouter = router({
       }),
   }),
 
-  // ─── Admin Permissions ────────────────────────────────────────────
+  // Admin Permissions
   permissions: router({
     list: adminProcedure.query(async () => {
       return db.getAllAdminPermissions();
@@ -894,7 +906,7 @@ export const appRouter = router({
       }),
   }),
 
-  // ─── Cities ────────────────────────────────────────────────────
+  // Cities
   cities: router({
     all: publicProcedure
       .input(z.object({ activeOnly: z.boolean().optional() }).optional())
@@ -963,7 +975,7 @@ export const appRouter = router({
       }),
   }),
 
-  // ─── Districts ────────────────────────────────────────────────
+  // Districts
   districts: router({
     all: publicProcedure
       .input(z.object({ activeOnly: z.boolean().optional() }).optional())
@@ -1068,7 +1080,7 @@ export const appRouter = router({
       }),
   }),
 
-  // ─── Upload ──────────────────────────────────────────────────────
+  // Upload
   upload: router({
     file: protectedProcedure
       .input(z.object({ base64: z.string(), filename: z.string(), contentType: z.string() }))

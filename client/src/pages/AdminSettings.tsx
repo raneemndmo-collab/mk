@@ -392,6 +392,21 @@ export default function AdminSettings() {
                   <SettingField label={t("settings.depositMonths")} settingKey="fees.depositMonths" type="number" placeholder="2" />
                 </div>
 
+                {/* Rental Duration Limits */}
+                <div className="border-t pt-6 mt-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-primary" />
+                    {lang === "ar" ? "حدود مدة الإيجار" : "Rental Duration Limits"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {lang === "ar" ? "تحديد الحد الأدنى والأقصى لمدة الإيجار المسموح بها على المنصة (بالأشهر)" : "Set the minimum and maximum rental duration allowed on the platform (in months)"}
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <SettingField label={lang === "ar" ? "الحد الأدنى (أشهر)" : "Minimum Duration (months)"} settingKey="rental.minMonths" type="number" placeholder="1" />
+                    <SettingField label={lang === "ar" ? "الحد الأقصى (أشهر)" : "Maximum Duration (months)"} settingKey="rental.maxMonths" type="number" placeholder="12" />
+                  </div>
+                </div>
+
                 <Button onClick={saveSettings} disabled={updateMutation.isPending}>
                   <Save className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
                   {t("settings.save")}

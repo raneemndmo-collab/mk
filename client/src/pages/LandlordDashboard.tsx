@@ -58,7 +58,7 @@ export default function LandlordDashboard() {
 
   const statusBadge = (status: string) => {
     const colors: Record<string, string> = {
-      pending: "bg-yellow-100 text-yellow-800", approved: "bg-green-100 text-green-800",
+      pending: "bg-yellow-100 text-yellow-800", approved: "bg-[#3ECFC0]/10 text-[#0B1E2D]",
       active: "bg-blue-100 text-blue-800", rejected: "bg-red-100 text-red-800",
       cancelled: "bg-gray-100 text-gray-800", completed: "bg-gray-100 text-gray-800",
       submitted: "bg-yellow-100 text-yellow-800", acknowledged: "bg-blue-100 text-blue-800",
@@ -82,7 +82,7 @@ export default function LandlordDashboard() {
               {lang === "ar" ? `مرحباً، ${user?.name || ""}` : `Welcome, ${user?.name || ""}`}
             </p>
           </div>
-          <Button onClick={() => setLocation("/list-property")} className="gradient-saudi text-white border-0">
+          <Button onClick={() => setLocation("/list-property")} className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold">
             <Plus className="h-4 w-4 me-1.5" />
             {t("nav.listProperty")}
           </Button>
@@ -101,7 +101,7 @@ export default function LandlordDashboard() {
             <div className="text-xs text-muted-foreground">{lang === "ar" ? "حجوزات نشطة" : "Active Bookings"}</div>
           </CardContent></Card>
           <Card><CardContent className="p-4 text-center">
-            <Clock className="h-6 w-6 text-desert-gold mx-auto mb-2" />
+            <Clock className="h-6 w-6 text-[#C9A96E] mx-auto mb-2" />
             <div className="text-2xl font-bold">{pendingBookings}</div>
             <div className="text-xs text-muted-foreground">{t("dashboard.pendingApproval")}</div>
           </CardContent></Card>
@@ -158,7 +158,7 @@ export default function LandlordDashboard() {
               <Card className="p-12 text-center">
                 <Building2 className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
                 <p className="text-muted-foreground">{lang === "ar" ? "لم تضف أي عقارات بعد" : "No properties listed yet"}</p>
-                <Button className="mt-4 gradient-saudi text-white border-0" onClick={() => setLocation("/list-property")}>{t("nav.listProperty")}</Button>
+                <Button className="mt-4 bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold" onClick={() => setLocation("/list-property")}>{t("nav.listProperty")}</Button>
               </Card>
             )}
           </TabsContent>

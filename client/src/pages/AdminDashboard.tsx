@@ -95,7 +95,7 @@ export default function AdminDashboard() {
             <div className="text-xs text-muted-foreground">{t("dashboard.activeListings")}</div>
           </CardContent></Card>
           <Card><CardContent className="p-4 text-center">
-            <Calendar className="h-6 w-6 text-desert-gold mx-auto mb-2" />
+            <Calendar className="h-6 w-6 text-[#C9A96E] mx-auto mb-2" />
             <div className="text-2xl font-bold">{stats.data?.pendingProperties ?? 0}</div>
             <div className="text-xs text-muted-foreground">{t("dashboard.pendingApproval")}</div>
           </CardContent></Card>

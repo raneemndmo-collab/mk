@@ -16,7 +16,7 @@ import {
   Home, Search, Bell, MessageSquare, Menu, X, Globe, User,
   LogOut, LayoutDashboard, Building2, Plus, ChevronDown
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 
 export default function Navbar() {
@@ -25,6 +25,13 @@ export default function Navbar() {
   const { get: s } = useSiteSettings();
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const unreadNotifs = trpc.notification.unreadCount.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -42,20 +49,28 @@ export default function Navbar() {
     return "/tenant";
   };
 
+  const isHome = location === "/";
+
   return (
-    <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+    <nav className={`sticky top-0 z-50 transition-all duration-300 ${
+      scrolled 
+        ? "bg-[#0B1E2D]/95 backdrop-blur shadow-lg" 
+        : isHome 
+          ? "bg-[#0B1E2D]" 
+          : "bg-[#0B1E2D]/95 backdrop-blur"
+    }`}>
       <div className="container">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2.5">
             {s("site.logoUrl") ? (
               <img src={s("site.logoUrl")} alt="Logo" className="h-9 w-9 rounded-lg object-contain" />
             ) : (
-              <div className="w-9 h-9 rounded-lg gradient-saudi flex items-center justify-center">
-                <Building2 className="h-5 w-5 text-white" />
+              <div className="w-9 h-9 rounded-lg bg-[#3ECFC0] flex items-center justify-center">
+                <Building2 className="h-5 w-5 text-[#0B1E2D]" />
               </div>
             )}
-            <span className="text-xl font-bold font-heading text-primary">
+            <span className="text-xl font-bold font-heading text-white">
               {lang === "ar" ? (s("site.nameAr") || "إيجار") : (s("site.nameEn") || "Ijar")}
             </span>
           </Link>
@@ -63,31 +78,27 @@ export default function Navbar() {
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-1">
             <Link href="/">
-              <Button variant={location === "/" ? "secondary" : "ghost"} size="sm">
-                <Home className="h-4 w-4 me-1.5" />
+              <Button variant="ghost" size="sm" className={`text-white/80 hover:text-white hover:bg-white/10 ${location === "/" ? "text-[#3ECFC0]" : ""}`}>
                 {t("nav.home")}
               </Button>
             </Link>
             <Link href="/search">
-              <Button variant={location === "/search" ? "secondary" : "ghost"} size="sm">
-                <Search className="h-4 w-4 me-1.5" />
+              <Button variant="ghost" size="sm" className={`text-white/80 hover:text-white hover:bg-white/10 ${location === "/search" ? "text-[#3ECFC0]" : ""}`}>
                 {t("nav.search")}
               </Button>
             </Link>
             {isAuthenticated && (
               <>
                 <Link href={getDashboardLink()}>
-                  <Button variant={["/tenant", "/landlord", "/admin"].includes(location) ? "secondary" : "ghost"} size="sm">
-                    <LayoutDashboard className="h-4 w-4 me-1.5" />
+                  <Button variant="ghost" size="sm" className={`text-white/80 hover:text-white hover:bg-white/10 ${["/tenant", "/landlord", "/admin"].includes(location) ? "text-[#3ECFC0]" : ""}`}>
                     {t("nav.dashboard")}
                   </Button>
                 </Link>
                 <Link href="/messages">
-                  <Button variant={location.startsWith("/messages") ? "secondary" : "ghost"} size="sm" className="relative">
-                    <MessageSquare className="h-4 w-4 me-1.5" />
+                  <Button variant="ghost" size="sm" className={`relative text-white/80 hover:text-white hover:bg-white/10 ${location.startsWith("/messages") ? "text-[#3ECFC0]" : ""}`}>
                     {t("nav.messages")}
                     {(unreadMsgs.data?.count ?? 0) > 0 && (
-                      <Badge className="absolute -top-1 -end-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-destructive">
+                      <Badge className="absolute -top-1 -end-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-red-500 text-white border-0">
                         {unreadMsgs.data?.count}
                       </Badge>
                     )}
@@ -100,17 +111,18 @@ export default function Navbar() {
           {/* Right side */}
           <div className="flex items-center gap-2">
             {/* Language toggle */}
-            <Button variant="ghost" size="icon" onClick={toggleLang} className="h-9 w-9">
+            <Button variant="ghost" size="sm" onClick={toggleLang} className="text-white/80 hover:text-white hover:bg-white/10 gap-1.5">
               <Globe className="h-4 w-4" />
+              <span className="text-xs">{lang === "ar" ? "EN" : "AR"}</span>
             </Button>
 
             {/* Notifications */}
             {isAuthenticated && (
               <Link href={getDashboardLink()}>
-                <Button variant="ghost" size="icon" className="relative h-9 w-9">
+                <Button variant="ghost" size="icon" className="relative h-9 w-9 text-white/80 hover:text-white hover:bg-white/10">
                   <Bell className="h-4 w-4" />
                   {(unreadNotifs.data?.count ?? 0) > 0 && (
-                    <Badge className="absolute -top-1 -end-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-destructive">
+                    <Badge className="absolute -top-1 -end-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-red-500 text-white border-0">
                       {unreadNotifs.data?.count}
                     </Badge>
                   )}
@@ -121,7 +133,7 @@ export default function Navbar() {
             {/* List Property CTA */}
             {isAuthenticated && (
               <Link href="/list-property" className="hidden md:block">
-                <Button size="sm" className="gradient-saudi text-white border-0">
+                <Button size="sm" className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold">
                   <Plus className="h-4 w-4 me-1.5" />
                   {t("nav.listProperty")}
                 </Button>
@@ -132,9 +144,9 @@ export default function Navbar() {
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-2">
+                  <Button variant="ghost" size="sm" className="gap-2 text-white/90 hover:text-white hover:bg-white/10">
                     <Avatar className="h-7 w-7">
-                      <AvatarFallback className="text-xs bg-primary text-primary-foreground">
+                      <AvatarFallback className="text-xs bg-[#3ECFC0] text-[#0B1E2D] font-semibold">
                         {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
                       </AvatarFallback>
                     </Avatar>
@@ -161,13 +173,12 @@ export default function Navbar() {
             ) : (
               <div className="flex items-center gap-2">
                 <Link href="/login">
-                  <Button size="sm" variant="outline">
-                    <User className="h-4 w-4 me-1.5" />
+                  <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10 hover:text-white">
                     {t("nav.login")}
                   </Button>
                 </Link>
                 <Link href="/register" className="hidden md:block">
-                  <Button size="sm" className="gradient-saudi text-white border-0">
+                  <Button size="sm" className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold">
                     {t("auth.register")}
                   </Button>
                 </Link>
@@ -178,7 +189,7 @@ export default function Navbar() {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden h-9 w-9"
+              className="md:hidden h-9 w-9 text-white/80 hover:text-white hover:bg-white/10"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -188,15 +199,15 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-border py-3 space-y-1">
+          <div className="md:hidden border-t border-white/10 py-3 space-y-1">
             <Link href="/" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="ghost" className="w-full justify-start">
+              <Button variant="ghost" className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10">
                 <Home className="h-4 w-4 me-2" />
                 {t("nav.home")}
               </Button>
             </Link>
             <Link href="/search" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="ghost" className="w-full justify-start">
+              <Button variant="ghost" className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10">
                 <Search className="h-4 w-4 me-2" />
                 {t("nav.search")}
               </Button>
@@ -204,19 +215,19 @@ export default function Navbar() {
             {isAuthenticated && (
               <>
                 <Link href={getDashboardLink()} onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start">
+                  <Button variant="ghost" className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10">
                     <LayoutDashboard className="h-4 w-4 me-2" />
                     {t("nav.dashboard")}
                   </Button>
                 </Link>
                 <Link href="/messages" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start">
+                  <Button variant="ghost" className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10">
                     <MessageSquare className="h-4 w-4 me-2" />
                     {t("nav.messages")}
                   </Button>
                 </Link>
                 <Link href="/list-property" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start">
+                  <Button variant="ghost" className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10">
                     <Plus className="h-4 w-4 me-2" />
                     {t("nav.listProperty")}
                   </Button>

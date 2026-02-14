@@ -77,15 +77,15 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-amber-50 flex items-center justify-center p-4" dir={dir}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-cyan-50 flex items-center justify-center p-4" dir={dir}>
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-6">
           <Link href="/" className="inline-flex items-center gap-3">
-            <div className="w-12 h-12 bg-green-700 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-[#0B1E2D] rounded-xl flex items-center justify-center">
               <Building2 className="w-7 h-7 text-white" />
             </div>
-            <span className="text-3xl font-bold text-green-800" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+            <span className="text-3xl font-bold text-[#0B1E2D]" style={{ fontFamily: "'Tajawal', sans-serif" }}>
               إيجار
             </span>
           </Link>
@@ -93,7 +93,7 @@ export default function Register() {
 
         <Card className="shadow-xl border-0">
           <CardHeader className="text-center pb-2">
-            <CardTitle className="text-2xl font-bold text-green-800">
+            <CardTitle className="text-2xl font-bold text-[#0B1E2D]">
               {t("auth.joinUs")}
             </CardTitle>
             <CardDescription className="text-base">
@@ -227,7 +227,7 @@ export default function Register() {
 
               <Button
                 type="submit"
-                className="w-full h-11 bg-green-700 hover:bg-green-800 text-white text-base font-semibold"
+                className="w-full h-11 bg-[#3ECFC0] hover:bg-[#2ab5a6] text-[#0B1E2D] text-white text-base font-semibold"
                 disabled={loading}
               >
                 {loading ? (
@@ -240,7 +240,7 @@ export default function Register() {
 
             <div className="mt-6 text-center text-sm">
               <span className="text-gray-500">{t("auth.hasAccount")}</span>{" "}
-              <Link href="/login" className="text-green-700 hover:text-green-800 font-semibold">
+              <Link href="/login" className="text-[#3ECFC0] hover:text-[#0B1E2D] font-semibold">
                 {t("auth.loginHere")}
               </Link>
             </div>

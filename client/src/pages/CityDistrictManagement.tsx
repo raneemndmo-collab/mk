@@ -280,8 +280,8 @@ export default function CityDistrictManagement() {
             </Card>
             <Card>
               <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/10">
-                  <ToggleRight className="h-5 w-5 text-green-500" />
+                <div className="p-2 rounded-lg bg-[#3ECFC0]/10">
+                  <ToggleRight className="h-5 w-5 text-[#3ECFC0]" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">{t("cityMgmt.activeCities")}</p>

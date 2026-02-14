@@ -1,8 +1,7 @@
 import { useI18n } from "@/lib/i18n";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Heart, MapPin, BedDouble, Bath, Maximize2, Star, CheckCircle } from "lucide-react";
+import { Heart, MapPin, BedDouble, Bath, Maximize2, CheckCircle } from "lucide-react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -64,7 +63,7 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
 
   return (
     <Link href={`/property/${property.id}`}>
-      <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer border-border/50 py-0 gap-0">
+      <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer border-border/50 py-0 gap-0 bg-white">
         {/* Image */}
         <div className="relative aspect-[4/3] overflow-hidden">
           <img
@@ -75,13 +74,13 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
           {/* Badges */}
           <div className="absolute top-3 start-3 flex gap-1.5">
             {property.isVerified && (
-              <Badge className="bg-primary text-primary-foreground text-[10px] gap-1">
+              <Badge className="bg-[#3ECFC0] text-[#0B1E2D] text-[10px] gap-1 border-0">
                 <CheckCircle className="h-3 w-3" />
                 {t("property.verified")}
               </Badge>
             )}
             {property.isFeatured && (
-              <Badge className="bg-desert-gold text-deep-charcoal text-[10px]">
+              <Badge className="bg-[#C9A96E] text-[#0B1E2D] text-[10px] border-0">
                 {t("property.featured")}
               </Badge>
             )}
@@ -93,26 +92,26 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
           >
             <Heart
               className={`h-4 w-4 transition-colors ${
-                favCheck.data?.isFavorite ? "fill-destructive text-destructive" : "text-muted-foreground"
+                favCheck.data?.isFavorite ? "fill-red-500 text-red-500" : "text-gray-400"
               }`}
             />
           </button>
           {/* Price tag */}
-          <div className="absolute bottom-3 start-3 bg-white/95 backdrop-blur rounded-lg px-3 py-1.5 shadow-sm">
-            <span className="font-bold text-primary text-lg">
+          <div className="absolute bottom-3 start-3 bg-[#0B1E2D]/90 backdrop-blur rounded-lg px-3 py-1.5 shadow-sm">
+            <span className="font-bold text-[#3ECFC0] text-lg">
               {Number(property.monthlyRent).toLocaleString()} {t("payment.sar")}
             </span>
-            <span className="text-muted-foreground text-xs ms-1">{t("property.perMonth")}</span>
+            <span className="text-white/60 text-xs ms-1">{t("property.perMonth")}</span>
           </div>
         </div>
 
         {/* Content */}
         <CardContent className="p-4">
           <div className="mb-2">
-            <Badge variant="secondary" className="text-[10px] mb-2">
+            <Badge variant="secondary" className="text-[10px] mb-2 bg-[#3ECFC0]/10 text-[#3ECFC0] border-0">
               {t(typeKey)}
             </Badge>
-            <h3 className="font-heading font-semibold text-sm line-clamp-1 group-hover:text-primary transition-colors">
+            <h3 className="font-heading font-semibold text-sm line-clamp-1 group-hover:text-[#3ECFC0] transition-colors">
               {title}
             </h3>
           </div>

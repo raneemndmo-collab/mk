@@ -208,7 +208,7 @@ export default function KnowledgeBase() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-green-700 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-[#3ECFC0] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -255,7 +255,7 @@ export default function KnowledgeBase() {
               </Button>
               <div>
                 <h1 className="text-2xl font-bold flex items-center gap-2">
-                  <BookOpen className="w-7 h-7 text-green-700" />
+                  <BookOpen className="w-7 h-7 text-[#3ECFC0]" />
                   {t("kb.title")}
                 </h1>
                 <p className="text-muted-foreground text-sm mt-1">{t("kb.subtitle")}</p>
@@ -266,7 +266,7 @@ export default function KnowledgeBase() {
                 <Database className="w-4 h-4 me-2" />
                 {t("kb.seedKB")}
               </Button>
-              <Button onClick={openCreate} className="bg-green-700 hover:bg-green-800 text-white">
+              <Button onClick={openCreate} className="bg-[#3ECFC0] hover:bg-[#2ab5a6] text-[#0B1E2D] text-white">
                 <Plus className="w-4 h-4 me-2" />
                 {t("kb.addArticle")}
               </Button>
@@ -275,13 +275,13 @@ export default function KnowledgeBase() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            <Card className="border-green-200 bg-green-50/50">
+            <Card className="border-[#3ECFC0]/20 bg-[#3ECFC0]/5">
               <CardContent className="p-4 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-green-700" />
+                <div className="w-12 h-12 rounded-xl bg-[#3ECFC0]/10 flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-[#3ECFC0]" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-green-700">{stats.total}</p>
+                  <p className="text-2xl font-bold text-[#3ECFC0]">{stats.total}</p>
                   <p className="text-sm text-muted-foreground">{t("kb.totalArticles")}</p>
                 </div>
               </CardContent>
@@ -340,7 +340,7 @@ export default function KnowledgeBase() {
           {/* Articles Table */}
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin w-8 h-8 border-4 border-green-700 border-t-transparent rounded-full" />
+              <div className="animate-spin w-8 h-8 border-4 border-[#3ECFC0] border-t-transparent rounded-full" />
             </div>
           ) : filteredArticles.length === 0 ? (
             <Card className="text-center py-16">
@@ -357,7 +357,7 @@ export default function KnowledgeBase() {
                     <Database className="w-4 h-4 me-2" />
                     {t("kb.seedKB")}
                   </Button>
-                  <Button onClick={openCreate} className="bg-green-700 hover:bg-green-800 text-white">
+                  <Button onClick={openCreate} className="bg-[#3ECFC0] hover:bg-[#2ab5a6] text-[#0B1E2D] text-white">
                     <Plus className="w-4 h-4 me-2" />
                     {t("kb.addArticle")}
                   </Button>
@@ -373,8 +373,8 @@ export default function KnowledgeBase() {
                     <CardContent className="p-4">
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                         {/* Icon & Category */}
-                        <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
-                          <CatIcon className="w-5 h-5 text-green-700" />
+                        <div className="w-10 h-10 rounded-lg bg-[#3ECFC0]/10 flex items-center justify-center shrink-0">
+                          <CatIcon className="w-5 h-5 text-[#3ECFC0]" />
                         </div>
 
                         {/* Content */}
@@ -383,7 +383,7 @@ export default function KnowledgeBase() {
                             <h3 className="font-semibold truncate">
                               {lang === "ar" ? article.titleAr : article.titleEn}
                             </h3>
-                            <Badge variant={article.isActive ? "default" : "secondary"} className={article.isActive ? "bg-green-100 text-green-700 hover:bg-green-200" : ""}>
+                            <Badge variant={article.isActive ? "default" : "secondary"} className={article.isActive ? "bg-[#3ECFC0]/10 text-[#3ECFC0] hover:bg-[#3ECFC0]/20" : ""}>
                               {article.isActive ? t("kb.active") : t("kb.inactive")}
                             </Badge>
                           </div>
@@ -415,7 +415,7 @@ export default function KnowledgeBase() {
                           <Switch
                             checked={article.isActive}
                             onCheckedChange={() => toggleStatus(article)}
-                            className="data-[state=checked]:bg-green-700"
+                            className="data-[state=checked]:bg-[#3ECFC0]"
                           />
                           <Button variant="ghost" size="icon" onClick={() => openEdit(article)}>
                             <Pencil className="w-4 h-4 text-blue-600" />
@@ -538,7 +538,7 @@ export default function KnowledgeBase() {
                   <Switch
                     checked={form.isActive}
                     onCheckedChange={(v) => setForm({ ...form, isActive: v })}
-                    className="data-[state=checked]:bg-green-700"
+                    className="data-[state=checked]:bg-[#3ECFC0]"
                   />
                 </div>
               </div>
@@ -552,7 +552,7 @@ export default function KnowledgeBase() {
             <Button
               onClick={handleSave}
               disabled={!form.titleAr || !form.titleEn || !form.contentAr || !form.contentEn || isSaving}
-              className="bg-green-700 hover:bg-green-800 text-white"
+              className="bg-[#3ECFC0] hover:bg-[#2ab5a6] text-[#0B1E2D] text-white"
             >
               {isSaving ? (
                 <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full me-2" />

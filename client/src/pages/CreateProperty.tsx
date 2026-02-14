@@ -16,6 +16,7 @@ import { useState, useRef } from "react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
 import { getLoginUrl } from "@/const";
+import { useSiteSettings } from "@/contexts/SiteSettingsContext";
 
 export default function CreateProperty() {
   const { t, lang, dir } = useI18n();
@@ -24,6 +25,11 @@ export default function CreateProperty() {
   const [, editParams] = useRoute("/edit-property/:id");
   const isEdit = !!editParams?.id;
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { get: setting } = useSiteSettings();
+
+  // Dynamic rental duration limits from CMS
+  const platformMinMonths = parseInt(setting("rental.minMonths", "1")) || 1;
+  const platformMaxMonths = parseInt(setting("rental.maxMonths", "12")) || 12;
 
   const [form, setForm] = useState({
     titleEn: "", titleAr: "", descriptionEn: "", descriptionAr: "",
@@ -38,7 +44,7 @@ export default function CreateProperty() {
     amenities: [] as string[],
     utilitiesIncluded: [] as string[],
     houseRules: "", houseRulesAr: "",
-    minStayMonths: 1, maxStayMonths: 12,
+    minStayMonths: platformMinMonths, maxStayMonths: platformMaxMonths,
     instantBook: false,
     photos: [] as string[],
   });
@@ -240,8 +246,9 @@ export default function CreateProperty() {
                 <div><Label>{t("property.securityDeposit")} ({t("payment.sar")})</Label><Input type="number" value={form.securityDeposit} onChange={e => setForm(p => ({ ...p, securityDeposit: e.target.value }))} /></div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><Label>{lang === "ar" ? "الحد الأدنى للإقامة (أشهر)" : "Min Stay (months)"}</Label><Input type="number" min={1} value={form.minStayMonths} onChange={e => setForm(p => ({ ...p, minStayMonths: Number(e.target.value) }))} /></div>
-                <div><Label>{lang === "ar" ? "الحد الأقصى للإقامة (أشهر)" : "Max Stay (months)"}</Label><Input type="number" min={1} value={form.maxStayMonths} onChange={e => setForm(p => ({ ...p, maxStayMonths: Number(e.target.value) }))} /></div>
+                <div><Label>{lang === "ar" ? "الحد الأدنى للإقامة (أشهر)" : "Min Stay (months)"}</Label><Input type="number" min={platformMinMonths} max={platformMaxMonths} value={form.minStayMonths} onChange={e => setForm(p => ({ ...p, minStayMonths: Math.max(platformMinMonths, Math.min(platformMaxMonths, Number(e.target.value))) }))} /></div>
+                <div><Label>{lang === "ar" ? "الحد الأقصى للإقامة (أشهر)" : "Max Stay (months)"}</Label><Input type="number" min={platformMinMonths} max={platformMaxMonths} value={form.maxStayMonths} onChange={e => setForm(p => ({ ...p, maxStayMonths: Math.max(platformMinMonths, Math.min(platformMaxMonths, Number(e.target.value))) }))} /></div>
+                <p className="text-xs text-muted-foreground col-span-2">{lang === "ar" ? `المنصة تسمح بالإيجار من ${platformMinMonths} إلى ${platformMaxMonths} أشهر` : `Platform allows rentals from ${platformMinMonths} to ${platformMaxMonths} months`}</p>
               </div>
               <div className="flex items-center gap-3">
                 <Switch checked={form.instantBook} onCheckedChange={v => setForm(p => ({ ...p, instantBook: v }))} />
@@ -302,7 +309,7 @@ export default function CreateProperty() {
           {/* Submit */}
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setLocation("/")}>{t("common.cancel")}</Button>
-            <Button onClick={handleSubmit} disabled={createMut.isPending} className="gradient-saudi text-white border-0">
+            <Button onClick={handleSubmit} disabled={createMut.isPending} className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold">
               {createMut.isPending && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
               {isEdit ? t("common.save") : t("common.create")}
             </Button>

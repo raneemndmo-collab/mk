@@ -167,7 +167,7 @@ export default function PropertyDetail() {
                 </div>
                 {reviews.data && reviews.data.avgRating > 0 && (
                   <div className="flex items-center gap-1 shrink-0">
-                    <Star className="h-5 w-5 fill-desert-gold text-desert-gold" />
+                    <Star className="h-5 w-5 fill-[#C9A96E] text-[#C9A96E]" />
                     <span className="font-semibold">{Number(reviews.data.avgRating).toFixed(1)}</span>
                     <span className="text-muted-foreground text-sm">({reviews.data.reviews.length})</span>
                   </div>
@@ -299,7 +299,7 @@ export default function PropertyDetail() {
                   <Separator />
 
                   <Button
-                    className="w-full gradient-saudi text-white border-0"
+                    className="w-full bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-semibold"
                     size="lg"
                     onClick={() => {
                       if (!isAuthenticated) { toast.error(lang === "ar" ? "يرجى تسجيل الدخول أولاً" : "Please sign in first"); return; }
