@@ -341,6 +341,14 @@
 - [x] Verify all CMS changes reflect on frontend
 - [x] PayPal payment flow ready (requires PayPal credentials to test live)
 
+## Property Manager (Agent) Profile Feature
+- [ ] Agent public profile page (/agent/:id) — photo, name, title, phone, bio, assigned properties
+- [ ] Agent info overlay on property cards (photo + name like realestate.com.au)
+- [ ] Agent info sidebar on property detail page (photo, name, phone, enquire/call)
+- [ ] Admin management page for property managers (CRUD + assign to properties)
+- [ ] tRPC procedure: getManagerWithProperties (public)
+- [ ] Push to GitHub and redeploy on Railway
+
 ## Major Platform Upgrade v2
 ### Security Deposit = 10% of Rent
 - [ ] Change deposit calculation to 10% of monthly rent (not fixed months)
@@ -401,3 +409,6 @@
 - [ ] Add MySQL database on Railway
 - [ ] Set all environment variables
 - [ ] Deploy and verify
+- [ ] Agent self-service: email-based token login for managers to edit their own profile
+- [ ] Agent edit profile page (/agent/edit/:token) — photo, bio, phone, whatsapp
+- [ ] Admin sends profile edit link to manager via email field

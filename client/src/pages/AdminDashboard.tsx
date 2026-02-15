@@ -74,6 +74,12 @@ export default function AdminDashboard() {
               {lang === "ar" ? "إدارة المدن والأحياء" : "Cities & Districts"}
             </Button>
           </Link>
+          <Link href="/admin/managers">
+            <Button variant="outline" className="gap-2">
+              <Users className="h-4 w-4" />
+              {lang === "ar" ? "مدراء العقارات" : "Property Managers"}
+            </Button>
+          </Link>
           <Link href="/admin/settings">
             <Button variant="outline" className="gap-2">
               <BarChart3 className="h-4 w-4" />

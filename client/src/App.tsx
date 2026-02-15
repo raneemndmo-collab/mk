@@ -32,6 +32,9 @@ const AdminSettings = lazy(() => import("./pages/AdminSettings"));
 const CityDistrictManagement = lazy(() => import("./pages/CityDistrictManagement"));
 const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
 const PaymentCancel = lazy(() => import("./pages/PaymentCancel"));
+const AgentProfile = lazy(() => import("./pages/AgentProfile"));
+const AgentEditProfile = lazy(() => import("./pages/AgentEditProfile"));
+const AdminManagers = lazy(() => import("./pages/AdminManagers"));
 
 function PageLoader() {
   return (
@@ -65,6 +68,9 @@ function Router() {
         <Route path="/admin/cities" component={CityDistrictManagement} />
         <Route path="/payment/success" component={PaymentSuccess} />
         <Route path="/payment/cancel" component={PaymentCancel} />
+        <Route path="/agent/edit/:token" component={AgentEditProfile} />
+        <Route path="/agent/:id" component={AgentProfile} />
+        <Route path="/admin/managers" component={AdminManagers} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

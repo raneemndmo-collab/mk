@@ -162,8 +162,10 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         const prop = await db.getPropertyById(input.id);
-        if (prop) await db.incrementPropertyViews(input.id);
-        return prop ?? null;
+        if (!prop) return null;
+        await db.incrementPropertyViews(input.id);
+        const manager = await db.getPropertyManagerByProperty(input.id);
+        return { ...prop, manager: manager ?? null };
       }),
 
     getByLandlord: protectedProcedure
@@ -1211,6 +1213,91 @@ export const appRouter = router({
       .input(z.object({ managerId: z.number() }))
       .query(async ({ input }) => {
         return await db.getManagerAssignments(input.managerId);
+      }),
+    getWithProperties: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return await db.getManagerWithProperties(input.id);
+      }),
+    listWithCounts: adminProcedure.query(async () => {
+      return await db.getAllManagersWithCounts();
+    }),
+    uploadPhoto: adminProcedure
+      .input(z.object({ base64: z.string(), filename: z.string(), contentType: z.string() }))
+      .mutation(async ({ input }) => {
+        const ext = input.filename.split('.').pop() || 'jpg';
+        const key = `managers/${nanoid()}.${ext}`;
+        const buffer = Buffer.from(input.base64, 'base64');
+        const { url } = await storagePut(key, buffer, input.contentType);
+        return { url };
+      }),
+    // Agent self-service: request edit link by email
+    requestEditLink: publicProcedure
+      .input(z.object({ email: z.string().email() }))
+      .mutation(async ({ input }) => {
+        const manager = await db.getManagerByEmail(input.email);
+        if (!manager) throw new Error("No manager found with this email");
+        const token = nanoid(32);
+        await db.setManagerEditToken(manager.id, token);
+        return { success: true, token, managerId: manager.id };
+      }),
+    // Agent self-service: get profile by edit token
+    getByToken: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .query(async ({ input }) => {
+        const manager = await db.getManagerByToken(input.token);
+        if (!manager) return null;
+        return manager;
+      }),
+    // Agent self-service: update own profile by token
+    updateSelfProfile: publicProcedure
+      .input(z.object({
+        token: z.string(),
+        phone: z.string().optional(),
+        whatsapp: z.string().optional(),
+        bio: z.string().optional(),
+        bioAr: z.string().optional(),
+        photoUrl: z.string().optional(),
+        title: z.string().optional(),
+        titleAr: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const manager = await db.getManagerByToken(input.token);
+        if (!manager) throw new Error("Invalid or expired token");
+        const { token, ...data } = input;
+        const updateData: Record<string, any> = {};
+        if (data.phone !== undefined) updateData.phone = data.phone;
+        if (data.whatsapp !== undefined) updateData.whatsapp = data.whatsapp;
+        if (data.bio !== undefined) updateData.bio = data.bio;
+        if (data.bioAr !== undefined) updateData.bioAr = data.bioAr;
+        if (data.photoUrl !== undefined) updateData.photoUrl = data.photoUrl;
+        if (data.title !== undefined) updateData.title = data.title;
+        if (data.titleAr !== undefined) updateData.titleAr = data.titleAr;
+        await db.updatePropertyManager(manager.id, updateData);
+        return { success: true };
+      }),
+    // Agent self-service: upload own photo by token
+    uploadSelfPhoto: publicProcedure
+      .input(z.object({ token: z.string(), base64: z.string(), filename: z.string(), contentType: z.string() }))
+      .mutation(async ({ input }) => {
+        const manager = await db.getManagerByToken(input.token);
+        if (!manager) throw new Error("Invalid or expired token");
+        const ext = input.filename.split('.').pop() || 'jpg';
+        const key = `managers/${nanoid()}.${ext}`;
+        const buffer = Buffer.from(input.base64, 'base64');
+        const { url } = await storagePut(key, buffer, input.contentType);
+        await db.updatePropertyManager(manager.id, { photoUrl: url });
+        return { url };
+      }),
+    // Generate edit link for a manager (admin)
+    generateEditLink: adminProcedure
+      .input(z.object({ managerId: z.number() }))
+      .mutation(async ({ input }) => {
+        const manager = await db.getPropertyManagerById(input.managerId);
+        if (!manager) throw new Error("Manager not found");
+        const token = nanoid(32);
+        await db.setManagerEditToken(input.managerId, token);
+        return { token };
       }),
   }),
 

@@ -1,7 +1,7 @@
 import { useI18n } from "@/lib/i18n";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MapPin, BedDouble, Bath, Maximize2, CheckCircle } from "lucide-react";
+import { Heart, MapPin, BedDouble, Bath, Maximize2, CheckCircle, UserCog } from "lucide-react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -25,6 +25,9 @@ interface PropertyCardProps {
     isVerified?: boolean | null;
     isFeatured?: boolean | null;
     furnishedLevel?: string | null;
+    managerName?: string | null;
+    managerNameAr?: string | null;
+    managerPhotoUrl?: string | null;
   };
   compact?: boolean;
 }
@@ -96,6 +99,21 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
               }`}
             />
           </button>
+          {/* Manager overlay */}
+          {property.managerName && (
+            <div className="absolute top-3 end-12 flex items-center gap-1.5 bg-white/90 backdrop-blur rounded-full ps-2 pe-1 py-0.5 shadow-sm">
+              <span className="text-[10px] font-medium text-[#0B1E2D] max-w-[80px] truncate">
+                {lang === "ar" ? (property.managerNameAr || property.managerName) : property.managerName}
+              </span>
+              {property.managerPhotoUrl ? (
+                <img src={property.managerPhotoUrl} alt="" className="w-6 h-6 rounded-full object-cover border border-[#3ECFC0]/30" />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-[#3ECFC0]/20 flex items-center justify-center">
+                  <UserCog className="h-3 w-3 text-[#3ECFC0]" />
+                </div>
+              )}
+            </div>
+          )}
           {/* Price tag */}
           <div className="absolute bottom-2 sm:bottom-3 start-2 sm:start-3 bg-[#0B1E2D]/90 backdrop-blur rounded-lg px-2.5 sm:px-3 py-1 sm:py-1.5 shadow-sm group-hover:bg-[#0B1E2D] transition-colors duration-300">
             <span className="font-bold text-[#3ECFC0] text-base sm:text-lg">
