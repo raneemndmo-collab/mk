@@ -1,6 +1,6 @@
 import { useI18n } from "@/lib/i18n";
 import { useSiteSettings } from "@/contexts/SiteSettingsContext";
-import { KeyRound, Mail, Phone, MapPin } from "lucide-react";
+import { KeyRound, Mail, Phone, MapPin, Shield, Building2, Receipt, FileCheck } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Footer() {
@@ -10,12 +10,19 @@ export default function Footer() {
 
   const siteName = s("site.nameEn") || "Monthly Key";
   const aboutText = sl("footer.about", lang) || t("footer.aboutText");
-  const email = s("footer.email", "info@monthlykey.sa");
-  const phone = s("footer.phone", "+966500000000");
+  const email = s("footer.email");
+  const phone = s("footer.phone");
   const address = sl("footer.address", lang);
   const twitter = s("footer.twitter");
   const instagram = s("footer.instagram");
   const linkedin = s("footer.linkedin");
+
+  // Licence & registration numbers
+  const tourismLicence = s("legal.tourismLicence");
+  const crNumber = s("legal.crNumber");
+  const vatNumber = s("legal.vatNumber");
+  const ejarLicence = s("legal.ejarLicence");
+  const hasLicences = tourismLicence || crNumber || vatNumber || ejarLicence;
 
   return (
     <footer className="bg-[#0B1E2D] text-white/90 mt-auto">
@@ -70,8 +77,8 @@ export default function Footer() {
             <ul className="space-y-2.5 text-sm text-white/50">
               <li><span className="hover:text-[#3ECFC0] transition-colors cursor-pointer">{t("footer.faq")}</span></li>
               <li><span className="hover:text-[#3ECFC0] transition-colors cursor-pointer">{t("footer.contact")}</span></li>
-              <li><span className="hover:text-[#3ECFC0] transition-colors cursor-pointer">{t("footer.terms")}</span></li>
-              <li><span className="hover:text-[#3ECFC0] transition-colors cursor-pointer">{t("footer.privacy")}</span></li>
+              <li><Link href="/terms" className="hover:text-[#3ECFC0] transition-colors">{t("footer.terms")}</Link></li>
+              <li><Link href="/privacy" className="hover:text-[#3ECFC0] transition-colors">{t("footer.privacy")}</Link></li>
             </ul>
           </div>
 
@@ -114,8 +121,49 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-white/10 mt-8 sm:mt-10 pt-4 sm:pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs sm:text-sm text-white/30">
+        {/* Licences & Registration Bar */}
+        {hasLicences && (
+          <div className="border-t border-white/10 mt-8 pt-6">
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs text-white/40">
+              {tourismLicence && (
+                <div className="flex items-center gap-1.5">
+                  <Shield className="h-3.5 w-3.5 text-[#3ECFC0]/60" />
+                  <span>{lang === "ar" ? "ترخيص وزارة السياحة:" : "Tourism Licence:"}</span>
+                  <span className="text-white/60 font-medium" dir="ltr">{tourismLicence}</span>
+                </div>
+              )}
+              {crNumber && (
+                <div className="flex items-center gap-1.5">
+                  <Building2 className="h-3.5 w-3.5 text-[#3ECFC0]/60" />
+                  <span>{lang === "ar" ? "سجل تجاري:" : "CR:"}</span>
+                  <span className="text-white/60 font-medium" dir="ltr">{crNumber}</span>
+                </div>
+              )}
+              {vatNumber && (
+                <div className="flex items-center gap-1.5">
+                  <Receipt className="h-3.5 w-3.5 text-[#3ECFC0]/60" />
+                  <span>{lang === "ar" ? "الرقم الضريبي:" : "VAT:"}</span>
+                  <span className="text-white/60 font-medium" dir="ltr">{vatNumber}</span>
+                </div>
+              )}
+              {ejarLicence && (
+                <div className="flex items-center gap-1.5">
+                  <FileCheck className="h-3.5 w-3.5 text-[#3ECFC0]/60" />
+                  <span>{lang === "ar" ? "ترخيص إيجار:" : "Ejar:"}</span>
+                  <span className="text-white/60 font-medium" dir="ltr">{ejarLicence}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="border-t border-white/10 mt-6 pt-4 sm:pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs sm:text-sm text-white/30">
           <p>&copy; {year} {siteName}. {t("footer.rights")}.</p>
+          <div className="flex items-center gap-4">
+            <Link href="/privacy" className="hover:text-[#3ECFC0] transition-colors">{t("footer.privacy")}</Link>
+            <span>|</span>
+            <Link href="/terms" className="hover:text-[#3ECFC0] transition-colors">{t("footer.terms")}</Link>
+          </div>
           <p>{lang === "ar" ? "صُنع بـ ❤️ في المملكة العربية السعودية" : "Made with ❤️ in Saudi Arabia"}</p>
         </div>
       </div>

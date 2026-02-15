@@ -439,3 +439,14 @@
 
 ## Bug Fixes
 - [x] Fix rental duration text showing "1 to 12 months" instead of "1 to 2 months" on property create/edit page
+
+## Saudi Compliance & Legal
+- [x] Add tourism licence number CMS field (editable from admin panel)
+- [x] Display tourism licence in footer with official badge
+- [x] Write comprehensive Saudi-compliant Privacy Policy (PDPL/نظام حماية البيانات الشخصية)
+- [x] Write comprehensive Saudi-compliant Terms of Service (Ejar, tourism authority, VAT)
+- [x] Add CR (commercial registration) number CMS field
+- [x] Add VAT registration number CMS field
+- [ ] Ensure cookie consent / data collection notice
+- [x] Audit all pages for Saudi regulatory compliance
+- [x] Remove placeholder email/phone from footer defaults — show nothing until admin fills from CMS
