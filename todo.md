@@ -647,7 +647,7 @@
 - [x] Fix all identified issues from audit (amenity translations)
 - [x] Create comprehensive DEVELOPER_GUIDE.md with full architecture, code examples, API reference
 - [x] Run all tests and verify 0 errors (302 passing)
-- [ ] Save checkpoint, push to GitHub (in progress)
+- [x] Save checkpoint (f1f77ae2), pushed to GitHub (alramady/re + alramady/Monthly-Key)
 
 ## Property Detail Page Fixes (Feb 16)
 - [x] Fix map showing property info window (title, location, stats, price) on PropertyDetail page
@@ -655,3 +655,10 @@
 - [x] Hide the booking frame when calculator is active (toggle between views)
 - [x] Improve overall calculator UX (slider, cost breakdown, VAT, total)
 - [x] Fix amenity translations (maid_room → غرفة خادمة, driver_room → غرفة سائق)
+
+## Final Configuration & Delivery (Feb 16)
+- [x] Implement Google Analytics page view tracking via router (usePageTracking hook)
+- [x] GA tracking ID configurable via VITE_GA_MEASUREMENT_ID env var (Settings > Secrets)
+- [x] SMTP infrastructure verified (user will add credentials later)
+- [x] Run all tests — 302 passing, 0 errors
+- [ ] Save checkpoint and push to GitHub (in progress)

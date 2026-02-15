@@ -11,6 +11,7 @@ import AiAssistant from "./components/AiAssistant";
 import CookieConsent from "./components/CookieConsent";
 import WhatsAppButton from "./components/WhatsAppButton";
 import { Loader2 } from "lucide-react";
+import { usePageTracking } from "./hooks/usePageTracking";
 
 // Eager load critical pages
 import Home from "./pages/Home";
@@ -56,6 +57,7 @@ function PageLoader() {
 }
 
 function Router() {
+  usePageTracking();
   return (
     <Suspense fallback={<PageLoader />}>
       <Switch>
