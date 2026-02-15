@@ -585,3 +585,30 @@
 - [x] Add notification permission request UI
 - [x] Integrate push notifications with booking/maintenance events
 - [x] Admin can send broadcast notifications
+
+## Permission Enforcement on Admin Endpoints
+- [x] Create middleware/helper to check user permissions from roles table
+- [x] Apply permission checks to all admin tRPC procedures (25 endpoints)
+- [x] Return FORBIDDEN error when user lacks required permission
+- [x] Owner and root admins bypass permission checks
+- [x] Permission cache with 60s TTL for performance
+
+## Featured Cities CMS Management
+- [x] Admin page to manage featured cities on homepage (already exists: CityDistrictManagement)
+- [x] Upload city images from CMS (already exists)
+- [x] Toggle city visibility on homepage (already exists)
+- [x] Add isFeatured flag to cities for homepage display control
+- [x] Featured toggle switch in city management UI
+- [x] getFeatured public endpoint for homepage
+
+## AI Response Rating System
+- [x] Add rating column to aiMessages table (already exists)
+- [x] tRPC endpoint to submit rating (already exists: ai.rateMessage)
+- [x] Star rating UI on each AI response in chat (already exists in AiAssistant)
+- [x] Admin dashboard for AI rating stats and trends (AdminAIRatings page)
+
+## Google Analytics Integration
+- [x] Add VITE_GA_MEASUREMENT_ID env var (configurable from Settings > Secrets)
+- [x] Inject Google Analytics gtag.js script in index.html
+- [ ] Track page views automatically via router
+- [ ] Admin can set/change tracking ID from CMS

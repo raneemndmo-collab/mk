@@ -1,7 +1,8 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, adminProcedure, adminWithPermission, router } from "./_core/trpc";
+import { PERMISSIONS, PERMISSION_CATEGORIES, clearPermissionCache } from "./permissions";
 import { z } from "zod";
 import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
@@ -12,7 +13,7 @@ import { createPayPalOrder, capturePayPalOrder, getPayPalSettings } from "./payp
 import { notifyOwner } from "./_core/notification";
 import { sendBookingConfirmation, sendPaymentReceipt, sendMaintenanceUpdate, verifySmtpConnection, isSmtpConfigured } from "./email";
 import { savePushSubscription, removePushSubscription, sendPushToUser, sendPushBroadcast, isPushConfigured, getUserSubscriptionCount } from "./push";
-import { roles as rolesTable } from "../drizzle/schema";
+import { roles as rolesTable, aiMessages as aiMessagesTable } from "../drizzle/schema";
 import { drizzle } from "drizzle-orm/mysql2";
 import { eq as eqDrizzle } from "drizzle-orm";
 
@@ -694,7 +695,7 @@ export const appRouter = router({
 
   // Admin
   admin: router({
-    stats: adminProcedure.query(async () => {
+    stats: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS).query(async () => {
       const [userCount, propertyCount, activeProperties, pendingProperties, bookingCount, activeBookings, totalRevenue] = await Promise.all([
         db.getUserCount(),
         db.getPropertyCount(),
@@ -707,39 +708,39 @@ export const appRouter = router({
       return { userCount, propertyCount, activeProperties, pendingProperties, bookingCount, activeBookings, totalRevenue };
     }),
 
-    users: adminProcedure
+    users: adminWithPermission(PERMISSIONS.MANAGE_USERS)
       .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }))
       .query(async ({ input }) => {
         return db.getAllUsers(input.limit, input.offset);
       }),
 
-    updateUserRole: adminProcedure
+    updateUserRole: adminWithPermission(PERMISSIONS.MANAGE_USERS)
       .input(z.object({ userId: z.number(), role: z.enum(["user", "admin", "landlord", "tenant"]) }))
       .mutation(async ({ input }) => {
         await db.updateUserRole(input.userId, input.role);
         return { success: true };
       }),
 
-    properties: adminProcedure
+    properties: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
       .input(z.object({ limit: z.number().optional(), offset: z.number().optional(), status: z.string().optional() }))
       .query(async ({ input }) => {
         return db.getAllProperties(input.limit, input.offset, input.status);
       }),
 
-    approveProperty: adminProcedure
+    approveProperty: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
       .input(z.object({ id: z.number(), status: z.enum(["active", "rejected"]), reason: z.string().optional() }))
       .mutation(async ({ input }) => {
         await db.updateProperty(input.id, { status: input.status });
         return { success: true };
       }),
 
-    bookings: adminProcedure
+    bookings: adminWithPermission(PERMISSIONS.MANAGE_BOOKINGS)
       .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }))
       .query(async ({ input }) => {
         return db.getAllBookings(input.limit, input.offset);
       }),
 
-    analytics: adminProcedure
+    analytics: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS)
       .input(z.object({ months: z.number().optional() }).optional())
       .query(async ({ input }) => {
         const months = input?.months ?? 12;
@@ -781,13 +782,13 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return { value: await db.getSetting(input.key) };
       }),
-    update: adminProcedure
+    update: adminWithPermission(PERMISSIONS.MANAGE_CMS)
       .input(z.object({ settings: z.record(z.string(), z.string()) }))
       .mutation(async ({ input }) => {
         await db.bulkSetSettings(input.settings);
         return { success: true };
       }),
-    uploadAsset: adminProcedure
+    uploadAsset: adminWithPermission(PERMISSIONS.MANAGE_CMS)
       .input(z.object({ base64: z.string(), filename: z.string(), contentType: z.string(), purpose: z.string() }))
       .mutation(async ({ input }) => {
         const ext = input.filename.split('.').pop() || 'png';
@@ -937,11 +938,11 @@ export const appRouter = router({
         return db.getKnowledgeArticles(input?.category);
       }),
 
-    all: adminProcedure.query(async () => {
+    all: adminWithPermission(PERMISSIONS.MANAGE_KNOWLEDGE).query(async () => {
       return db.getAllKnowledgeArticles();
     }),
 
-    create: adminProcedure
+    create: adminWithPermission(PERMISSIONS.MANAGE_KNOWLEDGE)
       .input(z.object({
         category: z.enum(["general", "tenant_guide", "landlord_guide", "admin_guide", "faq", "policy", "troubleshooting"]),
         titleEn: z.string().min(1),
@@ -955,7 +956,7 @@ export const appRouter = router({
         return { id };
       }),
 
-    update: adminProcedure
+    update: adminWithPermission(PERMISSIONS.MANAGE_KNOWLEDGE)
       .input(z.object({
         id: z.number(),
         category: z.enum(["general", "tenant_guide", "landlord_guide", "admin_guide", "faq", "policy", "troubleshooting"]).optional(),
@@ -972,7 +973,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: adminProcedure
+    delete: adminWithPermission(PERMISSIONS.MANAGE_KNOWLEDGE)
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await db.deleteKnowledgeArticle(input.id);
@@ -1016,11 +1017,11 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    stats: adminProcedure.query(async () => {
+    stats: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS).query(async () => {
       return db.getActivityStats();
     }),
 
-    log: adminProcedure
+    log: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS)
       .input(z.object({
         userId: z.number().optional(),
         action: z.string().optional(),
@@ -1095,7 +1096,7 @@ export const appRouter = router({
       return { count: await db.getCityCount() };
     }),
 
-    create: adminProcedure
+    create: adminWithPermission(PERMISSIONS.MANAGE_CITIES)
       .input(z.object({
         nameEn: z.string(),
         nameAr: z.string(),
@@ -1112,7 +1113,7 @@ export const appRouter = router({
         return { id };
       }),
 
-    update: adminProcedure
+    update: adminWithPermission(PERMISSIONS.MANAGE_CITIES)
       .input(z.object({
         id: z.number(),
         nameEn: z.string().optional(),
@@ -1131,21 +1132,35 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    toggle: adminProcedure
-      .input(z.object({ id: z.number(), isActive: z.boolean() }))
+    toggle: adminWithPermission(PERMISSIONS.MANAGE_CITIES)
+      .input(z.object({ id: z.number(), isActive: z.boolean(), isFeatured: z.boolean().optional() }))
       .mutation(async ({ input }) => {
         await db.toggleCityActive(input.id, input.isActive);
+        if (input.isFeatured !== undefined) {
+          await db.updateCity(input.id, { isFeatured: input.isFeatured });
+        }
         return { success: true };
       }),
 
-    delete: adminProcedure
+    toggleFeatured: adminWithPermission(PERMISSIONS.MANAGE_CITIES)
+      .input(z.object({ id: z.number(), isFeatured: z.boolean() }))
+      .mutation(async ({ input }) => {
+        await db.updateCity(input.id, { isFeatured: input.isFeatured });
+        return { success: true };
+      }),
+
+    getFeatured: publicProcedure.query(async () => {
+      return db.getFeaturedCities();
+    }),
+
+    delete: adminWithPermission(PERMISSIONS.MANAGE_CITIES)
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await db.deleteCity(input.id);
         return { success: true };
       }),
 
-    uploadPhoto: adminProcedure
+    uploadPhoto: adminWithPermission(PERMISSIONS.MANAGE_CITIES)
       .input(z.object({ base64: z.string(), filename: z.string(), contentType: z.string() }))
       .mutation(async ({ input }) => {
         const ext = input.filename.split('.').pop() || 'jpg';
@@ -1222,7 +1237,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    toggle: adminProcedure
+    toggle: adminWithPermission(PERMISSIONS.MANAGE_CITIES)
       .input(z.object({ id: z.number(), isActive: z.boolean() }))
       .mutation(async ({ input }) => {
         await db.toggleDistrictActive(input.id, input.isActive);
@@ -1324,7 +1339,7 @@ export const appRouter = router({
     listWithCounts: adminProcedure.query(async () => {
       return await db.getAllManagersWithCounts();
     }),
-    uploadPhoto: adminProcedure
+    uploadPhoto: adminWithPermission(PERMISSIONS.MANAGE_CITIES)
       .input(z.object({ base64: z.string(), filename: z.string(), contentType: z.string() }))
       .mutation(async ({ input }) => {
         const ext = input.filename.split('.').pop() || 'jpg';
@@ -1802,7 +1817,7 @@ export const appRouter = router({
       }),
 
     // Admin: broadcast to all
-    broadcast: adminProcedure
+    broadcast: adminWithPermission(PERMISSIONS.SEND_NOTIFICATIONS)
       .input(z.object({
         title: z.string(),
         body: z.string(),
@@ -1815,7 +1830,7 @@ export const appRouter = router({
 
   // ─── Roles Management ───────────────────────────────────────────
   roles: router({
-    list: adminProcedure.query(async () => {
+    list: adminWithPermission(PERMISSIONS.MANAGE_ROLES).query(async () => {
       const rolesDb = drizzle(process.env.DATABASE_URL!);
       const allRoles = await rolesDb.select().from(rolesTable);
       return allRoles.map(r => ({ ...r, permissions: typeof r.permissions === 'string' ? JSON.parse(r.permissions as string) : r.permissions }));
@@ -1883,7 +1898,7 @@ export const appRouter = router({
       }),
 
     // Assign role to user
-    assignToUser: adminProcedure
+    assignToUser: adminWithPermission(PERMISSIONS.MANAGE_ROLES)
       .input(z.object({
         userId: z.number(),
         roleId: z.number(),
@@ -1894,7 +1909,44 @@ export const appRouter = router({
         if (!role) throw new Error("Role not found");
         const perms = typeof role.permissions === 'string' ? JSON.parse(role.permissions as string) : role.permissions;
         await db.setAdminPermissions(input.userId, perms);
+        clearPermissionCache(input.userId);
         return { success: true };
+      }),
+  }),
+
+  // Permission categories for frontend
+  permissionMeta: router({
+    categories: publicProcedure.query(() => {
+      return PERMISSION_CATEGORIES;
+    }),
+  }),
+
+  // AI Rating Stats for admin
+  aiStats: router({
+    ratingOverview: adminWithPermission(PERMISSIONS.MANAGE_AI).query(async () => {
+      const statsDb = drizzle(process.env.DATABASE_URL!);
+      const allRated = await statsDb.select().from(aiMessagesTable).where(
+        eqDrizzle(aiMessagesTable.role, 'assistant')
+      );
+      const rated = allRated.filter(m => m.rating !== null && m.rating !== undefined);
+      const total = rated.length;
+      if (total === 0) return { totalRated: 0, averageRating: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
+      const sum = rated.reduce((acc, m) => acc + (m.rating || 0), 0);
+      const dist: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      rated.forEach(m => { if (m.rating) dist[m.rating] = (dist[m.rating] || 0) + 1; });
+      return { totalRated: total, averageRating: Math.round((sum / total) * 10) / 10, distribution: dist };
+    }),
+
+    recentRated: adminWithPermission(PERMISSIONS.MANAGE_AI)
+      .input(z.object({ limit: z.number().optional() }).optional())
+      .query(async ({ input }) => {
+        const limit = input?.limit ?? 20;
+        const statsDb = drizzle(process.env.DATABASE_URL!);
+        const messages = await statsDb.select().from(aiMessagesTable)
+          .where(eqDrizzle(aiMessagesTable.role, 'assistant'))
+          .orderBy(aiMessagesTable.createdAt)
+          .limit(200);
+        return messages.filter(m => m.rating !== null).slice(-limit).reverse();
       }),
   }),
 });

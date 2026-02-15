@@ -2,6 +2,7 @@ import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from '@shared/const';
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
+import { hasPermission, type PermissionKey } from "../permissions";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -43,3 +44,23 @@ export const adminProcedure = t.procedure.use(
     });
   }),
 );
+
+/**
+ * Create a permission-gated admin procedure.
+ * Checks that user is admin AND has the required permission.
+ * Owner and root admins bypass permission checks.
+ */
+export function adminWithPermission(permission: PermissionKey) {
+  return adminProcedure.use(
+    t.middleware(async ({ ctx, next }) => {
+      const allowed = await hasPermission(ctx.user!.id, permission, ctx.user!.openId);
+      if (!allowed) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `ليس لديك صلاحية: ${permission}`,
+        });
+      }
+      return next({ ctx });
+    }),
+  );
+}

@@ -1,6 +1,22 @@
-import { describe, expect, it, beforeAll } from "vitest";
+import { describe, expect, it, beforeAll, vi } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
+
+// Mock permissions to always allow in tests
+vi.mock("./permissions", () => ({
+  hasPermission: vi.fn().mockResolvedValue(true),
+  hasAnyPermission: vi.fn().mockResolvedValue(true),
+  getUserPermissions: vi.fn().mockResolvedValue({ permissions: ["manage_cities", "manage_users", "manage_properties", "manage_bookings", "manage_payments", "manage_services", "manage_maintenance", "manage_settings", "manage_ai", "view_analytics", "manage_roles", "manage_cms", "manage_knowledge", "send_notifications"], isRoot: true }),
+  clearPermissionCache: vi.fn(),
+  PERMISSIONS: {
+    MANAGE_USERS: "manage_users", MANAGE_PROPERTIES: "manage_properties", MANAGE_BOOKINGS: "manage_bookings",
+    MANAGE_PAYMENTS: "manage_payments", MANAGE_SERVICES: "manage_services", MANAGE_MAINTENANCE: "manage_maintenance",
+    MANAGE_CITIES: "manage_cities", MANAGE_CMS: "manage_cms", MANAGE_ROLES: "manage_roles",
+    MANAGE_KNOWLEDGE: "manage_knowledge", VIEW_ANALYTICS: "view_analytics", MANAGE_SETTINGS: "manage_settings",
+    SEND_NOTIFICATIONS: "send_notifications", MANAGE_AI: "manage_ai",
+  },
+  PERMISSION_CATEGORIES: [],
+}));
 
 function createAdminContext(): TrpcContext {
   return {

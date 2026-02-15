@@ -411,6 +411,11 @@ export default function CityDistrictManagement() {
                                 <Badge variant={city.isActive ? "default" : "secondary"}>
                                   {city.isActive ? t("cityMgmt.active") : t("cityMgmt.inactive")}
                                 </Badge>
+                                {(city as any).isFeatured && (
+                                  <Badge variant="outline" className="border-amber-500 text-amber-600">
+                                    {isAr ? "⭐ مميزة" : "⭐ Featured"}
+                                  </Badge>
+                                )}
                               </div>
                               <p className="text-sm text-muted-foreground">
                                 {isAr ? city.nameEn : city.nameAr}
@@ -423,6 +428,16 @@ export default function CityDistrictManagement() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="text-[10px] text-muted-foreground">{isAr ? "مميزة" : "Featured"}</span>
+                              <Switch
+                                checked={(city as any).isFeatured ?? false}
+                                onCheckedChange={(checked) => {
+                                  toggleCity.mutate({ id: city.id, isActive: city.isActive, isFeatured: checked } as any);
+                                }}
+                                className="data-[state=checked]:bg-amber-500"
+                              />
+                            </div>
                             <Switch
                               checked={city.isActive}
                               onCheckedChange={(checked) => toggleCity.mutate({ id: city.id, isActive: checked })}

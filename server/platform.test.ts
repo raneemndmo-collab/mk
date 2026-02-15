@@ -5,6 +5,7 @@ import type { TrpcContext } from "./_core/context";
 
 // Mock db module
 vi.mock("./db", () => ({
+  getAdminPermissions: vi.fn().mockResolvedValue({ id: 1, userId: 1, permissions: ["manage_users", "manage_properties", "manage_bookings", "manage_payments", "manage_services", "manage_maintenance", "manage_settings", "manage_ai", "view_analytics", "manage_roles", "manage_cities", "manage_cms", "manage_knowledge", "send_notifications"], isRootAdmin: true, createdAt: new Date(), updatedAt: new Date() }),
   searchProperties: vi.fn().mockResolvedValue([]),
   getPropertyById: vi.fn().mockResolvedValue(null),
   createProperty: vi.fn().mockResolvedValue(1),

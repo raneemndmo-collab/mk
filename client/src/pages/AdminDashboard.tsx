@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Users, Building2, Calendar, CreditCard, BarChart3,
   Loader2, CheckCircle, XCircle, Shield, TrendingUp, BookOpen,
-  Package, AlertTriangle
+  Package, AlertTriangle, Star
 } from "lucide-react";
 import { Link } from "wouter";
 import { getLoginUrl } from "@/const";
@@ -111,6 +111,12 @@ export default function AdminDashboard() {
             <Button variant="outline" className="gap-2 border-amber-500 text-amber-500 hover:bg-amber-500/10">
               <Shield className="h-4 w-4" />
               {lang === "ar" ? "الأدوار والصلاحيات" : "Roles & Permissions"}
+            </Button>
+          </Link>
+          <Link href="/admin/ai-ratings">
+            <Button variant="outline" className="gap-2 border-purple-500 text-purple-500 hover:bg-purple-500/10">
+              <Star className="h-4 w-4" />
+              {lang === "ar" ? "تقييمات المساعد الذكي" : "AI Ratings"}
             </Button>
           </Link>
         </div>

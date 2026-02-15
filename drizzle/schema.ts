@@ -365,6 +365,7 @@ export const cities = mysqlTable("cities", {
   longitude: decimal("longitude", { precision: 10, scale: 7 }),
   imageUrl: text("imageUrl"),
   isActive: boolean("isActive").default(true),
+  isFeatured: boolean("isFeatured").default(false),
   sortOrder: int("sortOrder").default(0),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

@@ -1548,3 +1548,13 @@ export async function getRecentActivity(limit = 20) {
 }
 
 
+
+
+// ─── Featured Cities ────────────────────────────────────────────
+export async function getFeaturedCities() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(cities)
+    .where(and(eq(cities.isFeatured, true), eq(cities.isActive, true)))
+    .orderBy(asc(cities.sortOrder));
+}

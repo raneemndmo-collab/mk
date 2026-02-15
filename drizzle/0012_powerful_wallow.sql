@@ -1,0 +1,1 @@
+ALTER TABLE `cities` ADD `isFeatured` boolean DEFAULT false;
