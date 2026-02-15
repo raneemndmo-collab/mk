@@ -459,3 +459,80 @@ export const contactMessages = mysqlTable("contact_messages", {
 
 export type ContactMessage = typeof contactMessages.$inferSelect;
 export type InsertContactMessage = typeof contactMessages.$inferInsert;
+
+// ─── Platform Services ──────────────────────────────────────────────
+export const platformServices = mysqlTable("platform_services", {
+  id: int("id").autoincrement().primaryKey(),
+  nameAr: varchar("nameAr", { length: 255 }).notNull(),
+  nameEn: varchar("nameEn", { length: 255 }).notNull(),
+  descriptionAr: text("descriptionAr"),
+  descriptionEn: text("descriptionEn"),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  category: mysqlEnum("category", ["cleaning", "maintenance", "furniture", "moving", "other"]).default("other").notNull(),
+  icon: varchar("icon", { length: 50 }).default("Wrench"),
+  isActive: boolean("isActive").default(true).notNull(),
+  sortOrder: int("sortOrder").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type PlatformService = typeof platformServices.$inferSelect;
+export type InsertPlatformService = typeof platformServices.$inferInsert;
+
+// ─── Service Requests ───────────────────────────────────────────────
+export const serviceRequests = mysqlTable("service_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  serviceId: int("serviceId").notNull(),
+  tenantId: int("tenantId").notNull(),
+  bookingId: int("bookingId"),
+  propertyId: int("propertyId"),
+  status: mysqlEnum("status", ["pending", "approved", "in_progress", "completed", "cancelled"]).default("pending").notNull(),
+  notes: text("notes"),
+  adminNotes: text("adminNotes"),
+  totalPrice: decimal("totalPrice", { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type ServiceRequest = typeof serviceRequests.$inferSelect;
+export type InsertServiceRequest = typeof serviceRequests.$inferInsert;
+
+// ─── Emergency Maintenance ──────────────────────────────────────────
+export const emergencyMaintenance = mysqlTable("emergency_maintenance", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  bookingId: int("bookingId"),
+  propertyId: int("propertyId").notNull(),
+  urgency: mysqlEnum("urgency", ["low", "medium", "high", "critical"]).default("medium").notNull(),
+  category: mysqlEnum("category", ["plumbing", "electrical", "ac_heating", "appliance", "structural", "pest", "security", "other"]).default("other").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  titleAr: varchar("titleAr", { length: 255 }),
+  description: text("description").notNull(),
+  descriptionAr: text("descriptionAr"),
+  imageUrls: json("imageUrls").$type<string[]>(),
+  status: mysqlEnum("status", ["open", "assigned", "in_progress", "resolved", "closed"]).default("open").notNull(),
+  assignedTo: varchar("assignedTo", { length: 255 }),
+  assignedPhone: varchar("assignedPhone", { length: 20 }),
+  resolution: text("resolution"),
+  resolutionAr: text("resolutionAr"),
+  closedAt: timestamp("closedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type EmergencyMaintenance = typeof emergencyMaintenance.$inferSelect;
+export type InsertEmergencyMaintenance = typeof emergencyMaintenance.$inferInsert;
+
+// ─── Maintenance Updates (Timeline) ─────────────────────────────────
+export const maintenanceUpdates = mysqlTable("maintenance_updates", {
+  id: int("id").autoincrement().primaryKey(),
+  maintenanceId: int("maintenanceId").notNull(),
+  message: text("message").notNull(),
+  messageAr: text("messageAr"),
+  updatedBy: varchar("updatedBy", { length: 255 }).notNull(),
+  newStatus: mysqlEnum("newStatus", ["open", "assigned", "in_progress", "resolved", "closed"]),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type MaintenanceUpdate = typeof maintenanceUpdates.$inferSelect;
+export type InsertMaintenanceUpdate = typeof maintenanceUpdates.$inferInsert;

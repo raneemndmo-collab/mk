@@ -148,6 +148,8 @@ export default function TenantDashboard() {
             <TabsTrigger value="notifications" className="gap-1.5"><Bell className="h-4 w-4" />{t("nav.notifications")}</TabsTrigger>
             <TabsTrigger value="profile" className="gap-1.5"><User className="h-4 w-4" />{lang === "ar" ? "الملف الشخصي" : "Profile"}</TabsTrigger>
             <TabsTrigger value="inspections" className="gap-1.5"><Eye className="h-4 w-4" />{lang === "ar" ? "طلبات المعاينة" : "Inspections"}</TabsTrigger>
+            <TabsTrigger value="services" className="gap-1.5"><Building2 className="h-4 w-4" />{lang === "ar" ? "الخدمات" : "Services"}</TabsTrigger>
+            <TabsTrigger value="emergency" className="gap-1.5"><AlertCircle className="h-4 w-4" />{lang === "ar" ? "طوارئ الصيانة" : "Emergency"}</TabsTrigger>
           </TabsList>
 
           {/* Bookings Tab */}
@@ -175,6 +177,30 @@ export default function TenantDashboard() {
                         <div className="text-end">
                           <div className="font-bold text-primary">{Number(b.totalAmount).toLocaleString()} {t("payment.sar")}</div>
                           <div className="text-xs text-muted-foreground">{t("common.total")}</div>
+                        </div>
+                      </div>
+                      {/* Booking Timeline */}
+                      <div className="mt-3 pt-3 border-t">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                          <Clock className="h-3 w-3" />
+                          <span>{lang === "ar" ? "الجدول الزمني" : "Timeline"}</span>
+                        </div>
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${b.status === "pending" || b.status === "approved" || b.status === "active" || b.status === "completed" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                            {lang === "ar" ? "تم الطلب" : "Requested"}
+                          </span>
+                          <span className="text-muted-foreground">→</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${b.status === "approved" || b.status === "active" || b.status === "completed" ? "bg-green-100 text-green-700" : b.status === "rejected" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-500"}`}>
+                            {b.status === "rejected" ? (lang === "ar" ? "مرفوض" : "Rejected") : (lang === "ar" ? "موافق عليه" : "Approved")}
+                          </span>
+                          <span className="text-muted-foreground">→</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${b.status === "active" || b.status === "completed" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                            {lang === "ar" ? "تم الدفع" : "Paid"}
+                          </span>
+                          <span className="text-muted-foreground">→</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${b.status === "active" ? "bg-blue-100 text-blue-700" : b.status === "completed" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                            {b.status === "completed" ? (lang === "ar" ? "مكتمل" : "Completed") : (lang === "ar" ? "نشط" : "Active")}
+                          </span>
                         </div>
                       </div>
                       {b.status === "approved" && (
@@ -492,9 +518,250 @@ export default function TenantDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Services Tab */}
+          <TabsContent value="services">
+            <TenantServicesTab lang={lang} />
+          </TabsContent>
+
+          {/* Emergency Maintenance Tab */}
+          <TabsContent value="emergency">
+            <TenantEmergencyTab lang={lang} />
+          </TabsContent>
         </Tabs>
       </div>
       <Footer />
+    </div>
+  );
+}
+
+// ─── Tenant Services Tab ─────────────────────────────────────────────
+function TenantServicesTab({ lang }: { lang: string }) {
+  const services = trpc.services.listActive.useQuery();
+  const myRequests = trpc.serviceRequests.myRequests.useQuery();
+  const requestService = trpc.serviceRequests.create.useMutation({
+    onSuccess: () => { myRequests.refetch(); toast.success(lang === "ar" ? "تم طلب الخدمة بنجاح" : "Service requested successfully"); },
+  });
+  const [selectedService, setSelectedService] = useState<any>(null);
+  const [notes, setNotes] = useState("");
+
+  const statusColors: Record<string, string> = {
+    pending: "bg-yellow-100 text-yellow-800", approved: "bg-blue-100 text-blue-800",
+    in_progress: "bg-purple-100 text-purple-800", completed: "bg-green-100 text-green-800",
+    cancelled: "bg-red-100 text-red-800",
+  };
+  const statusLabels: Record<string, { en: string; ar: string }> = {
+    pending: { en: "Pending", ar: "قيد الانتظار" }, approved: { en: "Approved", ar: "مقبول" },
+    in_progress: { en: "In Progress", ar: "قيد التنفيذ" }, completed: { en: "Completed", ar: "مكتمل" },
+    cancelled: { en: "Cancelled", ar: "ملغي" },
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Available Services */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-heading flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-[#3ECFC0]" />
+            {lang === "ar" ? "الخدمات المتاحة" : "Available Services"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {services.isLoading ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-[#3ECFC0]" /></div>
+          ) : services.data && services.data.length > 0 ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {services.data.map((s) => (
+                <div key={s.id} className={`p-4 rounded-lg border cursor-pointer transition-all ${selectedService?.id === s.id ? "border-[#3ECFC0] bg-[#3ECFC0]/5" : "hover:border-[#3ECFC0]/50"}`} onClick={() => setSelectedService(s)}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-semibold">{lang === "ar" ? s.nameAr : s.nameEn}</h4>
+                      <p className="text-sm text-muted-foreground">{lang === "ar" ? s.descriptionAr : s.descriptionEn}</p>
+                    </div>
+                    <span className="font-bold text-[#C9A96E] whitespace-nowrap">{Number(s.price).toLocaleString()} {lang === "ar" ? "ر.س" : "SAR"}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-center py-8">{lang === "ar" ? "لا توجد خدمات متاحة حالياً" : "No services available currently"}</p>
+          )}
+          {selectedService && (
+            <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-3">
+              <h4 className="font-semibold">{lang === "ar" ? `طلب: ${selectedService.nameAr}` : `Request: ${selectedService.nameEn}`}</h4>
+              <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={lang === "ar" ? "ملاحظات إضافية..." : "Additional notes..."} rows={2} />
+              <Button onClick={() => { requestService.mutate({ serviceId: selectedService.id, totalPrice: String(selectedService.price), notes }); setSelectedService(null); setNotes(""); }} disabled={requestService.isPending} className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6]">
+                {requestService.isPending && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
+                {lang === "ar" ? "طلب الخدمة" : "Request Service"}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* My Requests */}
+      {myRequests.data && myRequests.data.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className="font-heading">{lang === "ar" ? "طلباتي" : "My Requests"}</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            {myRequests.data.map((r) => {
+              const st = statusLabels[r.status] || statusLabels.pending;
+              return (
+                <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div>
+                    <span className="font-medium">#{r.id} — {lang === "ar" ? `خدمة #${r.serviceId}` : `Service #${r.serviceId}`}</span>
+                    <div className="text-sm text-muted-foreground">{new Date(r.createdAt).toLocaleDateString(lang === "ar" ? "ar-SA" : "en-US")}</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold text-[#C9A96E]">{Number(r.totalPrice).toLocaleString()} {lang === "ar" ? "ر.س" : "SAR"}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[r.status] || ""}`}>{lang === "ar" ? st.ar : st.en}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// ─── Tenant Emergency Maintenance Tab ────────────────────────────────
+function TenantEmergencyTab({ lang }: { lang: string }) {
+  const myRequests = trpc.emergencyMaintenance.myRequests.useQuery();
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ propertyId: 0, urgency: "medium" as string, category: "other" as string, title: "", titleAr: "", description: "", descriptionAr: "" });
+  const bookings = trpc.booking.myBookings.useQuery();
+  const createRequest = trpc.emergencyMaintenance.create.useMutation({
+    onSuccess: () => { myRequests.refetch(); setShowForm(false); setForm({ propertyId: 0, urgency: "medium", category: "other", title: "", titleAr: "", description: "", descriptionAr: "" }); toast.success(lang === "ar" ? "تم إرسال طلب الصيانة" : "Maintenance request submitted"); },
+  });
+
+  const urgencyLabels: Record<string, { en: string; ar: string; color: string }> = {
+    low: { en: "Low", ar: "منخفض", color: "bg-blue-100 text-blue-800" },
+    medium: { en: "Medium", ar: "متوسط", color: "bg-yellow-100 text-yellow-800" },
+    high: { en: "High", ar: "عالي", color: "bg-orange-100 text-orange-800" },
+    critical: { en: "Critical", ar: "حرج", color: "bg-red-100 text-red-800" },
+  };
+  const statusLabels: Record<string, { en: string; ar: string; color: string }> = {
+    open: { en: "Open", ar: "مفتوح", color: "bg-red-100 text-red-800" },
+    assigned: { en: "Assigned", ar: "تم التعيين", color: "bg-blue-100 text-blue-800" },
+    in_progress: { en: "In Progress", ar: "قيد التنفيذ", color: "bg-purple-100 text-purple-800" },
+    resolved: { en: "Resolved", ar: "تم الحل", color: "bg-green-100 text-green-800" },
+    closed: { en: "Closed", ar: "مغلق", color: "bg-gray-100 text-gray-800" },
+  };
+  const categoryLabels: Record<string, { en: string; ar: string }> = {
+    plumbing: { en: "Plumbing", ar: "سباكة" }, electrical: { en: "Electrical", ar: "كهرباء" },
+    ac_heating: { en: "AC/Heating", ar: "تكييف/تدفئة" }, appliance: { en: "Appliance", ar: "أجهزة" },
+    structural: { en: "Structural", ar: "هيكلي" }, pest: { en: "Pest Control", ar: "مكافحة حشرات" },
+    security: { en: "Security", ar: "أمن" }, other: { en: "Other", ar: "أخرى" },
+  };
+
+  const activeBookings = bookings.data?.filter((b: any) => b.status === "approved" || b.status === "active") || [];
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="font-heading flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              {lang === "ar" ? "طوارئ الصيانة" : "Emergency Maintenance"}
+            </CardTitle>
+            <Button onClick={() => setShowForm(!showForm)} className="bg-red-500 hover:bg-red-600 text-white">
+              <AlertCircle className="h-4 w-4 me-2" />{lang === "ar" ? "طلب صيانة طارئة" : "Emergency Request"}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {showForm && (
+            <div className="mb-6 p-4 border border-red-200 rounded-lg bg-red-50/50 dark:bg-red-950/10 space-y-4">
+              <h4 className="font-semibold text-red-700 dark:text-red-400">{lang === "ar" ? "طلب صيانة طارئة جديد" : "New Emergency Request"}</h4>
+              {activeBookings.length > 0 && (
+                <div>
+                  <Label>{lang === "ar" ? "العقار" : "Property"}</Label>
+                  <Select value={String(form.propertyId || "")} onValueChange={v => setForm(p => ({ ...p, propertyId: Number(v) }))}>
+                    <SelectTrigger><SelectValue placeholder={lang === "ar" ? "اختر العقار" : "Select property"} /></SelectTrigger>
+                    <SelectContent>
+                      {activeBookings.map((b: any) => <SelectItem key={b.id} value={String(b.propertyId)}>{lang === "ar" ? `عقار #${b.propertyId}` : `Property #${b.propertyId}`}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>{lang === "ar" ? "الأولوية" : "Urgency"}</Label>
+                  <Select value={form.urgency} onValueChange={v => setForm(p => ({ ...p, urgency: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(urgencyLabels).map(([k, v]) => <SelectItem key={k} value={k}>{lang === "ar" ? v.ar : v.en}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>{lang === "ar" ? "التصنيف" : "Category"}</Label>
+                  <Select value={form.category} onValueChange={v => setForm(p => ({ ...p, category: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(categoryLabels).map(([k, v]) => <SelectItem key={k} value={k}>{lang === "ar" ? v.ar : v.en}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>{lang === "ar" ? "العنوان (EN)" : "Title (EN)"}</Label><Input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} /></div>
+                <div><Label>{lang === "ar" ? "العنوان (عربي)" : "Title (AR)"}</Label><Input value={form.titleAr} onChange={e => setForm(p => ({ ...p, titleAr: e.target.value }))} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>{lang === "ar" ? "الوصف (EN)" : "Description (EN)"}</Label><Textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3} /></div>
+                <div><Label>{lang === "ar" ? "الوصف (عربي)" : "Description (AR)"}</Label><Textarea value={form.descriptionAr} onChange={e => setForm(p => ({ ...p, descriptionAr: e.target.value }))} rows={3} /></div>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={() => { if (!form.title || !form.description) { toast.error(lang === "ar" ? "يرجى تعبئة العنوان والوصف" : "Please fill title and description"); return; } createRequest.mutate(form as any); }} disabled={createRequest.isPending} className="bg-red-500 hover:bg-red-600 text-white">
+                  {createRequest.isPending && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
+                  {lang === "ar" ? "إرسال" : "Submit"}
+                </Button>
+                <Button variant="outline" onClick={() => setShowForm(false)}>{lang === "ar" ? "إلغاء" : "Cancel"}</Button>
+              </div>
+            </div>
+          )}
+
+          {/* My Emergency Requests */}
+          {myRequests.isLoading ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-[#3ECFC0]" /></div>
+          ) : myRequests.data && myRequests.data.length > 0 ? (
+            <div className="space-y-3">
+              {myRequests.data.map((r) => {
+                const urg = urgencyLabels[r.urgency] || urgencyLabels.medium;
+                const st = statusLabels[r.status] || statusLabels.open;
+                const cat = categoryLabels[r.category] || categoryLabels.other;
+                return (
+                  <div key={r.id} className="p-4 rounded-lg border">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="font-bold">#{r.id}</span>
+                          <span className="font-semibold">{r.titleAr || r.title}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${urg.color}`}>{lang === "ar" ? urg.ar : urg.en}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${st.color}`}>{lang === "ar" ? st.ar : st.en}</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{lang === "ar" ? cat.ar : cat.en} • {new Date(r.createdAt).toLocaleString(lang === "ar" ? "ar-SA" : "en-US")}</p>
+                        <p className="text-sm mt-1">{r.descriptionAr || r.description}</p>
+                        {r.assignedTo && <p className="text-sm text-[#3ECFC0] mt-1">{lang === "ar" ? `الفني: ${r.assignedTo}` : `Technician: ${r.assignedTo}`} {r.assignedPhone && `(${r.assignedPhone})`}</p>}
+                        {r.resolution && <div className="mt-2 p-2 bg-green-50 dark:bg-green-950/20 rounded text-sm"><strong>{lang === "ar" ? "الحل:" : "Resolution:"}</strong> {r.resolutionAr || r.resolution}</div>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-center py-8">
+              <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+              {lang === "ar" ? "لا توجد طلبات صيانة طوارئ" : "No emergency maintenance requests"}
+            </p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

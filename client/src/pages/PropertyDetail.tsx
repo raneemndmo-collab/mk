@@ -42,6 +42,20 @@ const amenityAr: Record<string, string> = {
   garden: "حديقة", storage: "مستودع", "maid room": "غرفة خادمة",
   "central ac": "تكييف مركزي", "satellite/cable": "قنوات فضائية",
   internet: "إنترنت", maintenance: "صيانة",
+  // Additional amenities
+  concierge: "خدمة الاستقبال", "smart home": "منزل ذكي",
+  "private entrance": "مدخل خاص", "driver room": "غرفة سائق",
+  "rooftop": "سطح", "playground": "ملعب أطفال",
+  "bbq area": "منطقة شواء", "sauna": "ساونا",
+  "jacuzzi": "جاكوزي", "mosque": "مسجد",
+  "cctv": "كاميرات مراقبة", "intercom": "انتركم",
+  "fire system": "نظام إطفاء", "backup generator": "مولد احتياطي",
+  "water tank": "خزان مياه", "central heating": "تدفئة مركزية",
+  "washer": "غسالة", "dryer": "مجفف",
+  "dishwasher": "غسالة صحون", "microwave": "ميكروويف",
+  "oven": "فرن", "refrigerator": "ثلاجة",
+  "iron": "مكواة", "closet": "خزانة ملابس",
+  "desk": "مكتب", "sofa": "أريكة",
 };
 
 export default function PropertyDetail() {

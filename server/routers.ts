@@ -1414,6 +1414,156 @@ export const appRouter = router({
       }),
   }),
 
+  // ─── Platform Services ──────────────────────────────────────────────
+  services: router({
+    // Admin: list all services
+    listAll: adminProcedure.query(async () => {
+      return await db.getAllPlatformServices();
+    }),
+    // Public: list active services
+    listActive: publicProcedure.query(async () => {
+      return await db.getActivePlatformServices();
+    }),
+    // Admin: create service
+    create: adminProcedure
+      .input(z.object({
+        nameAr: z.string().min(1), nameEn: z.string().min(1),
+        descriptionAr: z.string().optional(), descriptionEn: z.string().optional(),
+        price: z.string(), category: z.enum(["cleaning", "maintenance", "furniture", "moving", "other"]),
+        icon: z.string().optional(), isActive: z.boolean().optional(), sortOrder: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.createPlatformService(input as any);
+      }),
+    // Admin: update service
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        nameAr: z.string().optional(), nameEn: z.string().optional(),
+        descriptionAr: z.string().optional(), descriptionEn: z.string().optional(),
+        price: z.string().optional(), category: z.enum(["cleaning", "maintenance", "furniture", "moving", "other"]).optional(),
+        icon: z.string().optional(), isActive: z.boolean().optional(), sortOrder: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await db.updatePlatformService(id, data as any);
+        return { success: true };
+      }),
+    // Admin: delete service
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deletePlatformService(input.id);
+        return { success: true };
+      }),
+  }),
+
+  // ─── Service Requests ───────────────────────────────────────────────
+  serviceRequests: router({
+    // Tenant: request a service
+    create: protectedProcedure
+      .input(z.object({
+        serviceId: z.number(), bookingId: z.number().optional(),
+        propertyId: z.number().optional(), notes: z.string().optional(),
+        totalPrice: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const result = await db.createServiceRequest({ ...input, tenantId: ctx.user.id } as any);
+        await notifyOwner({ title: "طلب خدمة جديد / New Service Request", content: `طلب خدمة جديد من المستأجر ${ctx.user.displayName || ctx.user.name}\nService #${input.serviceId} - ${input.totalPrice} SAR` });
+        return result;
+      }),
+    // Tenant: my requests
+    myRequests: protectedProcedure.query(async ({ ctx }) => {
+      return await db.getServiceRequestsByTenant(ctx.user.id);
+    }),
+    // Admin: all requests
+    listAll: adminProcedure.query(async () => {
+      return await db.getAllServiceRequests();
+    }),
+    // Admin: update request status
+    updateStatus: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(["pending", "approved", "in_progress", "completed", "cancelled"]),
+        adminNotes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        await db.updateServiceRequest(input.id, { status: input.status, adminNotes: input.adminNotes } as any);
+        return { success: true };
+      }),
+  }),
+
+  // ─── Emergency Maintenance ──────────────────────────────────────────
+  emergencyMaintenance: router({
+    // Tenant: submit emergency request
+    create: protectedProcedure
+      .input(z.object({
+        propertyId: z.number(), bookingId: z.number().optional(),
+        urgency: z.enum(["low", "medium", "high", "critical"]),
+        category: z.enum(["plumbing", "electrical", "ac_heating", "appliance", "structural", "pest", "security", "other"]),
+        title: z.string().min(1), titleAr: z.string().optional(),
+        description: z.string().min(1), descriptionAr: z.string().optional(),
+        imageUrls: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const result = await db.createEmergencyMaintenance({ ...input, tenantId: ctx.user.id } as any);
+        const urgencyLabel = { low: "منخفض", medium: "متوسط", high: "عالي", critical: "حرج" }[input.urgency];
+        await notifyOwner({
+          title: `🚨 طلب صيانة طوارئ - ${urgencyLabel} / Emergency Maintenance - ${input.urgency.toUpperCase()}`,
+          content: `المستأجر: ${ctx.user.displayName || ctx.user.name}\nالعنوان: ${input.title}\nالأولوية: ${urgencyLabel}\nالتصنيف: ${input.category}\n\n${input.description}`,
+        });
+        return result;
+      }),
+    // Tenant: my emergency requests
+    myRequests: protectedProcedure.query(async ({ ctx }) => {
+      return await db.getEmergencyMaintenanceByTenant(ctx.user.id);
+    }),
+    // Admin: all emergency requests
+    listAll: adminProcedure.query(async () => {
+      return await db.getAllEmergencyMaintenance();
+    }),
+    // Admin/anyone: get single request with updates
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const ticket = await db.getEmergencyMaintenanceById(input.id);
+        const updates = await db.getMaintenanceUpdates(input.id);
+        return { ticket, updates };
+      }),
+    // Admin: update status and add update message
+    updateStatus: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(["open", "assigned", "in_progress", "resolved", "closed"]),
+        message: z.string().min(1), messageAr: z.string().optional(),
+        assignedTo: z.string().optional(), assignedPhone: z.string().optional(),
+        resolution: z.string().optional(), resolutionAr: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const updateData: any = { status: input.status };
+        if (input.assignedTo) updateData.assignedTo = input.assignedTo;
+        if (input.assignedPhone) updateData.assignedPhone = input.assignedPhone;
+        if (input.resolution) updateData.resolution = input.resolution;
+        if (input.resolutionAr) updateData.resolutionAr = input.resolutionAr;
+        if (input.status === "closed" || input.status === "resolved") updateData.closedAt = new Date();
+        await db.updateEmergencyMaintenance(input.id, updateData);
+        await db.createMaintenanceUpdate({
+          maintenanceId: input.id,
+          message: input.message,
+          messageAr: input.messageAr || undefined,
+          updatedBy: ctx.user.displayName || ctx.user.name || "Admin",
+          newStatus: input.status,
+        } as any);
+        // Notify owner about status change
+        const statusLabels: Record<string, string> = { open: "مفتوح", assigned: "تم التعيين", in_progress: "قيد التنفيذ", resolved: "تم الحل", closed: "مغلق" };
+        await notifyOwner({
+          title: `تحديث صيانة #${input.id} - ${statusLabels[input.status]} / Maintenance Update`,
+          content: `الحالة: ${statusLabels[input.status]}\n${input.message}`,
+        });
+        return { success: true };
+      }),
+  }),
+
   // Upload
   upload: router({
     file: protectedProcedure

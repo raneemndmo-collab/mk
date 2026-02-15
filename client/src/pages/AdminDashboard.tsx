@@ -11,7 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Users, Building2, Calendar, CreditCard, BarChart3,
-  Loader2, CheckCircle, XCircle, Shield, TrendingUp, BookOpen
+  Loader2, CheckCircle, XCircle, Shield, TrendingUp, BookOpen,
+  Package, AlertTriangle
 } from "lucide-react";
 import { Link } from "wouter";
 import { getLoginUrl } from "@/const";
@@ -80,6 +81,18 @@ export default function AdminDashboard() {
             <Button variant="outline" className="gap-2">
               <Users className="h-4 w-4" />
               {lang === "ar" ? "مدراء العقارات" : "Property Managers"}
+            </Button>
+          </Link>
+          <Link href="/admin/services">
+            <Button variant="outline" className="gap-2">
+              <Package className="h-4 w-4" />
+              {lang === "ar" ? "إدارة الخدمات" : "Services Management"}
+            </Button>
+          </Link>
+          <Link href="/admin/emergency-maintenance">
+            <Button variant="outline" className="gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              {lang === "ar" ? "طوارئ الصيانة" : "Emergency Maintenance"}
             </Button>
           </Link>
           <Link href="/admin/settings">

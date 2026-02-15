@@ -8,6 +8,7 @@ import { I18nProvider } from "./lib/i18n";
 import { SiteSettingsProvider } from "./contexts/SiteSettingsContext";
 import { lazy, Suspense } from "react";
 import AiAssistant from "./components/AiAssistant";
+import CookieConsent from "./components/CookieConsent";
 import WhatsAppButton from "./components/WhatsAppButton";
 import { Loader2 } from "lucide-react";
 
@@ -40,6 +41,8 @@ const FAQ = lazy(() => import("./pages/FAQ"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const ContactUs = lazy(() => import("./pages/ContactUs"));
+const AdminServices = lazy(() => import("./pages/AdminServices"));
+const AdminEmergencyMaintenance = lazy(() => import("./pages/AdminEmergencyMaintenance"));
 
 function PageLoader() {
   return (
@@ -81,6 +84,8 @@ function Router() {
         <Route path="/privacy" component={PrivacyPolicy} />
         <Route path="/terms" component={TermsOfService} />
         <Route path="/contact" component={ContactUs} />
+        <Route path="/admin/services" component={AdminServices} />
+        <Route path="/admin/emergency-maintenance" component={AdminEmergencyMaintenance} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>
@@ -99,6 +104,7 @@ function App() {
             <Router />
             <AiAssistant />
             <WhatsAppButton />
+            <CookieConsent />
           </TooltipProvider>
           </SiteSettingsProvider>
         </I18nProvider>

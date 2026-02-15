@@ -447,7 +447,7 @@
 - [x] Write comprehensive Saudi-compliant Terms of Service (Ejar, tourism authority, VAT)
 - [x] Add CR (commercial registration) number CMS field
 - [x] Add VAT registration number CMS field
-- [ ] Ensure cookie consent / data collection notice
+- [x] Ensure cookie consent / data collection notice (PDPL banner added)
 - [x] Audit all pages for Saudi regulatory compliance
 - [x] Remove placeholder email/phone from footer defaults — show nothing until admin fills from CMS
 
@@ -487,7 +487,7 @@
 - [x] Add extended user fields — already existed
 - [x] Profile page with edit capability and photo upload
 - [x] Profile completion progress indicator
-- [ ] Booking history with status timeline on profile
+- [x] Booking history with status timeline on profile
 
 ## Hero Video Background
 - [x] Support video background in hero section (mp4/webm URL from CMS) — already existed
@@ -495,3 +495,28 @@
 - [x] Video autoplay, muted, loop with overlay — already existed
 - [x] Mobile: show image fallback — already existed
 - [x] Push all updates to GitHub
+
+## Cookie Consent, Booking History, Arabic Amenities
+- [x] PDPL cookie consent banner (bilingual, stores preference in localStorage)
+- [x] Booking history timeline in tenant profile (status steps with dates)
+- [x] Arabic amenity name translations (gym→نادي رياضي, pool→مسبح, etc.)
+- [ ] Push all updates to GitHub
+
+## Services Management System
+- [x] Create services table (nameAr, nameEn, descAr, descEn, price, category, isActive, icon)
+- [x] Create service_requests table (serviceId, tenantId, bookingId, status, notes, adminNotes)
+- [x] Admin CRUD for services (add/edit/delete/toggle active) with pricing
+- [x] Service categories (cleaning, maintenance, furniture, other)
+- [x] Tenant can request services from their profile
+- [x] Service requests visible in tenant dashboard
+- [x] Admin service request management dashboard
+
+## Emergency Maintenance System
+- [x] Create emergency_maintenance table (tenantId, bookingId, propertyId, urgency, description, status, assignedTo, resolution, closedAt)
+- [x] Create maintenance_updates table (maintenanceId, message, messageAr, updatedBy, status)
+- [x] Tenant can submit emergency maintenance request
+- [x] Admin receives notification for new emergency requests
+- [x] Admin can assign team, update status, add notes
+- [x] Status updates sent as messages to tenant (in-app notification)
+- [x] Case closure workflow with resolution summary
+- [x] Email notification to tenant on status changes and closure
