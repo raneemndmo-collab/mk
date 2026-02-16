@@ -163,54 +163,82 @@ export default function Home() {
       <section
         ref={heroRef}
         onMouseMove={handleMouseMove}
-        className="relative bg-[#0B1E2D] text-white overflow-hidden min-h-[70vh] sm:min-h-[80vh] flex items-center"
+        className={`relative text-white overflow-hidden min-h-[70vh] sm:min-h-[80vh] flex items-center ${
+          s("hero.bgType", "image") === "video" && s("hero.bgVideo") ? "bg-black" : "bg-[#0B1E2D]"
+        }`}
       >
         {/* Dynamic Background: Video or Image from CMS */}
         {s("hero.bgType", "image") === "video" && s("hero.bgVideo") ? (
-          <video
-            autoPlay muted loop playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-            poster={s("hero.bgImage") || undefined}
-          >
-            <source src={s("hero.bgVideo")} type="video/mp4" />
-          </video>
+          <>
+            {/* Video background */}
+            <video
+              autoPlay muted loop playsInline preload="auto"
+              className="absolute inset-0 w-full h-full object-cover z-[1]"
+              poster={s("hero.bgImage") || undefined}
+              src={s("hero.bgVideo")}
+              onLoadedData={(e) => {
+                (e.target as HTMLVideoElement).play().catch(() => {});
+              }}
+            />
+            {/* Poster image fallback behind video (shows while video loads) */}
+            {s("hero.bgImage") && (
+              <div
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat z-[0]"
+                style={{ backgroundImage: `url(${s("hero.bgImage")})` }}
+              />
+            )}
+            {/* Light gradient overlay for text readability over video */}
+            <div className="absolute inset-0 z-[2] bg-gradient-to-b from-black/40 via-black/20 to-black/50" />
+          </>
         ) : s("hero.bgImage") ? (
-          <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${s("hero.bgImage")})` }}
-          />
+          <>
+            <div
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat z-[0]"
+              style={{ backgroundImage: `url(${s("hero.bgImage")})` }}
+            />
+            {/* Dark overlay with configurable opacity */}
+            <div
+              className="absolute inset-0 z-[1]"
+              style={{
+                backgroundColor: "#0B1E2D",
+                opacity: parseInt(s("hero.overlayOpacity", "60")) / 100
+              }}
+            />
+            <div className="absolute inset-0 z-[2] bg-gradient-to-b from-[#0B1E2D]/30 via-transparent to-[#0B1E2D]/70" />
+          </>
         ) : (
-          <div className="absolute inset-0 pattern-bg opacity-30" />
+          <>
+            <div className="absolute inset-0 pattern-bg opacity-30" />
+            <div
+              className="absolute inset-0 z-[1]"
+              style={{
+                backgroundColor: "#0B1E2D",
+                opacity: parseInt(s("hero.overlayOpacity", "60")) / 100
+              }}
+            />
+            <div className="absolute inset-0 z-[2] bg-gradient-to-b from-[#0B1E2D]/30 via-transparent to-[#0B1E2D]/70" />
+          </>  
         )}
-
-        {/* Dark overlay with configurable opacity */}
-        <div
-          className="absolute inset-0 bg-[#0B1E2D]"
-          style={{ opacity: parseInt(s("hero.overlayOpacity", "60")) / 100 }}
-        />
-
-        {/* Gradient overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0B1E2D]/30 via-transparent to-[#0B1E2D]/70" />
         
         {/* Floating decorative elements */}
         <div
-          className="absolute top-20 start-[10%] w-64 h-64 rounded-full bg-[#3ECFC0]/5 blur-3xl animate-float-slow"
+          className="absolute top-20 start-[10%] w-64 h-64 rounded-full bg-[#3ECFC0]/5 blur-3xl animate-float-slow z-[3]"
           style={{ transform: `translate(${mousePos.x * -20}px, ${mousePos.y * -20}px)` }}
         />
         <div
-          className="absolute bottom-10 end-[15%] w-48 h-48 rounded-full bg-[#C9A96E]/5 blur-3xl animate-float"
+          className="absolute bottom-10 end-[15%] w-48 h-48 rounded-full bg-[#C9A96E]/5 blur-3xl animate-float z-[3]"
           style={{ transform: `translate(${mousePos.x * 15}px, ${mousePos.y * 15}px)` }}
         />
         <div
-          className="absolute top-1/3 end-[5%] w-2 h-2 rounded-full bg-[#3ECFC0]/40 animate-pulse"
+          className="absolute top-1/3 end-[5%] w-2 h-2 rounded-full bg-[#3ECFC0]/40 animate-pulse z-[3]"
           style={{ transform: `translate(${mousePos.x * -30}px, ${mousePos.y * -30}px)` }}
         />
         <div
-          className="absolute bottom-1/3 start-[8%] w-3 h-3 rounded-full bg-[#C9A96E]/30 animate-pulse"
+          className="absolute bottom-1/3 start-[8%] w-3 h-3 rounded-full bg-[#C9A96E]/30 animate-pulse z-[3]"
           style={{ transform: `translate(${mousePos.x * 25}px, ${mousePos.y * 25}px)`, animationDelay: '1s' }}
         />
 
-        <div className="container relative py-16 sm:py-24 md:py-36">
+        <div className="container relative z-[3] py-16 sm:py-24 md:py-36">
           <div className="max-w-3xl mx-auto text-center px-2 sm:px-0">
             {/* Animated Badge */}
             <div className="inline-flex items-center gap-2 border border-[#3ECFC0]/30 rounded-full px-4 py-1.5 mb-8 animate-slide-left glass-card">

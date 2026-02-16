@@ -833,3 +833,14 @@
 - [x] Cleanup on re-render: clearMarkers + setMap(null) before recreating
 - [x] All 428 tests passing, 0 TypeScript errors
 - [x] Save checkpoint, push to GitHub
+
+## Hero Video Background (Feb 16)
+- [x] Upload monthlykey.mp4 to S3 CDN (11.7MB)
+- [x] Extract poster frame at 3s mark and upload to CDN as fallback
+- [x] Replace hero section background with looping muted autoplay video
+- [x] Add light gradient overlay (from-black/40 via-black/20 to-black/50) for text readability
+- [x] Poster image fallback behind video (shows while video loads)
+- [x] Separate overlay logic for video/image/pattern hero modes
+- [x] Auto .play() call on loadedData for browser compatibility
+- [x] All 428 tests passing, 0 TypeScript errors
+- [x] Save checkpoint, push to GitHub
