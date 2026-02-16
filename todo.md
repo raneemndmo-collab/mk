@@ -708,3 +708,12 @@
 - [x] Display attachments in tenant's own request list (thumbnail grid)
 - [x] Support images (up to 5, 10MB each) and video (1, 50MB) with format validation
 - [x] Run tests (302 passing), save checkpoint, push to GitHub
+
+## Email Notifications for Maintenance + Lightbox Gallery (Feb 16)
+- [x] Email notification when maintenance request status changes (already existed via sendMaintenanceUpdate)
+- [x] Email notification when maintenance request is created (sendNewMaintenanceAlert to all admins)
+- [x] Build MediaLightbox component (full-screen, zoom, keyboard nav, download, thumbnail strip)
+- [x] Navigation (prev/next arrows + keyboard) in lightbox for multiple images
+- [x] Video playback in lightbox with autoplay
+- [x] Lightbox integrated in AdminEmergencyMaintenance + TenantDashboard emergency tab
+- [x] Run tests (302 passing), save checkpoint, push to GitHub

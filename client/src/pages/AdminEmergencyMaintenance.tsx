@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { AlertTriangle, Clock, CheckCircle, XCircle, User, Wrench, Zap, Droplets, Flame, Bug, Shield, Package, Loader2, Send, ChevronDown, ChevronUp, ArrowLeft, ImageIcon, Video, Play, ExternalLink } from "lucide-react";
+import { AlertTriangle, Clock, CheckCircle, XCircle, User, Wrench, Zap, Droplets, Flame, Bug, Shield, Package, Loader2, Send, ChevronDown, ChevronUp, ArrowLeft, ImageIcon, Video, Play, ExternalLink, Expand } from "lucide-react";
+import { MediaLightbox, urlsToMediaItems } from "@/components/MediaLightbox";
 import { useState } from "react";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
@@ -50,6 +51,9 @@ export default function AdminEmergencyMaintenance() {
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [updateForm, setUpdateForm] = useState({ status: "assigned" as string, message: "", messageAr: "", assignedTo: "", assignedPhone: "", resolution: "", resolutionAr: "" });
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxItems, setLightboxItems] = useState<{url: string; type: "image" | "video"}[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const tickets = trpc.emergencyMaintenance.listAll.useQuery();
   const ticketDetail = trpc.emergencyMaintenance.getById.useQuery({ id: selectedTicket! }, { enabled: !!selectedTicket });
@@ -180,7 +184,7 @@ export default function AdminEmergencyMaintenance() {
                               {t.imageUrls.map((url: string, idx: number) => {
                                 const isVideo = /\.(mp4|webm|mov|avi)$/i.test(url);
                                 return (
-                                  <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group relative block rounded-lg overflow-hidden border bg-muted aspect-square hover:ring-2 hover:ring-[#3ECFC0] transition-all">
+                                  <button key={idx} onClick={() => { setLightboxItems(urlsToMediaItems(t.imageUrls as string[])); setLightboxIndex(idx); setLightboxOpen(true); }} className="group relative block rounded-lg overflow-hidden border bg-muted aspect-square hover:ring-2 hover:ring-[#3ECFC0] transition-all cursor-pointer">
                                     {isVideo ? (
                                       <div className="w-full h-full flex flex-col items-center justify-center bg-black/80">
                                         <Play className="h-8 w-8 text-white mb-1" />
@@ -190,7 +194,7 @@ export default function AdminEmergencyMaintenance() {
                                       <img src={url} alt={`Attachment ${idx + 1}`} className="w-full h-full object-cover" />
                                     )}
                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                                      <ExternalLink className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                      <Expand className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                                     </div>
                                     <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-1 py-0.5">
                                       <span className="text-[10px] text-white flex items-center gap-1">
@@ -198,7 +202,7 @@ export default function AdminEmergencyMaintenance() {
                                         {isVideo ? (lang === "ar" ? "فيديو" : "Video") : (lang === "ar" ? "صورة" : "Image")} {idx + 1}
                                       </span>
                                     </div>
-                                  </a>
+                                  </button>
                                 );
                               })}
                             </div>
@@ -296,6 +300,7 @@ export default function AdminEmergencyMaintenance() {
         </DialogContent>
       </Dialog>
       </div>
+      <MediaLightbox items={lightboxItems} initialIndex={lightboxIndex} open={lightboxOpen} onClose={() => setLightboxOpen(false)} />
       <Footer />
     </div>
   );

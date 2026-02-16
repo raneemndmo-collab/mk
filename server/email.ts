@@ -340,3 +340,72 @@ export async function sendWelcomeEmail(params: {
     html: baseTemplate(content, lang),
   });
 }
+
+
+/**
+ * Send email to admin when a new emergency maintenance request is created
+ */
+export async function sendNewMaintenanceAlert(params: {
+  adminEmail: string;
+  tenantName: string;
+  ticketId: number;
+  title: string;
+  urgency: string;
+  category: string;
+  description: string;
+  imageCount?: number;
+  lang?: "ar" | "en";
+}): Promise<EmailResult> {
+  const { adminEmail, tenantName, ticketId, title, urgency, category, description, imageCount = 0, lang = "ar" } = params;
+  const urgencyLabels: Record<string, { ar: string; en: string; color: string }> = {
+    low: { ar: "منخفض", en: "Low", color: "#22c55e" },
+    medium: { ar: "متوسط", en: "Medium", color: "#f59e0b" },
+    high: { ar: "عالي", en: "High", color: "#f97316" },
+    critical: { ar: "حرج", en: "Critical", color: "#ef4444" },
+  };
+  const categoryLabels: Record<string, { ar: string; en: string }> = {
+    plumbing: { ar: "سباكة", en: "Plumbing" },
+    electrical: { ar: "كهرباء", en: "Electrical" },
+    ac_heating: { ar: "تكييف/تدفئة", en: "AC/Heating" },
+    appliance: { ar: "أجهزة", en: "Appliance" },
+    structural: { ar: "هيكلي", en: "Structural" },
+    pest: { ar: "حشرات", en: "Pest Control" },
+    security: { ar: "أمن", en: "Security" },
+    other: { ar: "أخرى", en: "Other" },
+  };
+  const urg = urgencyLabels[urgency] || urgencyLabels.medium;
+  const cat = lang === "ar" ? categoryLabels[category]?.ar || category : categoryLabels[category]?.en || category;
+  const urgLabel = lang === "ar" ? urg.ar : urg.en;
+  const content = lang === "ar" ? `
+    <h2>🚨 طلب صيانة طوارئ جديد #${ticketId}</h2>
+    <p>تم تقديم طلب صيانة طوارئ جديد من المستأجر <strong>${tenantName}</strong>:</p>
+    <div class="info-box">
+      <div class="info-row"><span class="info-label">رقم الطلب</span><span class="info-value">#${ticketId}</span></div>
+      <div class="info-row"><span class="info-label">العنوان</span><span class="info-value">${title}</span></div>
+      <div class="info-row"><span class="info-label">الأولوية</span><span class="info-value" style="color:${urg.color};font-weight:bold">${urgLabel}</span></div>
+      <div class="info-row"><span class="info-label">التصنيف</span><span class="info-value">${cat}</span></div>
+      ${imageCount > 0 ? `<div class="info-row"><span class="info-label">المرفقات</span><span class="info-value">${imageCount} ملف</span></div>` : ""}
+    </div>
+    <p><strong>الوصف:</strong></p>
+    <p>${description}</p>
+    <p>يرجى مراجعة الطلب واتخاذ الإجراء المناسب من لوحة التحكم.</p>
+  ` : `
+    <h2>🚨 New Emergency Maintenance Request #${ticketId}</h2>
+    <p>A new emergency maintenance request has been submitted by <strong>${tenantName}</strong>:</p>
+    <div class="info-box">
+      <div class="info-row"><span class="info-label">Ticket</span><span class="info-value">#${ticketId}</span></div>
+      <div class="info-row"><span class="info-label">Title</span><span class="info-value">${title}</span></div>
+      <div class="info-row"><span class="info-label">Urgency</span><span class="info-value" style="color:${urg.color};font-weight:bold">${urgLabel}</span></div>
+      <div class="info-row"><span class="info-label">Category</span><span class="info-value">${cat}</span></div>
+      ${imageCount > 0 ? `<div class="info-row"><span class="info-label">Attachments</span><span class="info-value">${imageCount} file(s)</span></div>` : ""}
+    </div>
+    <p><strong>Description:</strong></p>
+    <p>${description}</p>
+    <p>Please review the request and take appropriate action from the admin dashboard.</p>
+  `;
+  return sendEmail({
+    to: adminEmail,
+    subject: lang === "ar" ? `🚨 طلب صيانة طوارئ #${ticketId} — ${urgLabel} — المفتاح الشهري` : `🚨 Emergency Maintenance #${ticketId} — ${urgLabel} — المفتاح الشهري`,
+    html: baseTemplate(content, lang),
+  });
+}

@@ -1,4 +1,5 @@
 import { COOKIE_NAME } from "@shared/const";
+import { ENV } from "./_core/env";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, adminWithPermission, router } from "./_core/trpc";
@@ -11,7 +12,7 @@ import { getAiResponse, seedDefaultKnowledgeBase } from "./ai-assistant";
 import { generateLeaseContractHTML } from "./lease-contract";
 import { createPayPalOrder, capturePayPalOrder, getPayPalSettings } from "./paypal";
 import { notifyOwner } from "./_core/notification";
-import { sendBookingConfirmation, sendPaymentReceipt, sendMaintenanceUpdate, verifySmtpConnection, isSmtpConfigured } from "./email";
+import { sendBookingConfirmation, sendPaymentReceipt, sendMaintenanceUpdate, sendNewMaintenanceAlert, verifySmtpConnection, isSmtpConfigured } from "./email";
 import { savePushSubscription, removePushSubscription, sendPushToUser, sendPushBroadcast, isPushConfigured, getUserSubscriptionCount } from "./push";
 import { roles as rolesTable, aiMessages as aiMessagesTable } from "../drizzle/schema";
 import { drizzle } from "drizzle-orm/mysql2";
@@ -1707,6 +1708,25 @@ export const appRouter = router({
           title: `🚨 طلب صيانة طوارئ - ${urgencyLabel} / Emergency Maintenance - ${input.urgency.toUpperCase()}`,
           content: `المستأجر: ${ctx.user.displayName || ctx.user.name}\nالعنوان: ${input.title}\nالأولوية: ${urgencyLabel}\nالتصنيف: ${input.category}\n\n${input.description}`,
         });
+        // Send email alert to admins about new maintenance request
+        try {
+          const allUsers = await db.getAllUsers(100, 0);
+          const admins = allUsers.filter((u: any) => u.role === 'admin');
+          for (const admin of admins) {
+            if (admin.email) {
+              await sendNewMaintenanceAlert({
+                adminEmail: admin.email,
+                tenantName: ctx.user.displayName || ctx.user.name || "",
+                ticketId: (result as any).insertId || 0,
+                title: input.title,
+                urgency: input.urgency,
+                category: input.category,
+                description: input.description,
+                imageCount: input.imageUrls?.length || 0,
+              });
+            }
+          }
+        } catch { /* email is best-effort */ }
         return result;
       }),
     // Tenant: upload maintenance media (images/videos) to S3

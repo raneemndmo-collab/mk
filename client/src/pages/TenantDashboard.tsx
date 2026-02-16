@@ -16,6 +16,7 @@ import {
   Phone, Mail, MapPin, FileText, Camera, Save, Eye, Upload, X, ImageIcon, Video, Play
 } from "lucide-react";
 import { getLoginUrl } from "@/const";
+import { MediaLightbox } from "@/components/MediaLightbox";
 import { useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -668,6 +669,9 @@ function TenantEmergencyTab({ lang }: { lang: string }) {
   const [form, setForm] = useState({ propertyId: 0, urgency: "medium" as string, category: "other" as string, title: "", titleAr: "", description: "", descriptionAr: "" });
   const [mediaFiles, setMediaFiles] = useState<{ url: string; type: "image" | "video"; name: string }[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxItems, setLightboxItems] = useState<{url: string; type: "image" | "video"}[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bookings = trpc.booking.myBookings.useQuery();
   const uploadMedia = trpc.emergencyMaintenance.uploadMedia.useMutation();
@@ -893,7 +897,7 @@ function TenantEmergencyTab({ lang }: { lang: string }) {
                               {r.imageUrls.map((url: string, idx: number) => {
                                 const isVid = /\.(mp4|webm|mov|avi)$/i.test(url);
                                 return (
-                                  <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="relative block rounded-lg overflow-hidden border bg-muted aspect-square hover:ring-2 hover:ring-[#3ECFC0] transition-all">
+                                  <button key={idx} onClick={() => { setLightboxItems((r.imageUrls as string[]).map((u: string) => ({ url: u, type: /\.(mp4|webm|mov|avi)$/i.test(u) ? "video" as const : "image" as const }))); setLightboxIndex(idx); setLightboxOpen(true); }} className="relative block rounded-lg overflow-hidden border bg-muted aspect-square hover:ring-2 hover:ring-[#3ECFC0] transition-all cursor-pointer">
                                     {isVid ? (
                                       <div className="w-full h-full flex flex-col items-center justify-center bg-black/80">
                                         <Play className="h-6 w-6 text-white" />
@@ -901,7 +905,7 @@ function TenantEmergencyTab({ lang }: { lang: string }) {
                                     ) : (
                                       <img src={url} alt="" className="w-full h-full object-cover" />
                                     )}
-                                  </a>
+                                  </button>
                                 );
                               })}
                             </div>
@@ -923,6 +927,7 @@ function TenantEmergencyTab({ lang }: { lang: string }) {
           )}
         </CardContent>
       </Card>
+      <MediaLightbox items={lightboxItems} initialIndex={lightboxIndex} open={lightboxOpen} onClose={() => setLightboxOpen(false)} />
     </div>
   );
 }
