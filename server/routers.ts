@@ -12,6 +12,7 @@ import * as db from "./db";
 import { cache, cacheThrough, CACHE_TTL, CACHE_KEYS } from "./cache";
 import { rateLimiter, RATE_LIMITS, getClientIP } from "./rate-limiter";
 import { getAiResponse, seedDefaultKnowledgeBase } from "./ai-assistant";
+import { optimizeImage, optimizeAvatar } from "./image-optimizer";
 import { generateLeaseContractHTML } from "./lease-contract";
 import { createPayPalOrder, capturePayPalOrder, getPayPalSettings } from "./paypal";
 import { notifyOwner } from "./_core/notification";
@@ -219,11 +220,24 @@ export const appRouter = router({
     uploadPhoto: protectedProcedure
       .input(z.object({ base64: z.string(), filename: z.string(), contentType: z.string() }))
       .mutation(async ({ ctx, input }) => {
-        const ext = input.filename.split('.').pop() || 'jpg';
-        const key = `properties/${ctx.user.id}/${nanoid()}.${ext}`;
         const buffer = Buffer.from(input.base64, 'base64');
-        const { url } = await storagePut(key, buffer, input.contentType);
-        return { url };
+        const basePath = `properties/${ctx.user.id}`;
+        try {
+          const optimized = await optimizeImage(buffer, basePath, input.filename);
+          return {
+            url: optimized.original.url,
+            thumbnail: optimized.thumbnail.url,
+            medium: optimized.medium.url,
+            variants: optimized,
+          };
+        } catch (err) {
+          // Fallback to original upload if optimization fails
+          console.error('[UploadPhoto] Optimization failed, uploading original:', err);
+          const ext = input.filename.split('.').pop() || 'jpg';
+          const key = `${basePath}/${nanoid()}.${ext}`;
+          const { url } = await storagePut(key, buffer, input.contentType);
+          return { url };
+        }
       }),
 
     getAvailability: publicProcedure

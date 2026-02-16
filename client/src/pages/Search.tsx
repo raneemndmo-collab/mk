@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Search as SearchIcon, SlidersHorizontal, Grid3X3, List, MapPin, X, Building2, Navigation } from "lucide-react";
 import { useState, useMemo } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export default function Search() {
   const { t, lang } = useI18n();
@@ -43,16 +44,21 @@ export default function Search() {
     return (districtsQuery.data as any[]).filter((d: any) => d.city.toLowerCase() === city.toLowerCase());
   }, [districtsQuery.data, city]);
 
+  // Debounce numeric inputs to reduce API calls during rapid changes
+  const debouncedMinPrice = useDebounce(minPrice, 400);
+  const debouncedMaxPrice = useDebounce(maxPrice, 400);
+  const debouncedBedrooms = useDebounce(bedrooms, 300);
+
   const searchInput = useMemo(() => ({
     city: city || undefined,
     propertyType: propertyType || undefined,
-    minPrice,
-    maxPrice,
-    bedrooms,
+    minPrice: debouncedMinPrice,
+    maxPrice: debouncedMaxPrice,
+    bedrooms: debouncedBedrooms,
     furnishedLevel: furnishedLevel || undefined,
     limit: 12,
     offset: page * 12,
-  }), [city, propertyType, minPrice, maxPrice, bedrooms, furnishedLevel, page]);
+  }), [city, propertyType, debouncedMinPrice, debouncedMaxPrice, debouncedBedrooms, furnishedLevel, page]);
 
   const results = trpc.property.search.useQuery(searchInput, { placeholderData: (prev: any) => prev });
 

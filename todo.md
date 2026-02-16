@@ -765,3 +765,17 @@
 - [x] Write 24 performance vitest tests (cache, rate limiter, performance benchmarks)
 - [x] All 356 tests passing, 0 TypeScript errors
 - [x] Save checkpoint, push to GitHub
+
+## CDN Image Optimization, Search Debouncing, Redis Cache (Feb 16)
+- [x] CDN: server-side image resizing with sharp (thumbnails 400x300, medium 800x600, original 1600x1200)
+- [x] CDN: auto-generate WebP variants on property photo upload with fallback
+- [x] CDN: LazyImage component with native lazy loading on PropertyCard
+- [x] Search: add 400ms debounce on price inputs, 300ms on bedrooms
+- [x] Search: debounce price, bedroom changes via useDebounce hook
+- [x] Cache: upgrade to Redis-compatible cache with namespace prefix (ijar:)
+- [x] Cache: CacheBackend interface abstraction, MemoryCache + RedisCompatibleCache
+- [x] Cache: LRU eviction at 50k entries, request coalescing for concurrent fetches
+- [x] Cache: stats tracking (hit rate, entries, misses) for monitoring
+- [x] Write 8 image optimizer tests, 28 cache/rate limiter tests, 4 performance benchmarks
+- [x] All 367 tests passing, 0 TypeScript errors
+- [x] Save checkpoint, push to GitHub
