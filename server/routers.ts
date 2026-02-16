@@ -1709,6 +1709,16 @@ export const appRouter = router({
         });
         return result;
       }),
+    // Tenant: upload maintenance media (images/videos) to S3
+    uploadMedia: protectedProcedure
+      .input(z.object({ base64: z.string(), filename: z.string(), contentType: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        const ext = input.filename.split('.').pop() || 'jpg';
+        const key = `maintenance/${ctx.user.id}/${nanoid()}.${ext}`;
+        const buffer = Buffer.from(input.base64, 'base64');
+        const { url } = await storagePut(key, buffer, input.contentType);
+        return { url };
+      }),
     // Tenant: my emergency requests
     myRequests: protectedProcedure.query(async ({ ctx }) => {
       return await db.getEmergencyMaintenanceByTenant(ctx.user.id);

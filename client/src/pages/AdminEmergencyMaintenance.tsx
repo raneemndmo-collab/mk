@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { AlertTriangle, Clock, CheckCircle, XCircle, User, Wrench, Zap, Droplets, Flame, Bug, Shield, Package, Loader2, Send, ChevronDown, ChevronUp, ArrowLeft } from "lucide-react";
+import { AlertTriangle, Clock, CheckCircle, XCircle, User, Wrench, Zap, Droplets, Flame, Bug, Shield, Package, Loader2, Send, ChevronDown, ChevronUp, ArrowLeft, ImageIcon, Video, Play, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
@@ -168,6 +168,42 @@ export default function AdminEmergencyMaintenance() {
                           <Label className="text-xs text-muted-foreground">{lang === "ar" ? "الوصف" : "Description"}</Label>
                           <p className="text-sm">{t.descriptionAr || t.description}</p>
                         </div>
+                        {/* Media Attachments */}
+                        {t.imageUrls && Array.isArray(t.imageUrls) && t.imageUrls.length > 0 && (
+                          <div>
+                            <Label className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
+                              <ImageIcon className="h-3 w-3" />
+                              {lang === "ar" ? "المرفقات" : "Attachments"}
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{t.imageUrls.length}</Badge>
+                            </Label>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                              {t.imageUrls.map((url: string, idx: number) => {
+                                const isVideo = /\.(mp4|webm|mov|avi)$/i.test(url);
+                                return (
+                                  <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group relative block rounded-lg overflow-hidden border bg-muted aspect-square hover:ring-2 hover:ring-[#3ECFC0] transition-all">
+                                    {isVideo ? (
+                                      <div className="w-full h-full flex flex-col items-center justify-center bg-black/80">
+                                        <Play className="h-8 w-8 text-white mb-1" />
+                                        <span className="text-xs text-white/70">{lang === "ar" ? "فيديو" : "Video"}</span>
+                                      </div>
+                                    ) : (
+                                      <img src={url} alt={`Attachment ${idx + 1}`} className="w-full h-full object-cover" />
+                                    )}
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                                      <ExternalLink className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-1 py-0.5">
+                                      <span className="text-[10px] text-white flex items-center gap-1">
+                                        {isVideo ? <Video className="h-3 w-3" /> : <ImageIcon className="h-3 w-3" />}
+                                        {isVideo ? (lang === "ar" ? "فيديو" : "Video") : (lang === "ar" ? "صورة" : "Image")} {idx + 1}
+                                      </span>
+                                    </div>
+                                  </a>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                         {t.resolution && (
                           <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg">
                             <Label className="text-xs text-green-700">{lang === "ar" ? "الحل" : "Resolution"}</Label>

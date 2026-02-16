@@ -700,3 +700,11 @@
 - [x] Audit emergency maintenance page and backend endpoints (all linked correctly)
 - [x] Verified: DB tables, router endpoints, admin page, tenant submit form, admin dashboard link
 - [x] Run tests (302 passing), save checkpoint, push to GitHub
+
+## Maintenance Request Media Attachments (Feb 16)
+- [x] Add uploadMedia endpoint for maintenance attachments (S3 storage, size validation)
+- [x] Enhance tenant emergency form with drag-drop image/video upload and preview grid
+- [x] Display attachments in admin emergency maintenance expanded view (clickable thumbnails)
+- [x] Display attachments in tenant's own request list (thumbnail grid)
+- [x] Support images (up to 5, 10MB each) and video (1, 50MB) with format validation
+- [x] Run tests (302 passing), save checkpoint, push to GitHub

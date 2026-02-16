@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   Home, Calendar, CreditCard, Heart, Wrench, Bell, Settings, User,
   Loader2, Building2, Clock, CheckCircle, XCircle, AlertCircle,
-  Phone, Mail, MapPin, FileText, Camera, Save, Eye
+  Phone, Mail, MapPin, FileText, Camera, Save, Eye, Upload, X, ImageIcon, Video, Play
 } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
@@ -666,10 +666,54 @@ function TenantEmergencyTab({ lang }: { lang: string }) {
   const myRequests = trpc.emergencyMaintenance.myRequests.useQuery();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ propertyId: 0, urgency: "medium" as string, category: "other" as string, title: "", titleAr: "", description: "", descriptionAr: "" });
+  const [mediaFiles, setMediaFiles] = useState<{ url: string; type: "image" | "video"; name: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const bookings = trpc.booking.myBookings.useQuery();
+  const uploadMedia = trpc.emergencyMaintenance.uploadMedia.useMutation();
   const createRequest = trpc.emergencyMaintenance.create.useMutation({
-    onSuccess: () => { myRequests.refetch(); setShowForm(false); setForm({ propertyId: 0, urgency: "medium", category: "other", title: "", titleAr: "", description: "", descriptionAr: "" }); toast.success(lang === "ar" ? "تم إرسال طلب الصيانة" : "Maintenance request submitted"); },
+    onSuccess: () => { myRequests.refetch(); setShowForm(false); setForm({ propertyId: 0, urgency: "medium", category: "other", title: "", titleAr: "", description: "", descriptionAr: "" }); setMediaFiles([]); toast.success(lang === "ar" ? "تم إرسال طلب الصيانة" : "Maintenance request submitted"); },
   });
+
+  const handleFileUpload = async (files: FileList | null) => {
+    if (!files) return;
+    const maxImages = 5;
+    const maxVideoSize = 50 * 1024 * 1024; // 50MB
+    const maxImageSize = 10 * 1024 * 1024; // 10MB
+    const currentImages = mediaFiles.filter(f => f.type === "image").length;
+    const currentVideos = mediaFiles.filter(f => f.type === "video").length;
+
+    setUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const isVideo = file.type.startsWith("video/");
+        const isImage = file.type.startsWith("image/");
+        if (!isVideo && !isImage) { toast.error(lang === "ar" ? "نوع ملف غير مدعوم" : "Unsupported file type"); continue; }
+        if (isImage && currentImages + 1 > maxImages) { toast.error(lang === "ar" ? `الحد الأقصى ${maxImages} صور` : `Maximum ${maxImages} images`); continue; }
+        if (isVideo && currentVideos >= 1) { toast.error(lang === "ar" ? "فيديو واحد فقط مسموح" : "Only 1 video allowed"); continue; }
+        if (isImage && file.size > maxImageSize) { toast.error(lang === "ar" ? "حجم الصورة يجب أن لا يتجاوز 10MB" : "Image must be under 10MB"); continue; }
+        if (isVideo && file.size > maxVideoSize) { toast.error(lang === "ar" ? "حجم الفيديو يجب أن لا يتجاوز 50MB" : "Video must be under 50MB"); continue; }
+
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve) => {
+          reader.onload = () => resolve((reader.result as string).split(",")[1]);
+          reader.readAsDataURL(file);
+        });
+        const result = await uploadMedia.mutateAsync({ base64, filename: file.name, contentType: file.type });
+        setMediaFiles(prev => [...prev, { url: result.url, type: isVideo ? "video" : "image", name: file.name }]);
+      }
+      toast.success(lang === "ar" ? "تم رفع الملفات بنجاح" : "Files uploaded successfully");
+    } catch {
+      toast.error(lang === "ar" ? "فشل رفع الملف" : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const removeMedia = (index: number) => {
+    setMediaFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   const urgencyLabels: Record<string, { en: string; ar: string; color: string }> = {
     low: { en: "Low", ar: "منخفض", color: "bg-blue-100 text-blue-800" },
@@ -750,12 +794,73 @@ function TenantEmergencyTab({ lang }: { lang: string }) {
                 <div><Label>{lang === "ar" ? "الوصف (EN)" : "Description (EN)"}</Label><Textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3} /></div>
                 <div><Label>{lang === "ar" ? "الوصف (عربي)" : "Description (AR)"}</Label><Textarea value={form.descriptionAr} onChange={e => setForm(p => ({ ...p, descriptionAr: e.target.value }))} rows={3} /></div>
               </div>
+              {/* Media Upload Section */}
+              <div>
+                <Label className="flex items-center gap-2 mb-2">
+                  <Camera className="h-4 w-4" />
+                  {lang === "ar" ? "صور وفيديوهات (اختياري)" : "Photos & Videos (optional)"}
+                </Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  {lang === "ar" ? "يمكنك رفع حتى 5 صور وفيديو واحد لتوضيح المشكلة" : "Upload up to 5 images and 1 video to illustrate the issue"}
+                </p>
+                <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={e => handleFileUpload(e.target.files)} />
+                <div
+                  className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center cursor-pointer hover:border-red-400 hover:bg-red-50/30 dark:hover:bg-red-950/10 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add("border-red-400", "bg-red-50/30"); }}
+                  onDragLeave={e => { e.preventDefault(); e.currentTarget.classList.remove("border-red-400", "bg-red-50/30"); }}
+                  onDrop={e => { e.preventDefault(); e.currentTarget.classList.remove("border-red-400", "bg-red-50/30"); handleFileUpload(e.dataTransfer.files); }}
+                >
+                  {uploading ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="h-8 w-8 animate-spin text-red-500" />
+                      <span className="text-sm text-muted-foreground">{lang === "ar" ? "جاري الرفع..." : "Uploading..."}</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload className="h-8 w-8 text-muted-foreground/50" />
+                      <span className="text-sm text-muted-foreground">{lang === "ar" ? "اسحب الملفات هنا أو اضغط للاختيار" : "Drag files here or click to browse"}</span>
+                      <span className="text-xs text-muted-foreground/70">{lang === "ar" ? "JPG, PNG, WebP, MP4 — صور حتى 10MB، فيديو حتى 50MB" : "JPG, PNG, WebP, MP4 — Images up to 10MB, Video up to 50MB"}</span>
+                    </div>
+                  )}
+                </div>
+                {/* Preview Grid */}
+                {mediaFiles.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mt-3">
+                    {mediaFiles.map((f, i) => (
+                      <div key={i} className="relative group rounded-lg overflow-hidden border bg-muted aspect-square">
+                        {f.type === "image" ? (
+                          <img src={f.url} alt={f.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center bg-black/80">
+                            <Play className="h-8 w-8 text-white mb-1" />
+                            <span className="text-xs text-white/70 truncate px-2">{f.name}</span>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeMedia(i)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-1 py-0.5">
+                          <span className="text-[10px] text-white flex items-center gap-1">
+                            {f.type === "image" ? <ImageIcon className="h-3 w-3" /> : <Video className="h-3 w-3" />}
+                            {f.type === "image" ? (lang === "ar" ? "صورة" : "Image") : (lang === "ar" ? "فيديو" : "Video")}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className="flex gap-2">
-                <Button onClick={() => { if (!form.title || !form.description) { toast.error(lang === "ar" ? "يرجى تعبئة العنوان والوصف" : "Please fill title and description"); return; } createRequest.mutate(form as any); }} disabled={createRequest.isPending} className="bg-red-500 hover:bg-red-600 text-white">
+                <Button onClick={() => { if (!form.title || !form.description) { toast.error(lang === "ar" ? "يرجى تعبئة العنوان والوصف" : "Please fill title and description"); return; } createRequest.mutate({ ...form, imageUrls: mediaFiles.map(f => f.url) } as any); }} disabled={createRequest.isPending || uploading} className="bg-red-500 hover:bg-red-600 text-white">
                   {createRequest.isPending && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
                   {lang === "ar" ? "إرسال" : "Submit"}
                 </Button>
-                <Button variant="outline" onClick={() => setShowForm(false)}>{lang === "ar" ? "إلغاء" : "Cancel"}</Button>
+                <Button variant="outline" onClick={() => { setShowForm(false); setMediaFiles([]); }}>{lang === "ar" ? "إلغاء" : "Cancel"}</Button>
               </div>
             </div>
           )}
@@ -781,6 +886,27 @@ function TenantEmergencyTab({ lang }: { lang: string }) {
                         </div>
                         <p className="text-sm text-muted-foreground">{lang === "ar" ? cat.ar : cat.en} • {new Date(r.createdAt).toLocaleString(lang === "ar" ? "ar-SA" : "en-US")}</p>
                         <p className="text-sm mt-1">{r.descriptionAr || r.description}</p>
+                        {/* Media Attachments */}
+                        {r.imageUrls && Array.isArray(r.imageUrls) && r.imageUrls.length > 0 && (
+                          <div className="mt-2">
+                            <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                              {r.imageUrls.map((url: string, idx: number) => {
+                                const isVid = /\.(mp4|webm|mov|avi)$/i.test(url);
+                                return (
+                                  <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="relative block rounded-lg overflow-hidden border bg-muted aspect-square hover:ring-2 hover:ring-[#3ECFC0] transition-all">
+                                    {isVid ? (
+                                      <div className="w-full h-full flex flex-col items-center justify-center bg-black/80">
+                                        <Play className="h-6 w-6 text-white" />
+                                      </div>
+                                    ) : (
+                                      <img src={url} alt="" className="w-full h-full object-cover" />
+                                    )}
+                                  </a>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                         {r.assignedTo && <p className="text-sm text-[#3ECFC0] mt-1">{lang === "ar" ? `الفني: ${r.assignedTo}` : `Technician: ${r.assignedTo}`} {r.assignedPhone && `(${r.assignedPhone})`}</p>}
                         {r.resolution && <div className="mt-2 p-2 bg-green-50 dark:bg-green-950/20 rounded text-sm"><strong>{lang === "ar" ? "الحل:" : "Resolution:"}</strong> {r.resolutionAr || r.resolution}</div>}
                       </div>
