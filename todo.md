@@ -667,3 +667,15 @@
 - [x] Heart favorite toggle already exists on PropertyCard component (used in Search, Home, TenantDashboard)
 - [x] SMTP credentials requested via webdev_request_secrets
 - [x] Run tests (302 passing), save checkpoint, push to GitHub
+
+## AI Assistant Overhaul (Feb 16)
+- [x] Admin AI Control Panel: enable/disable, personality, system prompt, temperature
+- [x] Knowledge Base: CRUD articles/FAQ with categories + document upload to S3
+- [x] File Upload: upload documents (PDF/TXT/DOCX) to knowledge base for AI context
+- [x] Deep Site Understanding: inject live property stats, bookings, services into AI context
+- [x] Conversation History: all chats saved to DB, admin can view all conversations
+- [x] Context-aware suggestions based on current page (search, property, tenant, landlord, booking)
+- [x] Bilingual: full AR/EN support in AI responses + CMS-driven name/welcome
+- [x] Admin can customize welcome message, suggested questions, AI name/avatar
+- [x] Enhanced chat UI with animations, typing dots, pulse ring, sparkle effects
+- [x] AI Control Panel route added to App.tsx + link in Admin Dashboard

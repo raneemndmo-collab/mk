@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -9,14 +9,18 @@ import { Separator } from "@/components/ui/separator";
 import { Streamdown } from "streamdown";
 import {
   Bot, X, Send, Plus, Trash2, MessageCircle,
-  Star, ChevronLeft, ChevronRight, Loader2,
+  Star, ChevronLeft, ChevronRight, Loader2, Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
+import { useSiteSettings } from "@/contexts/SiteSettingsContext";
 
 export default function AiAssistant() {
   const { t, lang, dir } = useI18n();
   const { user, isAuthenticated } = useAuth();
+  const [location] = useLocation();
+  const { settings } = useSiteSettings();
   const [isOpen, setIsOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
@@ -24,6 +28,48 @@ export default function AiAssistant() {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // CMS-driven AI settings
+  const aiEnabled = settings?.["ai.enabled"] !== "false";
+  const aiName = lang === "ar"
+    ? (settings?.["ai.name"] || "المفتاح الشهري الذكي")
+    : (settings?.["ai.nameEn"] || "Monthly Key AI");
+  const welcomeMessage = lang === "ar"
+    ? (settings?.["ai.welcomeMessage"] || "مرحباً! أنا المفتاح الشهري الذكي، كيف أقدر أساعدك؟")
+    : (settings?.["ai.welcomeMessageEn"] || "Hello! I'm Monthly Key AI, how can I help you?");
+
+  // Context-aware suggestions based on current page
+  const contextSuggestions = useMemo(() => {
+    if (location.startsWith("/search")) {
+      return lang === "ar"
+        ? ["كيف أفلتر نتائج البحث؟", "وش أفضل الأحياء في الرياض؟", "كيف أحفظ عقار في المفضلة؟"]
+        : ["How to filter search results?", "Best neighborhoods in Riyadh?", "How to save a property to favorites?"];
+    }
+    if (location.startsWith("/property/")) {
+      return lang === "ar"
+        ? ["وش تفاصيل هذا العقار؟", "كيف أحجز هذا العقار؟", "هل يشمل الإيجار الخدمات؟"]
+        : ["What are this property's details?", "How to book this property?", "Are utilities included?"];
+    }
+    if (location.startsWith("/tenant")) {
+      return lang === "ar"
+        ? ["كيف أرسل طلب صيانة؟", "وين ألقى عقد الإيجار؟", "كيف أدفع الإيجار؟"]
+        : ["How to submit a maintenance request?", "Where to find my lease?", "How to pay rent?"];
+    }
+    if (location.startsWith("/landlord")) {
+      return lang === "ar"
+        ? ["كيف أضيف عقار جديد؟", "كيف أقبل طلب حجز؟", "كيف أشوف تقارير الأرباح؟"]
+        : ["How to add a new property?", "How to approve a booking?", "How to view earnings reports?"];
+    }
+    if (location.startsWith("/book/")) {
+      return lang === "ar"
+        ? ["وش خطوات إتمام الحجز؟", "هل أقدر ألغي الحجز؟", "كيف أدفع التأمين؟"]
+        : ["What are the booking steps?", "Can I cancel a booking?", "How to pay the deposit?"];
+    }
+    // Default suggestions
+    return lang === "ar"
+      ? ["كيف أبحث عن شقة في الرياض؟", "كيف أضيف عقاري للمنصة؟", "وش خطوات الحجز؟", "كيف أرسل طلب صيانة؟"]
+      : ["How to search for an apartment in Riyadh?", "How to list my property?", "What are the booking steps?", "How to submit a maintenance request?"];
+  }, [location, lang]);
 
   // Queries
   const conversationsQuery = trpc.ai.conversations.useQuery(undefined, {
@@ -125,7 +171,22 @@ export default function AiAssistant() {
     setShowHistory(false);
   };
 
-  if (!isAuthenticated) return null;
+  const handleSuggestionClick = async (suggestion: string) => {
+    const result = await newConversation.mutateAsync({
+      title: suggestion.substring(0, 50),
+    });
+    if (!result.id) return;
+    setActiveConversationId(result.id);
+    setInput("");
+    setIsTyping(true);
+    chatMutation.mutate({
+      conversationId: result.id!,
+      message: suggestion,
+    });
+  };
+
+  // Don't render if not authenticated or AI is disabled
+  if (!isAuthenticated || !aiEnabled) return null;
 
   const BackIcon = dir === "rtl" ? ChevronRight : ChevronLeft;
 
@@ -141,10 +202,13 @@ export default function AiAssistant() {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-lg hover:shadow-xl flex items-center justify-center transition-shadow"
+            className="fixed bottom-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-lg hover:shadow-xl flex items-center justify-center transition-shadow group"
             style={{ [dir === "rtl" ? "left" : "right"]: "1.5rem" }}
           >
-            <Bot className="w-7 h-7" />
+            <Bot className="w-7 h-7 group-hover:hidden" />
+            <Sparkles className="w-7 h-7 hidden group-hover:block" />
+            {/* Pulse ring */}
+            <span className="absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-20" />
           </motion.button>
         )}
       </AnimatePresence>
@@ -175,12 +239,17 @@ export default function AiAssistant() {
                   </button>
                 )}
                 <div className="flex items-center gap-2 flex-1">
-                  <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center relative">
                     <Bot className="w-5 h-5" />
+                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-emerald-600" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-sm">{t("ai.title")}</h3>
-                    <p className="text-xs text-emerald-100">{t("ai.subtitle")}</p>
+                    <h3 className="font-bold text-sm">{aiName}</h3>
+                    <p className="text-xs text-emerald-100">
+                      {isTyping
+                        ? (lang === "ar" ? "يكتب..." : "Typing...")
+                        : (lang === "ar" ? "متصل الآن" : "Online")}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -232,7 +301,7 @@ export default function AiAssistant() {
                           key={conv.id}
                           className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors ${
                             activeConversationId === conv.id
-                              ? "bg-emerald-50 border border-emerald-200"
+                              ? "bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/20"
                               : "hover:bg-muted/50"
                           }`}
                           onClick={() => {
@@ -267,39 +336,37 @@ export default function AiAssistant() {
                 ) : !activeConversationId ? (
                   /* Welcome Screen */
                   <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-                    <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.1 }}
+                      className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center mb-4 relative"
+                    >
                       <Bot className="w-10 h-10 text-emerald-600" />
-                    </div>
-                    <h3 className="text-lg font-bold text-foreground mb-2">{t("ai.title")}</h3>
+                      <motion.div
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                        className="absolute -top-1 -right-1"
+                      >
+                        <Sparkles className="w-5 h-5 text-amber-500" />
+                      </motion.div>
+                    </motion.div>
+                    <h3 className="text-lg font-bold text-foreground mb-2">{aiName}</h3>
                     <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-                      {t("ai.welcome")}
+                      {welcomeMessage}
                     </p>
                     <div className="space-y-2 w-full max-w-[280px]">
-                      {[
-                        lang === "ar" ? "كيف أبحث عن شقة في الرياض؟" : "How to search for an apartment in Riyadh?",
-                        lang === "ar" ? "كيف أضيف عقاري للمنصة؟" : "How to list my property?",
-                        lang === "ar" ? "وش خطوات الحجز؟" : "What are the booking steps?",
-                        lang === "ar" ? "كيف أرسل طلب صيانة؟" : "How to submit a maintenance request?",
-                      ].map((suggestion, i) => (
-                        <button
+                      {contextSuggestions.map((suggestion, i) => (
+                        <motion.button
                           key={i}
-                          onClick={async () => {
-                            const result = await newConversation.mutateAsync({
-                              title: suggestion.substring(0, 50),
-                            });
-                            if (!result.id) return;
-                            setActiveConversationId(result.id);
-                            setInput("");
-                            setIsTyping(true);
-                            chatMutation.mutate({
-                              conversationId: result.id!,
-                              message: suggestion,
-                            });
-                          }}
-                          className="w-full text-start p-3 rounded-lg border border-border hover:bg-emerald-50 hover:border-emerald-200 text-sm transition-colors"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.2 + i * 0.1 }}
+                          onClick={() => handleSuggestionClick(suggestion)}
+                          className="w-full text-start p-3 rounded-lg border border-border hover:bg-emerald-50 hover:border-emerald-200 dark:hover:bg-emerald-950/20 text-sm transition-colors"
                         >
                           {suggestion}
-                        </button>
+                        </motion.button>
                       ))}
                     </div>
                   </div>
@@ -308,8 +375,10 @@ export default function AiAssistant() {
                   <ScrollArea className="h-full">
                     <div className="p-4 space-y-4">
                       {messagesQuery.data?.map((msg) => (
-                        <div
+                        <motion.div
                           key={msg.id}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
                           className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                         >
                           <div
@@ -356,17 +425,25 @@ export default function AiAssistant() {
                               </div>
                             )}
                           </div>
-                        </div>
+                        </motion.div>
                       ))}
                       {isTyping && (
-                        <div className="flex justify-start">
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="flex justify-start"
+                        >
                           <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3">
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <div className="flex gap-1">
+                                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                              </div>
                               {t("ai.thinking")}
                             </div>
                           </div>
-                        </div>
+                        </motion.div>
                       )}
                       <div ref={messagesEndRef} />
                     </div>
@@ -375,7 +452,7 @@ export default function AiAssistant() {
               </div>
 
               {/* Input */}
-              {(activeConversationId || !showHistory) && !showHistory && activeConversationId && (
+              {activeConversationId && !showHistory && (
                 <div className="p-3 border-t bg-background">
                   <div className="flex items-end gap-2">
                     <textarea

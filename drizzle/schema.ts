@@ -565,3 +565,23 @@ export const roles = mysqlTable("roles", {
 });
 export type Role = typeof roles.$inferSelect;
 export type InsertRole = typeof roles.$inferInsert;
+
+// ─── AI Knowledge Documents ─────────────────────────────────────────
+export const aiDocuments = mysqlTable("ai_documents", {
+  id: int("id").autoincrement().primaryKey(),
+  filename: varchar("filename", { length: 255 }).notNull(),
+  fileUrl: text("fileUrl").notNull(),
+  fileKey: text("fileKey").notNull(),
+  mimeType: varchar("mimeType", { length: 100 }).notNull(),
+  fileSize: int("fileSize").notNull(), // bytes
+  extractedText: text("extractedText"), // extracted content for AI context
+  category: varchar("category", { length: 100 }).default("general"),
+  description: text("description"),
+  descriptionAr: text("descriptionAr"),
+  isActive: boolean("isActive").default(true),
+  uploadedBy: int("uploadedBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type AiDocument = typeof aiDocuments.$inferSelect;
+export type InsertAiDocument = typeof aiDocuments.$inferInsert;

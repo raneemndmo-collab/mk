@@ -20,6 +20,7 @@ import {
   serviceRequests, InsertServiceRequest,
   emergencyMaintenance, InsertEmergencyMaintenance,
   maintenanceUpdates, InsertMaintenanceUpdate,
+  aiDocuments, InsertAiDocument,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1557,4 +1558,105 @@ export async function getFeaturedCities() {
   return db.select().from(cities)
     .where(and(eq(cities.isFeatured, true), eq(cities.isActive, true)))
     .orderBy(asc(cities.sortOrder));
+}
+
+
+// ─── AI Documents ─────────────────────────────────────────────────
+export async function createAiDocument(data: InsertAiDocument) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.insert(aiDocuments).values(data);
+  return result[0].insertId;
+}
+
+export async function getAiDocuments(activeOnly = false) {
+  const db = await getDb();
+  if (!db) return [];
+  if (activeOnly) {
+    return db.select().from(aiDocuments).where(eq(aiDocuments.isActive, true)).orderBy(desc(aiDocuments.createdAt));
+  }
+  return db.select().from(aiDocuments).orderBy(desc(aiDocuments.createdAt));
+}
+
+export async function getAiDocumentById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(aiDocuments).where(eq(aiDocuments.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateAiDocument(id: number, data: Partial<InsertAiDocument>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(aiDocuments).set(data).where(eq(aiDocuments.id, id));
+}
+
+export async function deleteAiDocument(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(aiDocuments).where(eq(aiDocuments.id, id));
+}
+
+// ─── AI Admin Stats ───────────────────────────────────────────────
+export async function getAiStats() {
+  const db = await getDb();
+  if (!db) return { totalConversations: 0, totalMessages: 0, avgRating: 0, totalDocuments: 0, totalArticles: 0 };
+  
+  const [convCount] = await db.select({ count: sql<number>`count(*)` }).from(aiConversations);
+  const [msgCount] = await db.select({ count: sql<number>`count(*)` }).from(aiMessages);
+  const [avgRat] = await db.select({ avg: sql<number>`COALESCE(AVG(rating), 0)` }).from(aiMessages).where(sql`rating IS NOT NULL`);
+  const [docCount] = await db.select({ count: sql<number>`count(*)` }).from(aiDocuments);
+  const [artCount] = await db.select({ count: sql<number>`count(*)` }).from(knowledgeBase);
+  
+  return {
+    totalConversations: convCount.count,
+    totalMessages: msgCount.count,
+    avgRating: Number(avgRat.avg) || 0,
+    totalDocuments: docCount.count,
+    totalArticles: artCount.count,
+  };
+}
+
+export async function getAllAiConversations(limit = 50, offset = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: aiConversations.id,
+    userId: aiConversations.userId,
+    title: aiConversations.title,
+    createdAt: aiConversations.createdAt,
+    updatedAt: aiConversations.updatedAt,
+  }).from(aiConversations)
+    .orderBy(desc(aiConversations.updatedAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function getAiRatedMessages() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: aiMessages.id,
+    conversationId: aiMessages.conversationId,
+    role: aiMessages.role,
+    content: aiMessages.content,
+    rating: aiMessages.rating,
+    createdAt: aiMessages.createdAt,
+  }).from(aiMessages)
+    .where(sql`${aiMessages.rating} IS NOT NULL`)
+    .orderBy(desc(aiMessages.createdAt))
+    .limit(100);
+}
+
+export async function getActiveAiDocumentTexts() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    filename: aiDocuments.filename,
+    extractedText: aiDocuments.extractedText,
+    category: aiDocuments.category,
+    description: aiDocuments.description,
+    descriptionAr: aiDocuments.descriptionAr,
+  }).from(aiDocuments)
+    .where(and(eq(aiDocuments.isActive, true), sql`${aiDocuments.extractedText} IS NOT NULL`));
 }

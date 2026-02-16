@@ -858,6 +858,14 @@ export const appRouter = router({
         "privacy.contentAr": "",
         "privacy.contentEn": "",
         "faq.items": "[]",
+        "ai.enabled": "true",
+        "ai.name": "المفتاح الشهري الذكي",
+        "ai.nameEn": "Monthly Key AI",
+        "ai.personality": "professional_friendly",
+        "ai.welcomeMessage": "مرحباً! أنا المفتاح الشهري الذكي، كيف أقدر أساعدك؟",
+        "ai.welcomeMessageEn": "Hello! I'm Monthly Key AI, how can I help you?",
+        "ai.customInstructions": "",
+        "ai.maxResponseLength": "800",
       };
       await db.bulkSetSettings(defaults);
       return { success: true };
@@ -926,6 +934,91 @@ export const appRouter = router({
       .input(z.object({ messageId: z.number(), rating: z.number().min(1).max(5) }))
       .mutation(async ({ input }) => {
         await db.rateAiMessage(input.messageId, input.rating);
+        return { success: true };
+      }),
+
+    // Admin: AI stats
+    stats: adminWithPermission(PERMISSIONS.MANAGE_KNOWLEDGE).query(async () => {
+      return db.getAiStats();
+    }),
+
+    // Admin: All conversations
+    allConversations: adminWithPermission(PERMISSIONS.MANAGE_KNOWLEDGE)
+      .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }).optional())
+      .query(async ({ input }) => {
+        return db.getAllAiConversations(input?.limit || 50, input?.offset || 0);
+      }),
+
+    // Admin: View any conversation messages
+    adminMessages: adminWithPermission(PERMISSIONS.MANAGE_KNOWLEDGE)
+      .input(z.object({ conversationId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getAiMessages(input.conversationId);
+      }),
+
+    // Admin: Rated messages
+    ratedMessages: adminWithPermission(PERMISSIONS.MANAGE_KNOWLEDGE).query(async () => {
+      return db.getAiRatedMessages();
+    }),
+
+    // Admin: Upload document to knowledge base
+    uploadDocument: adminWithPermission(PERMISSIONS.MANAGE_KNOWLEDGE)
+      .input(z.object({
+        base64: z.string(),
+        filename: z.string(),
+        contentType: z.string(),
+        category: z.string().optional(),
+        description: z.string().optional(),
+        descriptionAr: z.string().optional(),
+        extractedText: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const ext = input.filename.split('.').pop() || 'pdf';
+        const key = `ai-docs/${nanoid()}.${ext}`;
+        const buffer = Buffer.from(input.base64, 'base64');
+        const { url } = await storagePut(key, buffer, input.contentType);
+        const id = await db.createAiDocument({
+          filename: input.filename,
+          fileUrl: url,
+          fileKey: key,
+          mimeType: input.contentType,
+          fileSize: buffer.length,
+          extractedText: input.extractedText || null,
+          category: input.category || "general",
+          description: input.description || null,
+          descriptionAr: input.descriptionAr || null,
+          isActive: true,
+          uploadedBy: ctx.user!.id,
+        });
+        return { id, url };
+      }),
+
+    // Admin: List documents
+    documents: adminWithPermission(PERMISSIONS.MANAGE_KNOWLEDGE).query(async () => {
+      return db.getAiDocuments();
+    }),
+
+    // Admin: Update document
+    updateDocument: adminWithPermission(PERMISSIONS.MANAGE_KNOWLEDGE)
+      .input(z.object({
+        id: z.number(),
+        description: z.string().optional(),
+        descriptionAr: z.string().optional(),
+        category: z.string().optional(),
+        extractedText: z.string().optional(),
+        isActive: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await db.updateAiDocument(id, data as any);
+        return { success: true };
+      }),
+
+    // Admin: Delete document
+    deleteDocument: adminWithPermission(PERMISSIONS.MANAGE_KNOWLEDGE)
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteAiDocument(input.id);
         return { success: true };
       }),
   }),

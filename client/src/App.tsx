@@ -47,6 +47,7 @@ const AdminEmergencyMaintenance = lazy(() => import("./pages/AdminEmergencyMaint
 const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
 const AdminPermissions = lazy(() => import("./pages/AdminPermissions"));
 const AdminAIRatings = lazy(() => import("./pages/AdminAIRatings"));
+const AiControlPanel = lazy(() => import("./pages/AiControlPanel"));
 
 function PageLoader() {
   return (
@@ -94,6 +95,7 @@ function Router() {
         <Route path="/admin/analytics" component={AdminAnalytics} />
         <Route path="/admin/permissions" component={AdminPermissions} />
         <Route path="/admin/ai-ratings" component={AdminAIRatings} />
+        <Route path="/admin/ai-control" component={AiControlPanel} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>
