@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MapPin, BedDouble, Bath, Maximize2, SlidersHorizontal, List, X, ChevronLeft, ChevronRight, Building2 } from "lucide-react";
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import { MarkerClusterer, SuperClusterAlgorithm } from "@googlemaps/markerclusterer";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Link } from "wouter";
 
@@ -73,6 +74,7 @@ export default function MapViewPage() {
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
+  const clustererRef = useRef<MarkerClusterer | null>(null);
 
   // Debounce price
   const debouncedMinPrice = useDebounce(minPrice, 400);
@@ -173,12 +175,53 @@ export default function MapViewPage() {
     return el;
   }, []);
 
+  // Custom cluster renderer
+  const clusterRenderer = useMemo(() => ({
+    render: ({ count, position }: { count: number; position: google.maps.LatLng }) => {
+      const size = count < 10 ? 40 : count < 50 ? 50 : count < 100 ? 60 : 70;
+      const bgColor = count < 10 ? "#3ECFC0" : count < 50 ? "#E8B931" : count < 100 ? "#F97316" : "#EF4444";
+
+      const el = document.createElement("div");
+      el.style.cssText = `
+        width: ${size}px;
+        height: ${size}px;
+        background: ${bgColor};
+        border: 3px solid #fff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: 800;
+        font-size: ${size < 50 ? 14 : 16}px;
+        font-family: Tajawal, sans-serif;
+        box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+        cursor: pointer;
+        transition: transform 0.2s ease;
+      `;
+      el.textContent = String(count);
+      el.addEventListener("mouseenter", () => { el.style.transform = "scale(1.15)"; });
+      el.addEventListener("mouseleave", () => { el.style.transform = "scale(1)"; });
+
+      return new google.maps.marker.AdvancedMarkerElement({
+        position,
+        content: el,
+        zIndex: 1000 + count,
+      });
+    },
+  }), []);
+
   // Update markers when properties change
   useEffect(() => {
     if (!mapRef.current || !properties) return;
     const map = mapRef.current;
 
-    // Clear existing markers
+    // Clear existing clusterer and markers
+    if (clustererRef.current) {
+      clustererRef.current.clearMarkers();
+      clustererRef.current.setMap(null);
+      clustererRef.current = null;
+    }
     markersRef.current.forEach(m => (m.map = null));
     markersRef.current = [];
 
@@ -188,6 +231,7 @@ export default function MapViewPage() {
 
     const bounds = new google.maps.LatLngBounds();
     let hasValidMarker = false;
+    const newMarkers: google.maps.marker.AdvancedMarkerElement[] = [];
 
     (properties as MapProperty[]).forEach((prop) => {
       const lat = parseFloat(prop.latitude || "");
@@ -200,7 +244,6 @@ export default function MapViewPage() {
 
       const markerEl = createMarkerElement(prop);
       const marker = new google.maps.marker.AdvancedMarkerElement({
-        map,
         position,
         content: markerEl,
         title: isAr ? prop.titleAr : prop.titleEn,
@@ -212,20 +255,32 @@ export default function MapViewPage() {
         setSelectedProperty(prop);
       });
 
-      markersRef.current.push(marker);
+      newMarkers.push(marker);
     });
 
+    markersRef.current = newMarkers;
+
+    // Create clusterer with all markers
+    if (newMarkers.length > 0) {
+      clustererRef.current = new MarkerClusterer({
+        map,
+        markers: newMarkers,
+        algorithm: new SuperClusterAlgorithm({ radius: 80, maxZoom: 16 }),
+        renderer: clusterRenderer,
+      });
+    }
+
     // Fit bounds if we have markers
-    if (hasValidMarker && markersRef.current.length > 1) {
+    if (hasValidMarker && newMarkers.length > 1) {
       map.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: showList ? 380 : 50 });
-    } else if (hasValidMarker && markersRef.current.length === 1) {
-      const first = markersRef.current[0];
+    } else if (hasValidMarker && newMarkers.length === 1) {
+      const first = newMarkers[0];
       if (first.position) {
         map.setCenter(first.position as google.maps.LatLngLiteral);
         map.setZoom(14);
       }
     }
-  }, [properties, isAr, createMarkerElement, createInfoContent, showList]);
+  }, [properties, isAr, createMarkerElement, createInfoContent, showList, clusterRenderer]);
 
   // Handle map ready
   const handleMapReady = useCallback((map: google.maps.Map) => {

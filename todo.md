@@ -824,3 +824,12 @@
 - [x] Wrote 24 map tests (filters, coordinates, markers, performance, info windows)
 - [x] All 428 tests passing, 0 TypeScript errors
 - [x] Save checkpoint, push to GitHub
+
+## Marker Clustering (Feb 16)
+- [x] Install @googlemaps/markerclusterer v2.6.2
+- [x] Integrate clustering with SuperClusterAlgorithm (radius: 80, maxZoom: 16)
+- [x] Custom cluster renderer: color-coded by count (teal <10, gold <50, orange <100, red 100+)
+- [x] Cluster circles scale by count (40-70px), hover animation, proper z-index
+- [x] Cleanup on re-render: clearMarkers + setMap(null) before recreating
+- [x] All 428 tests passing, 0 TypeScript errors
+- [x] Save checkpoint, push to GitHub
