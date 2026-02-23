@@ -1,22 +1,33 @@
 export const ENV = {
-  appId: process.env.VITE_APP_ID ?? "local-app-id",
+  appId: process.env.VITE_APP_ID ?? "monthly-key-local",
   cookieSecret: process.env.JWT_SECRET ?? "local-jwt-secret-key-for-development-only-change-in-production",
   databaseUrl: process.env.DATABASE_URL ?? "mysql://root:password@localhost:3306/monthly_rental",
+  // OAuth - fully local mode (no external OAuth server needed)
   oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "http://localhost:3000",
   ownerOpenId: process.env.OWNER_OPEN_ID ?? "local-owner-id",
   isProduction: process.env.NODE_ENV === "production",
-  // Local development mode - no external API calls
-  isLocalMode: !process.env.OAUTH_SERVER_URL || process.env.OAUTH_SERVER_URL === "http://localhost:3000",
-  forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "http://localhost:3000",
-  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "local-api-key",
-  // SMTP Email Configuration (set via Settings > Secrets)
+  isLocalMode: true, // Always local mode - no Manus OAuth dependency
+  // OpenAI API - used for LLM, Image Generation, Voice Transcription
+  openaiApiKey: process.env.OPENAI_API_KEY ?? "",
+  openaiBaseUrl: process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
+  openaiModel: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
+  openaiImageModel: process.env.OPENAI_IMAGE_MODEL ?? "dall-e-3",
+  openaiWhisperModel: process.env.OPENAI_WHISPER_MODEL ?? "whisper-1",
+  // Legacy Forge API vars (mapped to OpenAI for backward compat)
+  forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
+  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? process.env.OPENAI_API_KEY ?? "",
+  // Local file storage (replaces Manus S3)
+  uploadDir: process.env.UPLOAD_DIR ?? "uploads",
+  publicUrl: process.env.PUBLIC_URL ?? "", // Auto-detected from request if empty
+  maxUploadSize: parseInt(process.env.MAX_UPLOAD_SIZE ?? "52428800"), // 50MB
+  // SMTP Email Configuration
   smtpHost: process.env.SMTP_HOST ?? "localhost",
   smtpPort: parseInt(process.env.SMTP_PORT ?? "587"),
   smtpUser: process.env.SMTP_USER ?? "noreply@localhost",
   smtpPass: process.env.SMTP_PASS ?? "",
   smtpFrom: process.env.SMTP_FROM ?? "noreply@localhost",
   smtpSecure: process.env.SMTP_SECURE === "true",
-  // Push Notifications (VAPID)
-  vapidPublicKey: process.env.VITE_VAPID_PUBLIC_KEY ?? "local-vapid-public-key",
-  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? "local-vapid-private-key",
+  // Push Notifications (VAPID) - local web-push
+  vapidPublicKey: process.env.VITE_VAPID_PUBLIC_KEY ?? "",
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? "",
 };

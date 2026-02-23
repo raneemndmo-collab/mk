@@ -23,5 +23,9 @@ COPY --from=build /app/drizzle ./drizzle
 COPY --from=build /app/package.json ./
 COPY --from=build /app/drizzle.config.ts ./
 
+# Create uploads directory for local file storage
+RUN mkdir -p /app/uploads && chmod 777 /app/uploads
+ENV UPLOAD_DIR=/app/uploads
+
 EXPOSE ${PORT:-3000}
 CMD ["node", "dist/index.js"]

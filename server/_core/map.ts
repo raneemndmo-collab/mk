@@ -19,12 +19,22 @@ type MapsConfig = {
 };
 
 function getMapsConfig(): MapsConfig {
+  // In local mode, use Google Maps API directly with GOOGLE_MAPS_API_KEY
+  const googleMapsKey = process.env.GOOGLE_MAPS_API_KEY;
+  if (googleMapsKey) {
+    return {
+      baseUrl: "https://maps.googleapis.com",
+      apiKey: googleMapsKey,
+    };
+  }
+
+  // Fallback to Forge proxy if configured
   const baseUrl = ENV.forgeApiUrl;
   const apiKey = ENV.forgeApiKey;
 
   if (!baseUrl || !apiKey) {
     throw new Error(
-      "Google Maps proxy credentials missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY"
+      "Google Maps API key missing: set GOOGLE_MAPS_API_KEY environment variable"
     );
   }
 
@@ -58,8 +68,12 @@ export async function makeRequest<T = unknown>(
 ): Promise<T> {
   const { baseUrl, apiKey } = getMapsConfig();
 
-  // Construct full URL: baseUrl + /v1/maps/proxy + endpoint
-  const url = new URL(`${baseUrl}/v1/maps/proxy${endpoint}`);
+  // Construct full URL
+  // If using Google Maps directly, no proxy path needed
+  const isDirectGoogle = baseUrl.includes("googleapis.com");
+  const url = isDirectGoogle
+    ? new URL(`${baseUrl}${endpoint}`)
+    : new URL(`${baseUrl}/v1/maps/proxy${endpoint}`);
 
   // Add API key as query parameter (standard Google Maps API authentication)
   url.searchParams.append("key", apiKey);
