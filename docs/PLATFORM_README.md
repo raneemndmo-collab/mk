@@ -217,47 +217,68 @@ Every booking write (adapter standalone or hub-api integrated) enforces these gu
 
 ### Webhook Authenticity Verification
 
+> **Important:** Beds24 does **NOT** sign webhooks with HMAC. Their V2 booking webhooks are plain POST requests with a JSON body. There is no `x-beds24-signature` header or equivalent. This was confirmed by reviewing all Beds24 API V2 documentation, the Swagger spec, and the wiki.
+
 Webhook requests from Beds24 are verified using a **two-layer authenticity check** before any processing occurs:
 
-**Layer 1 — IP Allowlist** (optional, disabled by default)
+**Layer 1 — IP Allowlist (PRIMARY, recommended)**
 
-If `BEDS24_WEBHOOK_IP_ALLOWLIST` is populated in `.env`, only requests from those source IPs are accepted. The check uses `x-forwarded-for` (first entry) or `socket.remoteAddress` as fallback. If the IP is not in the allowlist, the request is rejected with `403 Forbidden`.
+This is the strongest authentication available for Beds24 webhooks. If `BEDS24_WEBHOOK_IP_ALLOWLIST` is populated in `.env`, only requests from those source IPs are accepted. The check uses `x-forwarded-for` (first entry) or `socket.remoteAddress` as fallback. If the IP is not in the allowlist, the request is rejected with `403 Forbidden`.
 
-```
+```bash
+# Comma-separated list of Beds24 server IPs
+# Get these from Beds24 support or observe X-Forwarded-For during initial testing
 BEDS24_WEBHOOK_IP_ALLOWLIST=52.58.0.0,52.58.0.1
 ```
 
-When the allowlist is empty (default), IP checking is disabled and the system relies solely on HMAC signature verification.
+When the allowlist is empty (default), IP checking is disabled. This is acceptable during development but **not recommended for production**.
 
-**Layer 2 — HMAC Signature** (recommended, requires `BEDS24_WEBHOOK_SECRET`)
+The IP check supports both exact matches and simplified CIDR prefix matching (e.g., `52.58.0.0/16` matches any IP starting with `52.58.`).
 
-If `BEDS24_WEBHOOK_SECRET` is set, every webhook must include an `x-beds24-signature` header containing either:
+**Layer 2 — Static Shared Secret Header (OPTIONAL, defense in depth)**
 
-| Format | Example |
-|--------|---------|
-| Raw hex | `a1b2c3d4e5f6...` |
-| Prefixed | `sha256=a1b2c3d4e5f6...` |
+Beds24's Inventory Webhooks support a "Custom Header" field in their dashboard configuration. You can set a static secret header that Beds24 will include in every webhook request, and our server verifies it.
 
-The server computes `HMAC-SHA256(secret, JSON.stringify(body))` and compares it against the provided signature. Mismatches are rejected with `401 Unauthorized` and `WEBHOOK_INVALID_SIGNATURE` error code.
+Setup in Beds24 dashboard:
+
+| Setting | Value |
+|---------|-------|
+| Custom Header name | `X-Webhook-Secret` (or any name you choose) |
+| Custom Header value | A random secret string (e.g., `mk-wh-2026-a7b3c9d1e5f2`) |
+
+Matching `.env` configuration:
+
+```bash
+BEDS24_WEBHOOK_SECRET=mk-wh-2026-a7b3c9d1e5f2
+BEDS24_WEBHOOK_SECRET_HEADER=x-webhook-secret   # must match the header name in Beds24
+```
+
+This is **not HMAC** — Beds24 sends the header value as-is, and our server performs a constant-time string comparison. If the header is missing or the value does not match, the request is rejected with `401 Unauthorized` and `WEBHOOK_INVALID_SIGNATURE` error code.
+
+When `BEDS24_WEBHOOK_SECRET` is empty (default), this check is skipped.
 
 **Verification order:**
 
 ```
 Request arrives → Feature flag check (204 if off)
-  → IP allowlist check (403 if blocked)
-    → HMAC signature check (401 if invalid)
+  → Layer 1: IP allowlist check (403 if blocked)
+    → Layer 2: Shared secret header check (401 if invalid)
       → Schema validation (400 if malformed)
         → Dedup check → Queue for processing
 ```
 
-**Configuration in `.env`:**
+**Configuration summary:**
 
 ```bash
-BEDS24_WEBHOOK_SECRET=your-shared-secret-from-beds24-dashboard
-BEDS24_WEBHOOK_IP_ALLOWLIST=              # empty = disabled
+# PRIMARY: IP allowlist (get IPs from Beds24 support)
+BEDS24_WEBHOOK_IP_ALLOWLIST=52.58.0.0,52.58.0.1
+
+# OPTIONAL: Static shared secret (set matching Custom Header in Beds24 dashboard)
+BEDS24_WEBHOOK_SECRET=your-random-secret
+BEDS24_WEBHOOK_SECRET_HEADER=x-webhook-secret
 ```
 
-Both layers are independent: you can use HMAC only, IP only, or both together for defense in depth.
+Both layers are independent: you can use IP only, shared secret only, or both together for defense in depth. For production, we recommend **at minimum** the IP allowlist.
 
 ### Webhook Processing Pipeline
 

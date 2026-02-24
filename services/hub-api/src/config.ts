@@ -60,7 +60,13 @@ export const config = {
   beds24: {
     apiUrl: process.env.BEDS24_API_URL ?? "https://api.beds24.com",
     refreshToken: process.env.BEDS24_REFRESH_TOKEN ?? "",
+    // Static shared secret for webhook verification.
+    // NOT HMAC — Beds24 does not sign webhooks. This is a plain string
+    // that must match the "Custom Header" value set in Beds24 dashboard.
     webhookSecret: process.env.BEDS24_WEBHOOK_SECRET ?? "",
+    // Header name where Beds24 sends the shared secret.
+    // Must match the "Custom Header" name set in Beds24 dashboard.
+    webhookSecretHeader: (process.env.BEDS24_WEBHOOK_SECRET_HEADER ?? "x-webhook-secret").toLowerCase(),
   },
 
   // ── Admin Proxy Rate Limit ──────────────────────────────

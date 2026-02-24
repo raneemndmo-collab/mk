@@ -193,13 +193,19 @@ export const CHECKOUT_CLEANING_BUFFER_MINUTES = 60;
 export const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 /**
- * Beds24 webhook IP allowlist.
- * If set, only these IPs are allowed to send webhooks.
- * Empty array = IP check disabled (rely on HMAC signature only).
- * Beds24 publishes their webhook source IPs in their docs.
+ * Beds24 webhook IP allowlist (PRIMARY authentication).
+ * Beds24 does NOT sign webhooks with HMAC — IP allowlist is the
+ * strongest authentication available.
+ *
+ * IMPORTANT: This is a compile-time default only. In production,
+ * use the BEDS24_WEBHOOK_IP_ALLOWLIST env var (comma-separated)
+ * which is loaded at runtime in the webhook route handler.
+ *
+ * Empty array = IP check disabled (not recommended for production).
+ * Get IPs from Beds24 support or observe X-Forwarded-For in testing.
  */
 export const BEDS24_WEBHOOK_IP_ALLOWLIST: string[] = [
-  // Populate from Beds24 documentation when available.
+  // Populate from Beds24 support when available.
   // Example: "52.58.0.0/16"
 ];
 
