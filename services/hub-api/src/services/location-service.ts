@@ -326,6 +326,164 @@ export function parseCoordsFromUrl(url: string): ParsedCoords | null {
   return null;
 }
 
+// ─── Place ID Extraction from URL ────────────────────────────
+
+/**
+ * Extract a Google place_id from a Google Maps URL.
+ *
+ * Supported patterns:
+ *   - ChIJ... pattern (standard Google place_id, 27+ chars)
+ *   - ftid= query parameter (Google internal feature ID)
+ *   - !1s embedded place_id in data parameter
+ *   - place_id= explicit query parameter
+ *
+ * Returns null if no place_id found.
+ */
+export function extractPlaceIdFromUrl(url: string): string | null {
+  // Pattern 1: ChIJ... in URL path or query (most reliable)
+  const chiMatch = url.match(/(ChIJ[A-Za-z0-9_-]{20,})/);
+  if (chiMatch) return chiMatch[1];
+
+  // Pattern 2: ftid= query parameter
+  try {
+    const parsed = new URL(url);
+    const ftid = parsed.searchParams.get("ftid");
+    if (ftid && ftid.startsWith("0x")) return ftid;
+  } catch {
+    // Not a valid URL
+  }
+
+  // Pattern 3: !1s embedded place_id in data parameter
+  const dataMatch = url.match(/!1s(ChIJ[A-Za-z0-9_-]{20,})/);
+  if (dataMatch) return dataMatch[1];
+
+  // Pattern 4: place_id= explicit query parameter
+  try {
+    const parsed = new URL(url);
+    const pid = parsed.searchParams.get("place_id");
+    if (pid && pid.length > 10) return pid;
+  } catch {
+    // Not a valid URL
+  }
+
+  return null;
+}
+
+// ─── Google Places Details API ───────────────────────────────
+
+interface PlaceDetailsResult {
+  lat: number;
+  lng: number;
+  formatted_address: string;
+  place_id: string;
+}
+
+/**
+ * Call Google Places Details API to resolve a place_id to coordinates + address.
+ * This is the PREFERRED resolution path when a place_id is found in the URL.
+ */
+export async function placeDetailsViaGoogle(placeId: string): Promise<PlaceDetailsResult> {
+  const apiKey = config.location.googleMapsApiKey;
+  if (!apiKey) {
+    throw new LocationServiceError(
+      ERROR_CODES.NOT_CONFIGURED,
+      "Google Maps API key is not configured. Place details lookup is temporarily unavailable.",
+      HTTP_STATUS.SERVICE_UNAVAILABLE,
+      true,
+    );
+  }
+
+  const params = new URLSearchParams({
+    place_id: placeId,
+    fields: "geometry,formatted_address,place_id",
+    key: apiKey,
+    language: "ar",
+  });
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+
+  try {
+    const response = await fetch(
+      `https://maps.googleapis.com/maps/api/place/details/json?${params}`,
+      { signal: controller.signal },
+    );
+
+    if (!response.ok) {
+      throw new LocationServiceError(
+        ERROR_CODES.UPSTREAM_ERROR,
+        `Google Places Details API returned HTTP ${response.status}`,
+        HTTP_STATUS.BAD_GATEWAY,
+        true,
+      );
+    }
+
+    const data = (await response.json()) as {
+      status: string;
+      error_message?: string;
+      result?: {
+        geometry: { location: { lat: number; lng: number } };
+        formatted_address: string;
+        place_id: string;
+      };
+    };
+
+    if (data.status === "NOT_FOUND" || data.status === "ZERO_RESULTS") {
+      throw new LocationServiceError(
+        ERROR_CODES.GOOGLE_ZERO_RESULTS,
+        `Google Places Details found no result for place_id: ${placeId}`,
+        HTTP_STATUS.UNPROCESSABLE,
+        false,
+      );
+    }
+
+    if (data.status !== "OK") {
+      throw mapGoogleStatus(data.status);
+    }
+
+    if (!data.result) {
+      throw new LocationServiceError(
+        ERROR_CODES.GOOGLE_ZERO_RESULTS,
+        "Google Places Details returned OK but with empty result.",
+        HTTP_STATUS.UNPROCESSABLE,
+        false,
+      );
+    }
+
+    const lat = data.result.geometry.location.lat;
+    const lng = data.result.geometry.location.lng;
+    assertValidCoords(lat, lng, "Google Places Details API");
+
+    return {
+      lat,
+      lng,
+      formatted_address: data.result.formatted_address,
+      place_id: data.result.place_id,
+    };
+  } catch (err: unknown) {
+    if (err instanceof LocationServiceError) throw err;
+
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new LocationServiceError(
+        ERROR_CODES.UPSTREAM_TIMEOUT,
+        "Google Places Details API request timed out after 10 seconds.",
+        HTTP_STATUS.GATEWAY_TIMEOUT,
+        true,
+      );
+    }
+
+    const rawMessage = err instanceof Error ? err.message : String(err);
+    throw new LocationServiceError(
+      ERROR_CODES.UPSTREAM_ERROR,
+      `Google Places Details API call failed: ${sanitizeApiKey(rawMessage)}`,
+      HTTP_STATUS.BAD_GATEWAY,
+      true,
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 // ─── Google Geocoding API ─────────────────────────────────────
 
 interface GeocodeResult {
@@ -535,6 +693,7 @@ export function extractPlaceNameFromUrl(url: string): string | null {
  * Pipeline:
  *   1. Validate domain
  *   2. Expand short URL
+ *   2.5. Extract place_id from URL → if found + Google enabled → Places Details API (PREFERRED)
  *   3. Parse coords from URL
  *   4. If no coords → extract place name → geocode via Google
  *   5. Optionally reverse-geocode for formatted address
@@ -594,6 +753,29 @@ export async function resolveLocation(
     finalUrl = await expandUrl(rawUrl);
     // Re-validate the expanded URL domain
     validateUrlDomain(finalUrl);
+  }
+
+  // Step 2.5: Extract place_id from URL → Places Details API (PREFERRED path)
+  const extractedPlaceId = extractPlaceIdFromUrl(finalUrl);
+  if (extractedPlaceId && isFeatureEnabled("googleMaps")) {
+    try {
+      const placeResult = await placeDetailsViaGoogle(extractedPlaceId);
+      return {
+        lat: placeResult.lat,
+        lng: placeResult.lng,
+        formatted_address: placeResult.formatted_address,
+        place_id: placeResult.place_id,
+        google_maps_url: finalUrl,
+        unit_number: request.unit_number ?? null,
+        address_notes: request.address_notes ?? null,
+        resolved_via: "google_geocode",
+        degraded: false,
+        resolution_quality: "full" as const,
+      };
+    } catch {
+      // Places Details failed — fall through to coord parsing
+      // This is graceful degradation: we still try other methods
+    }
   }
 
   // Step 3: Parse coords from URL

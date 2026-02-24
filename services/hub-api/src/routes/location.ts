@@ -26,6 +26,11 @@ import {
   LocationServiceError,
   hashUrl,
 } from "../services/location-service.js";
+import {
+  getCachedLocation,
+  cacheLocation,
+  cachedToResult,
+} from "../services/location-cache.js";
 
 export const locationRouter = Router();
 
@@ -95,16 +100,36 @@ locationRouter.post("/resolve", async (req: Request, res: Response) => {
     // Check cache first (by URL hash)
     const urlHash = hashUrl(input.google_maps_url);
 
-    // TODO: When Redis/Postgres are wired up, check cache here.
-    // For now, the cache layer is prepared in the schema and will be
-    // integrated when hub-api gets a running database connection.
-    // The service itself is stateless and cache-ready.
+    // ── Cache lookup: Redis (fast) → Postgres (persistent) ──
+    const cached = await getCachedLocation(urlHash);
+    if (cached) {
+      console.log(JSON.stringify({
+        event: "location_cache_hit",
+        urlHash,
+        resolved_via: cached.resolved_via,
+        timestamp: new Date().toISOString(),
+      }));
 
-    // Resolve location
+      return res.status(HTTP_STATUS.OK).json(
+        cachedToResult(
+          cached,
+          input.unit_number ?? null,
+          input.address_notes ?? null,
+        ),
+      );
+    }
+
+    // ── Cache miss → resolve fresh ──
     const result = await resolveLocation({
       google_maps_url: input.google_maps_url,
       unit_number: input.unit_number ?? null,
       address_notes: input.address_notes ?? null,
+    });
+
+    // ── Store in cache (Redis + Postgres, non-blocking) ──
+    // Fire-and-forget: cache write failures don't affect the response
+    cacheLocation(urlHash, input.google_maps_url, result).catch(() => {
+      // Swallow cache write errors — resolve succeeded
     });
 
     // Log resolution (without secrets)
