@@ -15,7 +15,7 @@ const defaultSettings: Record<string, string> = {
   "hero.subtitleEn": "Premium monthly rental management | Riyadh • Jeddah • Madinah",
   "hero.bgImage": "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/hero/hero-bg.jpg",
   "hero.bgType": "video",
-  "hero.bgVideo": "",
+  "hero.bgVideo": "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/hero/monthlykey.mp4",
   "hero.overlayOpacity": "40",
   "stats.properties": "500+",
   "stats.propertiesLabelAr": "عقار متاح",
