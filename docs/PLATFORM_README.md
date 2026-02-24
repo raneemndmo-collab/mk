@@ -355,25 +355,89 @@ The `/webhooks/status` endpoint shows rotation state without exposing secret val
 }
 ```
 
-**Strict Mode:** If `BEDS24_WEBHOOK_SECRET_PREVIOUS` is set but `BEDS24_WEBHOOK_SECRET_ROTATION_START` is missing or unparseable, the previous secret is **REJECTED** (not accepted). The operator must explicitly set a valid ISO 8601 start date to activate the rotation window. This prevents accidental indefinite dual-secret acceptance.
+#### Strict Mode Policy
+
+Strict mode is **always active** — it is not a toggle. This is the hardcoded behavior in production and all environments:
+
+> If `BEDS24_WEBHOOK_SECRET_PREVIOUS` is set but `BEDS24_WEBHOOK_SECRET_ROTATION_START` is **missing, empty, or unparseable**, the previous secret is **REJECTED** (401). The system will not fall back to accepting the previous secret indefinitely.
+
+**Why this matters:**
+
+Without strict mode, an operator could accidentally leave `PREVIOUS` set forever, creating a permanent dual-secret window. This violates the principle of least privilege — after rotation, only the new secret should be valid.
+
+**Strict mode decision matrix:**
+
+| `PREVIOUS` | `ROTATION_START` | Previous Secret | Reason |
+|-----------|-----------------|----------------|--------|
+| empty | (any) | N/A | No rotation configured |
+| set | empty | **REJECTED** (401) | Strict: start date required |
+| set | `not-a-date` | **REJECTED** (401) | Strict: unparseable date |
+| set | valid + window open | **ACCEPTED** (200) | Rotation in progress |
+| set | valid + window expired | **REJECTED** (401) | Window closed, clean up env |
+
+**Production recommendation:** Strict mode requires no configuration — it is the only behavior. To rotate secrets safely:
+
+1. Always set all three variables together: `SECRET` (new), `PREVIOUS` (old), `ROTATION_START` (now).
+2. Never set `PREVIOUS` without `ROTATION_START`.
+3. Always clean up `PREVIOUS` and `ROTATION_START` after the window expires.
+
+The `/webhooks/status` endpoint will warn you if the configuration is inconsistent:
+
+```json
+{
+  "rotation": {
+    "previousSecretConfigured": true,
+    "windowActive": false,
+    "note": "PREVIOUS secret configured but ROTATION_START missing — previous secret REJECTED (strict mode). Set ROTATION_START."
+  }
+}
+```
+
+**Automated tests:** 15 tests cover all strict mode scenarios, including exact boundary (accepted at `windowEnd`, rejected at `windowEnd + 1ms`). Run with `npx vitest run tests/writer-lock.test.ts`.
 
 #### Configuration Summary
 
+Three `.env` examples for the three lifecycle states:
+
+**Normal operation (no rotation):**
+
 ```bash
 # PRIMARY: Static shared secret (set matching Custom Header in Beds24 dashboard)
-BEDS24_WEBHOOK_SECRET=your-random-secret
+BEDS24_WEBHOOK_SECRET=mk-wh-2026-a7b3c9d1e5f2
 BEDS24_WEBHOOK_SECRET_HEADER=x-webhook-secret
 
-# SECRET ROTATION (zero-downtime)
-BEDS24_WEBHOOK_SECRET_PREVIOUS=           # Old secret during rotation
-BEDS24_WEBHOOK_SECRET_ROTATION_START=     # ISO 8601 timestamp
-BEDS24_WEBHOOK_SECRET_ROTATION_WINDOW_DAYS=7  # Days to accept old secret
+# Rotation: not active
+BEDS24_WEBHOOK_SECRET_PREVIOUS=
+BEDS24_WEBHOOK_SECRET_ROTATION_START=
+BEDS24_WEBHOOK_SECRET_ROTATION_WINDOW_DAYS=7
 
 # OPTIONAL: IP allowlist (Beds24 IPs may change — use as defense-in-depth)
-BEDS24_WEBHOOK_IP_ALLOWLIST=52.58.0.0,52.58.0.1
+BEDS24_WEBHOOK_IP_ALLOWLIST=
 ```
 
-Both layers are independent: you can use shared secret only, IP only, or both together. For production, we recommend **at minimum** the shared secret header.
+**During rotation (both secrets accepted for 7 days):**
+
+```bash
+BEDS24_WEBHOOK_SECRET=mk-wh-2026-NEW-b8c4d2e6f1a3          # ← new secret
+BEDS24_WEBHOOK_SECRET_HEADER=x-webhook-secret
+BEDS24_WEBHOOK_SECRET_PREVIOUS=mk-wh-2026-OLD-a7b3c9d1e5f2  # ← old secret
+BEDS24_WEBHOOK_SECRET_ROTATION_START=2026-03-01T00:00:00Z    # ← when rotation started
+BEDS24_WEBHOOK_SECRET_ROTATION_WINDOW_DAYS=7                 # ← accept old for 7 days
+BEDS24_WEBHOOK_IP_ALLOWLIST=
+```
+
+**After rotation (clean up — only new secret active):**
+
+```bash
+BEDS24_WEBHOOK_SECRET=mk-wh-2026-NEW-b8c4d2e6f1a3          # ← now the only secret
+BEDS24_WEBHOOK_SECRET_HEADER=x-webhook-secret
+BEDS24_WEBHOOK_SECRET_PREVIOUS=                              # ← cleared
+BEDS24_WEBHOOK_SECRET_ROTATION_START=                        # ← cleared
+BEDS24_WEBHOOK_SECRET_ROTATION_WINDOW_DAYS=7
+BEDS24_WEBHOOK_IP_ALLOWLIST=
+```
+
+Both authentication layers (shared secret + IP allowlist) are independent: you can use shared secret only, IP only, or both together. For production, we recommend **at minimum** the shared secret header.
 
 ### Webhook Processing Pipeline
 
