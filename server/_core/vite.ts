@@ -69,12 +69,19 @@ export function serveStatic(app: Express) {
     console.error('[Prerender] Failed to load HTML template:', err);
   }
 
+  // Prerender middleware for bots - MUST be before express.static
+  // so bot requests to / /search /property/:id are intercepted first
+  if (htmlTemplate) {
+    app.use(prerenderMiddleware(htmlTemplate));
+  }
+
   // Serve static assets with long cache headers for immutable files
   app.use(express.static(distPath, {
     maxAge: '1y',           // Long cache for hashed assets
     immutable: true,        // Assets are content-hashed, safe to cache forever
     etag: true,
     lastModified: true,
+    index: false,           // Don't serve index.html for / - let SPA fallback handle it
     setHeaders: (res, filePath) => {
       // HTML files should not be cached aggressively
       if (filePath.endsWith('.html')) {
@@ -94,11 +101,6 @@ export function serveStatic(app: Express) {
       }
     },
   }));
-
-  // Prerender middleware for bots (before SPA fallback)
-  if (htmlTemplate) {
-    app.use(prerenderMiddleware(htmlTemplate));
-  }
 
   // SPA fallback: serve index.html for all non-file requests
   app.use("*", (_req, res) => {
