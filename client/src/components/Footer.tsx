@@ -30,15 +30,12 @@ export default function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-10">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <div className="flex items-center gap-2.5 mb-5">
-              {s("site.logoUrl") ? (
-                <img src={s("site.logoUrl")} alt="Logo" className="h-9 w-9 rounded-lg object-contain" />
-              ) : (
-                <div className="w-9 h-9 rounded-lg bg-[#3ECFC0] flex items-center justify-center">
-                  <KeyRound className="h-5 w-5 text-[#0B1E2D]" />
-                </div>
-              )}
-              <span className="text-xl font-bold font-heading">{siteName}</span>
+            <div className="mb-5">
+              <img 
+                src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/lDFKiBXvXbLyTkzm.png" 
+                alt="Monthly Key - المفتاح الشهري" 
+                className="h-20 w-auto object-contain" 
+              />
             </div>
             <p className="text-white/50 text-sm leading-relaxed mb-5">{aboutText}</p>
             {/* Contact info */}

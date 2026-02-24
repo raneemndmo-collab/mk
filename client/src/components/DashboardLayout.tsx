@@ -72,9 +72,11 @@ export default function DashboardLayout({
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
           <div className="flex flex-col items-center gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-[#3ECFC0] flex items-center justify-center">
-              <KeyRound className="w-8 h-8 text-[#0B1E2D]" />
-            </div>
+            <img 
+              src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/TtUMHsFxunESlVeJ.png" 
+              alt="Monthly Key" 
+              className="h-16 w-auto object-contain" 
+            />
             <h1 className="text-2xl font-semibold tracking-tight text-center">
               يرجى تسجيل الدخول للمتابعة
             </h1>
@@ -183,11 +185,12 @@ function DashboardLayoutContent({
                 <PanelLeft className="h-4 w-4 text-muted-foreground" />
               </button>
               {!isCollapsed ? (
-                <div className="flex items-center gap-2 min-w-0">
-                  <KeyRound className="h-5 w-5 text-[#3ECFC0] shrink-0" />
-                  <span className="font-semibold tracking-tight truncate">
-                    المفتاح الشهري
-                  </span>
+                <div className="flex items-center min-w-0">
+                  <img 
+                    src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/AYfAOvfZfKqhhdmZ.png" 
+                    alt="Monthly Key - المفتاح الشهري" 
+                    className="h-8 w-auto object-contain" 
+                  />
                 </div>
               ) : null}
             </div>

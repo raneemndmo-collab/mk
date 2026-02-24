@@ -55,13 +55,12 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-3">
-            <div className="w-12 h-12 bg-[#0B1E2D] rounded-xl flex items-center justify-center">
-              <KeyRound className="w-7 h-7 text-white" />
-            </div>
-            <span className="text-3xl font-bold text-[#0B1E2D] font-heading">
-              المفتاح الشهري
-            </span>
+          <Link href="/" className="inline-flex items-center justify-center">
+            <img 
+              src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/KDDwFZIQSHvOUDqK.png" 
+              alt="Monthly Key - المفتاح الشهري" 
+              className="h-20 w-auto object-contain" 
+            />
           </Link>
         </div>
 

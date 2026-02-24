@@ -238,17 +238,12 @@ export default function Navbar() {
       <div className="container">
         <div className="flex h-14 sm:h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5">
-            {s("site.logoUrl") ? (
-              <img src={s("site.logoUrl")} alt="Logo" className="h-9 w-9 rounded-lg object-contain" />
-            ) : (
-              <div className="w-9 h-9 rounded-lg bg-[#3ECFC0] flex items-center justify-center transition-transform duration-300 hover:scale-110">
-                <KeyRound className="h-5 w-5 text-[#0B1E2D]" />
-              </div>
-            )}
-            <span className="text-lg sm:text-xl font-bold font-heading text-white">
-              {s("site.nameAr") || "المفتاح الشهري"}
-            </span>
+          <Link href="/" className="flex items-center transition-transform duration-300 hover:scale-105">
+            <img 
+              src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/AYfAOvfZfKqhhdmZ.png" 
+              alt="Monthly Key - المفتاح الشهري" 
+              className="h-10 sm:h-12 w-auto object-contain" 
+            />
           </Link>
 
           {/* Desktop Nav */}
