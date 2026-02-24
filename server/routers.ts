@@ -1004,13 +1004,29 @@ export const appRouter = router({
           content: input.message,
         });
 
-        // Get AI response
-        const response = await getAiResponse(
-          ctx.user.id,
-          input.conversationId,
-          input.message,
-          ctx.user.role,
-        );
+        let response: string;
+        try {
+          // Get AI response
+          response = await getAiResponse(
+            ctx.user.id,
+            input.conversationId,
+            input.message,
+            ctx.user.role,
+          );
+        } catch (error: any) {
+          console.error("[AI Chat Error]", error?.message || error);
+          // Provide a friendly fallback response instead of crashing
+          const errorMsg = error?.message || "";
+          if (errorMsg.includes("API key") || errorMsg.includes("401") || errorMsg.includes("Incorrect")) {
+            response = "عذراً، المساعد الذكي غير متاح حالياً بسبب مشكلة في الإعدادات. يرجى التواصل مع الدعم الفني. \n\nSorry, the AI assistant is currently unavailable due to a configuration issue. Please contact support.";
+          } else if (errorMsg.includes("429") || errorMsg.includes("rate limit")) {
+            response = "عذراً، تم تجاوز الحد المسموح من الطلبات. يرجى المحاولة بعد قليل. \n\nSorry, rate limit exceeded. Please try again in a moment.";
+          } else if (errorMsg.includes("timeout") || errorMsg.includes("ECONNREFUSED")) {
+            response = "عذراً، لم أتمكن من الاتصال بالخادم. يرجى المحاولة مرة أخرى. \n\nSorry, I couldn't connect to the server. Please try again.";
+          } else {
+            response = "عذراً، حدث خطأ أثناء معالجة طلبك. يرجى المحاولة مرة أخرى. \n\nSorry, an error occurred while processing your request. Please try again.";
+          }
+        }
 
         // Save assistant message
         const msgId = await db.createAiMessage({
