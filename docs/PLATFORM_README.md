@@ -355,7 +355,7 @@ The `/webhooks/status` endpoint shows rotation state without exposing secret val
 }
 ```
 
-If `BEDS24_WEBHOOK_SECRET_ROTATION_START` is empty or unparseable, the previous secret is accepted **indefinitely** as a safe fallback. This means you can set PREVIOUS without a start date if you want permanent dual-secret acceptance (not recommended for production).
+**Strict Mode:** If `BEDS24_WEBHOOK_SECRET_PREVIOUS` is set but `BEDS24_WEBHOOK_SECRET_ROTATION_START` is missing or unparseable, the previous secret is **REJECTED** (not accepted). The operator must explicitly set a valid ISO 8601 start date to activate the rotation window. This prevents accidental indefinite dual-secret acceptance.
 
 #### Configuration Summary
 

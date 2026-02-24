@@ -92,24 +92,30 @@ function constantTimeEqual(a: string, b: string): boolean {
 //
 // Returns true if the previous secret should still be accepted.
 // The window is open from ROTATION_START for ROTATION_WINDOW_DAYS.
-// If ROTATION_START is empty or unparseable, the previous secret
-// is accepted indefinitely (operator must clear it manually).
+// STRICT MODE: If ROTATION_START is empty or unparseable, the
+// previous secret is REJECTED (operator must set start date explicitly).
 //
 
 function isPreviousSecretInWindow(): boolean {
   if (!WEBHOOK_SECRET_PREVIOUS) return false;
 
-  // No rotation start set → accept previous indefinitely (safe fallback)
-  if (!ROTATION_START) return true;
+  // STRICT: ROTATION_START is REQUIRED when PREVIOUS is set.
+  // If missing → previous secret is NOT accepted (operator must set start date explicitly).
+  if (!ROTATION_START) {
+    logger.warn(
+      "BEDS24_WEBHOOK_SECRET_PREVIOUS is set but BEDS24_WEBHOOK_SECRET_ROTATION_START is missing — previous secret REJECTED. Set ROTATION_START to enable rotation window."
+    );
+    return false;
+  }
 
   const startDate = new Date(ROTATION_START);
   if (isNaN(startDate.getTime())) {
-    // Unparseable date → accept previous indefinitely, log warning
+    // Unparseable date → reject previous secret (strict mode)
     logger.warn(
       { rotationStart: ROTATION_START },
-      "BEDS24_WEBHOOK_SECRET_ROTATION_START is not a valid ISO 8601 date — previous secret accepted indefinitely"
+      "BEDS24_WEBHOOK_SECRET_ROTATION_START is not a valid ISO 8601 date — previous secret REJECTED. Fix the date format."
     );
-    return true;
+    return false;
   }
 
   const windowEndMs = startDate.getTime() + ROTATION_WINDOW_DAYS * 24 * 60 * 60 * 1000;
@@ -356,9 +362,11 @@ router.get("/status", async (_req, res) => {
           windowExpiresAt: rotationExpiresAt,
           note: rotationActive
             ? "Rotation in progress — both current and previous secrets are accepted"
-            : WEBHOOK_SECRET_PREVIOUS
-              ? "Rotation window expired — previous secret is no longer accepted. Clear BEDS24_WEBHOOK_SECRET_PREVIOUS."
-              : "No rotation in progress",
+            : WEBHOOK_SECRET_PREVIOUS && !ROTATION_START
+              ? "PREVIOUS secret configured but ROTATION_START missing — previous secret REJECTED (strict mode). Set ROTATION_START."
+              : WEBHOOK_SECRET_PREVIOUS
+                ? "Rotation window expired or ROTATION_START invalid — previous secret no longer accepted. Clear BEDS24_WEBHOOK_SECRET_PREVIOUS."
+                : "No rotation in progress",
         },
       },
       ipAllowlist: {
