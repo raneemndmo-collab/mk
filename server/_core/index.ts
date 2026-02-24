@@ -12,6 +12,9 @@ import { serveStatic, setupVite } from "./vite";
 import { seedAdminUser } from "../seed-admin";
 import { seedCitiesAndDistricts } from "../seed-cities";
 import { seedDefaultSettings } from "../seed-settings";
+import { securityHeaders } from "../middleware/security-headers";
+import { compressionMiddleware } from "../middleware/compression";
+import { sitemapHandler } from "../middleware/sitemap";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -35,6 +38,13 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
+  // ─── Security Headers (must be first) ──────────────────────────────
+  app.use(securityHeaders);
+
+  // ─── Compression (Gzip/Brotli) ────────────────────────────────────
+  app.use(compressionMiddleware);
+
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -50,6 +60,9 @@ async function startServer() {
     lastModified: true,
   }));
   console.log(`[Storage] Serving uploads from: ${uploadDir}`);
+
+  // ─── Dynamic Sitemap ──────────────────────────────────────────────
+  app.get("/sitemap.xml", sitemapHandler);
 
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);

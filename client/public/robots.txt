@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /login
+Disallow: /register
+Disallow: /api
+Disallow: /tenant
+Disallow: /landlord
+Disallow: /messages
+
+Sitemap: https://mk-production-7730.up.railway.app/sitemap.xml

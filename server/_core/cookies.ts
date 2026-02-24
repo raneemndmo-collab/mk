@@ -42,7 +42,10 @@ export function getSessionCookieOptions(
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "none",
+    // Use "lax" for same-site requests (better CSRF protection).
+    // "none" was used before but it weakens security by allowing
+    // cross-site cookie sending. "lax" is the recommended default.
+    sameSite: "lax",
     secure: isSecureRequest(req),
   };
 }
