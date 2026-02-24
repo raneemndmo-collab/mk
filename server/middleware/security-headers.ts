@@ -3,6 +3,10 @@
  * Applies essential HTTP security headers to all responses.
  * These headers protect against common web vulnerabilities without
  * changing the visual design or functionality of the site.
+ *
+ * Map Support:
+ * - Google Maps: maps.googleapis.com, maps.gstatic.com (when API key is set)
+ * - OpenStreetMap: tile.openstreetmap.org (free fallback)
  */
 import type { Request, Response, NextFunction } from "express";
 
@@ -38,17 +42,26 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
   // from "Content-Security-Policy-Report-Only" to "Content-Security-Policy".
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://cdn.jsdelivr.net",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    // Scripts: self + Google Maps + Analytics + CDNs
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://cdn.jsdelivr.net https://unpkg.com",
+    // Styles: self + Google Fonts + Leaflet CDN
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
+    // Fonts: self + Google Fonts
     "font-src 'self' https://fonts.gstatic.com",
-    "img-src 'self' data: blob: https: http:",
+    // Images: self + data/blob + OpenStreetMap tiles + Google Maps tiles + any HTTPS
+    "img-src 'self' data: blob: https: http: https://*.tile.openstreetmap.org https://maps.gstatic.com https://maps.googleapis.com https://*.ggpht.com",
+    // Media
     "media-src 'self' https://cdn.jsdelivr.net blob:",
-    "connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com https://maps.googleapis.com https://*.paypal.com",
-    "frame-src 'self' https://*.paypal.com",
+    // Connect: self + Google Maps APIs + OpenStreetMap + Analytics + PayPal
+    "connect-src 'self' https://maps.googleapis.com https://maps.gstatic.com https://*.tile.openstreetmap.org https://*.openstreetmap.org https://www.google-analytics.com https://www.googletagmanager.com https://*.paypal.com",
+    // Frames: self + PayPal
+    "frame-src 'self' https://*.paypal.com https://maps.google.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'self'",
+    // Workers for Google Maps
+    "worker-src 'self' blob:",
   ].join("; ");
 
   res.setHeader("Content-Security-Policy-Report-Only", csp);

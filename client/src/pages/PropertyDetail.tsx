@@ -4,8 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { MapView } from "@/components/Map";
-import L from "leaflet";
+import { MapView, type MapInstance } from "@/components/Map";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -66,7 +65,7 @@ export default function PropertyDetail() {
   const [, params] = useRoute("/property/:id");
   const [, setLocation] = useLocation();
   const [currentPhoto, setCurrentPhoto] = useState(0);
-  const mapRef = useRef<L.Map | null>(null);
+  const mapRef = useRef<MapInstance | null>(null);
   const [showCalculator, setShowCalculator] = useState(false);
   const [calcMonths, setCalcMonths] = useState(1);
 
@@ -124,10 +123,10 @@ export default function PropertyDetail() {
     return { rent, totalRent, deposit, serviceFee, subtotal, vat, grandTotal };
   }, [prop, calcMonths, serviceFeePercent, vatPercent, depositPercent]);
 
-  // Map ready handler with Leaflet popup
-  const handleMapReady = useCallback((map: L.Map) => {
+  // Map ready handler - works with both Google Maps and Leaflet
+  const handleMapReady = useCallback((mapInst: MapInstance) => {
     if (!prop) return;
-    mapRef.current = map;
+    mapRef.current = mapInst;
     const lat = prop.latitude ? Number(prop.latitude) : 24.7136;
     const lng = prop.longitude ? Number(prop.longitude) : 46.6753;
 
@@ -160,9 +159,13 @@ export default function PropertyDetail() {
       </div>
     `;
 
-    // Add Leaflet marker with popup
-    const marker = L.marker([lat, lng]).addTo(map);
-    marker.bindPopup(popupContent, { maxWidth: 300 }).openPopup();
+    // Add marker with popup using unified interface
+    const marker = mapInst.addMarker(lat, lng, {
+      color: "#3ECFC0",
+      label: rentText,
+      title: titleText || "",
+    });
+    mapInst.addPopup(marker, popupContent);
   }, [prop, lang, dir]);
 
   if (property.isLoading) {

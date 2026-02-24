@@ -2,7 +2,7 @@ import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { MapView as LeafletMap, createPropertyMarker } from "@/components/Map";
+import { MapView as MapComponent, type MapInstance, getLeafletModule } from "@/components/Map";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,10 +12,6 @@ import { MapPin, BedDouble, Bath, Maximize2, SlidersHorizontal, List, X, Buildin
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Link } from "wouter";
-import L from "leaflet";
-import "leaflet.markercluster";
-import "leaflet.markercluster/dist/MarkerCluster.css";
-import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
 // Property type labels
 const propertyTypeLabels: Record<string, { en: string; ar: string }> = {
@@ -74,9 +70,8 @@ export default function MapViewPage() {
   const [selectedProperty, setSelectedProperty] = useState<MapProperty | null>(null);
 
   // Map refs
-  const mapRef = useRef<L.Map | null>(null);
-  const markersLayerRef = useRef<L.MarkerClusterGroup | null>(null);
-  const markersMapRef = useRef<Map<number, L.Marker>>(new Map());
+  const mapInstanceRef = useRef<MapInstance | null>(null);
+  const markersRef = useRef<Map<number, any>>(new Map());
 
   // Debounce price
   const debouncedMinPrice = useDebounce(minPrice, 400);
@@ -148,88 +143,158 @@ export default function MapViewPage() {
 
   // Update markers when properties change
   useEffect(() => {
-    if (!mapRef.current || !properties) return;
-    const map = mapRef.current;
+    const mapInst = mapInstanceRef.current;
+    if (!mapInst || !properties) return;
 
     // Clear existing markers
-    if (markersLayerRef.current) {
-      map.removeLayer(markersLayerRef.current);
-    }
-    markersMapRef.current.clear();
+    mapInst.removeAllMarkers();
+    markersRef.current.clear();
 
-    // Create cluster group
-    const clusterGroup = L.markerClusterGroup({
-      maxClusterRadius: 80,
-      spiderfyOnMaxZoom: true,
-      showCoverageOnHover: false,
-      zoomToBoundsOnClick: true,
-      iconCreateFunction: (cluster) => {
-        const count = cluster.getChildCount();
-        const size = count < 10 ? 40 : count < 50 ? 50 : count < 100 ? 60 : 70;
-        const bgColor = count < 10 ? "#3ECFC0" : count < 50 ? "#E8B931" : count < 100 ? "#F97316" : "#EF4444";
-        return L.divIcon({
-          className: "custom-cluster-icon",
-          html: `<div style="
-            width:${size}px;height:${size}px;background:${bgColor};
-            border:3px solid #fff;border-radius:50%;display:flex;
-            align-items:center;justify-content:center;color:#fff;
-            font-weight:800;font-size:${size < 50 ? 14 : 16}px;
-            font-family:Tajawal,sans-serif;box-shadow:0 3px 12px rgba(0,0,0,0.3);
-            cursor:pointer;">${count}</div>`,
-          iconSize: [size, size],
-          iconAnchor: [size / 2, size / 2],
-        });
-      },
-    });
+    // For Leaflet provider, use marker cluster if available
+    if (mapInst.provider === "leaflet" && mapInst.leaflet) {
+      const L = getLeafletModule();
+      if (!L) return;
 
-    const bounds = L.latLngBounds([]);
-    let hasValidMarker = false;
-
-    (properties as MapProperty[]).forEach((prop) => {
-      const lat = parseFloat(prop.latitude || "");
-      const lng = parseFloat(prop.longitude || "");
-      if (isNaN(lat) || isNaN(lng)) return;
-
-      hasValidMarker = true;
-      bounds.extend([lat, lng]);
-
-      const color = markerColors[prop.propertyType] || "#3ECFC0";
-      const rent = Number(prop.monthlyRent).toLocaleString();
-      const marker = createPropertyMarker(lat, lng, {
-        color,
-        label: rent,
-        title: isAr ? prop.titleAr : prop.titleEn,
-      });
-
-      marker.bindPopup(createPopupContent(prop), {
-        maxWidth: 300,
-        className: "property-popup",
-      });
-
-      marker.on("click", () => {
-        setSelectedProperty(prop);
-      });
-
-      clusterGroup.addLayer(marker);
-      markersMapRef.current.set(prop.id, marker);
-    });
-
-    map.addLayer(clusterGroup);
-    markersLayerRef.current = clusterGroup;
-
-    // Fit bounds
-    if (hasValidMarker) {
+      // Try to use markerCluster if available, otherwise add markers directly
+      let clusterGroup: any = null;
       try {
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+        if ((L as any).markerClusterGroup) {
+          clusterGroup = (L as any).markerClusterGroup({
+            maxClusterRadius: 80,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            iconCreateFunction: (cluster: any) => {
+              const count = cluster.getChildCount();
+              const size = count < 10 ? 40 : count < 50 ? 50 : count < 100 ? 60 : 70;
+              const bgColor = count < 10 ? "#3ECFC0" : count < 50 ? "#E8B931" : count < 100 ? "#F97316" : "#EF4444";
+              return L.divIcon({
+                className: "custom-cluster-icon",
+                html: `<div style="
+                  width:${size}px;height:${size}px;background:${bgColor};
+                  border:3px solid #fff;border-radius:50%;display:flex;
+                  align-items:center;justify-content:center;color:#fff;
+                  font-weight:800;font-size:${size < 50 ? 14 : 16}px;
+                  font-family:Tajawal,sans-serif;box-shadow:0 3px 12px rgba(0,0,0,0.3);
+                  cursor:pointer;">${count}</div>`,
+                iconSize: [size, size],
+                iconAnchor: [size / 2, size / 2],
+              });
+            },
+          });
+        }
       } catch (e) {
-        // bounds might be invalid if only one point
+        // markerCluster not available, continue without it
+      }
+
+      const bounds = L.latLngBounds([]);
+      let hasValidMarker = false;
+
+      (properties as MapProperty[]).forEach((prop) => {
+        const lat = parseFloat(prop.latitude || "");
+        const lng = parseFloat(prop.longitude || "");
+        if (isNaN(lat) || isNaN(lng)) return;
+
+        hasValidMarker = true;
+        bounds.extend([lat, lng]);
+
+        const color = markerColors[prop.propertyType] || "#3ECFC0";
+        const rent = Number(prop.monthlyRent).toLocaleString();
+        const icon = L.divIcon({
+          className: "custom-map-marker",
+          html: `
+            <div style="
+              background: ${color};
+              color: #fff;
+              padding: 4px 10px;
+              border-radius: 20px;
+              font-size: 12px;
+              font-weight: 700;
+              font-family: Tajawal, sans-serif;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+              cursor: pointer;
+              white-space: nowrap;
+              border: 2px solid #fff;
+              text-align: center;
+              display: inline-block;
+            ">${rent}</div>
+          `,
+          iconSize: [0, 0],
+          iconAnchor: [0, 0],
+        });
+
+        const marker = L.marker([lat, lng], { icon, title: isAr ? prop.titleAr : prop.titleEn });
+
+        marker.bindPopup(createPopupContent(prop), {
+          maxWidth: 300,
+          className: "property-popup",
+        });
+
+        marker.on("click", () => {
+          setSelectedProperty(prop);
+        });
+
+        if (clusterGroup) {
+          clusterGroup.addLayer(marker);
+        } else {
+          marker.addTo(mapInst.leaflet);
+        }
+        markersRef.current.set(prop.id, marker);
+      });
+
+      if (clusterGroup) {
+        mapInst.leaflet.addLayer(clusterGroup);
+      }
+
+      // Fit bounds
+      if (hasValidMarker) {
+        try {
+          mapInst.leaflet.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+        } catch (e) {
+          // bounds might be invalid
+        }
+      }
+    } else if (mapInst.provider === "google") {
+      // Google Maps markers
+      let boundsObj = { north: -90, south: 90, east: -180, west: 180 };
+      let hasValidMarker = false;
+
+      (properties as MapProperty[]).forEach((prop) => {
+        const lat = parseFloat(prop.latitude || "");
+        const lng = parseFloat(prop.longitude || "");
+        if (isNaN(lat) || isNaN(lng)) return;
+
+        hasValidMarker = true;
+        boundsObj.north = Math.max(boundsObj.north, lat);
+        boundsObj.south = Math.min(boundsObj.south, lat);
+        boundsObj.east = Math.max(boundsObj.east, lng);
+        boundsObj.west = Math.min(boundsObj.west, lng);
+
+        const color = markerColors[prop.propertyType] || "#3ECFC0";
+        const rent = Number(prop.monthlyRent).toLocaleString();
+        const marker = mapInst.addMarker(lat, lng, {
+          color,
+          label: rent,
+          title: isAr ? prop.titleAr : prop.titleEn,
+        });
+
+        mapInst.addPopup(marker, createPopupContent(prop));
+        mapInst.onMarkerClick(marker, () => {
+          setSelectedProperty(prop);
+        });
+
+        markersRef.current.set(prop.id, marker);
+      });
+
+      if (hasValidMarker) {
+        mapInst.fitBounds(boundsObj);
       }
     }
   }, [properties, isAr, createPopupContent]);
 
   // Handle map ready
-  const handleMapReady = useCallback((map: L.Map) => {
-    mapRef.current = map;
+  const handleMapReady = useCallback((map: MapInstance) => {
+    mapInstanceRef.current = map;
   }, []);
 
   // Reset filters
@@ -243,6 +308,31 @@ export default function MapViewPage() {
 
   const hasFilters = city || propertyType || minPrice || maxPrice || bedrooms;
   const propertyCount = properties?.length ?? 0;
+
+  // Focus on a property from the list
+  const focusProperty = useCallback((prop: MapProperty) => {
+    setSelectedProperty(prop);
+    const lat = parseFloat(prop.latitude || "");
+    const lng = parseFloat(prop.longitude || "");
+    if (isNaN(lat) || isNaN(lng)) return;
+
+    const mapInst = mapInstanceRef.current;
+    if (!mapInst) return;
+
+    mapInst.setCenter(lat, lng);
+    mapInst.setZoom(16);
+
+    // Open popup
+    const marker = markersRef.current.get(prop.id);
+    if (marker) {
+      if (mapInst.provider === "leaflet") {
+        marker.openPopup();
+      } else if (mapInst.provider === "google") {
+        // Google Maps - trigger click event
+        google.maps.event.trigger(marker, "click");
+      }
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -392,19 +482,7 @@ export default function MapViewPage() {
                     property={prop}
                     isAr={isAr}
                     isSelected={selectedProperty?.id === prop.id}
-                    onClick={() => {
-                      setSelectedProperty(prop);
-                      const lat = parseFloat(prop.latitude || "");
-                      const lng = parseFloat(prop.longitude || "");
-                      if (!isNaN(lat) && !isNaN(lng) && mapRef.current) {
-                        mapRef.current.setView([lat, lng], 16, { animate: true });
-                        // Open popup for this marker
-                        const marker = markersMapRef.current.get(prop.id);
-                        if (marker) {
-                          marker.openPopup();
-                        }
-                      }
-                    }}
+                    onClick={() => focusProperty(prop)}
                   />
                 ))}
               </div>
@@ -412,7 +490,7 @@ export default function MapViewPage() {
           </div>
         )}
 
-        {/* Leaflet Map */}
+        {/* Map */}
         <div className="flex-1 relative">
           {isLoading && !properties && (
             <div className="absolute inset-0 z-20 bg-background/80 flex items-center justify-center">
@@ -422,7 +500,7 @@ export default function MapViewPage() {
               </div>
             </div>
           )}
-          <LeafletMap
+          <MapComponent
             className="w-full h-full"
             initialCenter={{ lat: 24.7136, lng: 46.6753 }}
             initialZoom={6}
