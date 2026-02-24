@@ -107,11 +107,11 @@ export default function AgentProfile() {
             }} />
           </div>
 
-          {/* Profile content - photo overlaps banner */}
+          {/* Profile content */}
           <CardContent className="px-6 pb-6 relative">
-            <div className="flex flex-col md:flex-row items-start gap-5 -mt-14">
-              {/* Photo */}
-              <div className="shrink-0">
+            {/* Photo - overlaps banner */}
+            <div className="-mt-14 mb-4">
+              <div className="shrink-0 inline-block">
                 {showPhoto ? (
                   <img
                     src={manager.photoUrl!}
@@ -125,9 +125,11 @@ export default function AgentProfile() {
                   </div>
                 )}
               </div>
+            </div>
 
-              {/* Info - always below the banner line */}
-              <div className="flex-1 pt-16 md:pt-2">
+            {/* Info + Actions - always below the banner */}
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+              <div className="flex-1">
                 <h1 className="text-2xl font-heading font-bold text-[#0B1E2D]">{name}</h1>
                 <p className="text-muted-foreground flex items-center gap-1.5 mt-1">
                   <Briefcase className="h-4 w-4" />
@@ -142,7 +144,7 @@ export default function AgentProfile() {
               </div>
 
               {/* Contact Actions */}
-              <div className="flex gap-2 flex-wrap pt-16 md:pt-2">
+              <div className="flex gap-2 flex-wrap">
                 {manager.phone && (
                   <a href={`tel:${manager.phone}`}>
                     <Button className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 gap-2 font-semibold">
