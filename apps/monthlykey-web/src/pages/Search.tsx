@@ -9,7 +9,7 @@ export default function Search() {
     <div className="min-h-screen bg-mk-light">
       <nav className="bg-mk-navy text-white px-6 py-4 flex items-center gap-4">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-mk-gold flex items-center justify-center font-bold text-mk-navy text-xs">MK</div>
+          <img src="/logo-mark.svg" alt="MonthlyKey" width={28} height={28} className="shrink-0" />
           <span className="font-bold text-sm">المفتاح الشهري</span>
         </Link>
         <span className="text-sm text-gray-400">

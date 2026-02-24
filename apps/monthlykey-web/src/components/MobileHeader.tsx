@@ -177,25 +177,21 @@ export default function MobileHeader({ transparent = false }: MobileHeaderProps)
   );
 }
 
-/** Compact SVG logo mark for MonthlyKey */
-function MKLogo() {
+/**
+ * Compact logo mark for MonthlyKey.
+ * Uses the SVG file from /public for crisp rendering at all DPIs.
+ * The SVG is the same key-in-gold-square design, just properly vectorized.
+ */
+function MKLogo({ size = 32 }: { size?: number }) {
   return (
-    <svg
-      width="32"
-      height="32"
-      viewBox="0 0 32 32"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
+    <img
+      src="/logo-mark.svg"
+      alt="MonthlyKey"
+      width={size}
+      height={size}
       className="shrink-0"
-    >
-      {/* Key shape background */}
-      <rect width="32" height="32" rx="8" fill="#C5A55A" />
-      {/* Key icon */}
-      <path
-        d="M16 8a5 5 0 0 0-4.9 6.04L8 17.14V22h3v-2h2v-2h1.5l1.6-1.6A5 5 0 1 0 16 8Zm1.5 5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z"
-        fill="#0B1E2D"
-      />
-    </svg>
+      style={{ width: size, height: size }}
+    />
   );
 }
 

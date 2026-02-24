@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" fill="none">
+  <!-- MonthlyKey Horizontal Logo: Mark + Arabic wordmark -->
+  <!-- Mark (scaled to 64x64) -->
+  <rect width="64" height="64" rx="16" fill="#C5A55A"/>
+  <path d="M32 16a10 10 0 0 0-9.8 12.08L16 34.28V44h6v-4h4v-4h3l3.2-3.2A10 10 0 1 0 32 16Zm3 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z" fill="#0B1E2D"/>
+  <!-- Wordmark: المفتاح الشهري -->
+  <text x="80" y="38" font-family="'IBM Plex Sans Arabic', sans-serif" font-size="22" font-weight="700" fill="currentColor" direction="rtl" text-anchor="start">المفتاح الشهري</text>
+</svg>

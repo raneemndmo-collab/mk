@@ -23,10 +23,14 @@ export default function Home() {
     <div className="min-h-screen">
       {/* Navbar */}
       <nav className="bg-mk-navy text-white px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-mk-gold flex items-center justify-center font-bold text-mk-navy text-sm">
-            MK
-          </div>
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
+          <img
+            src="/logo-mark.svg"
+            alt="MonthlyKey"
+            width={32}
+            height={32}
+            className="shrink-0"
+          />
           <span className="font-bold">المفتاح الشهري</span>
         </div>
         <div className="flex items-center gap-4">
@@ -147,9 +151,13 @@ export default function Home() {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between gap-8">
           <div>
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-mk-gold flex items-center justify-center font-bold text-mk-navy text-sm">
-                MK
-              </div>
+              <img
+                src="/logo-mark.svg"
+                alt="MonthlyKey"
+                width={32}
+                height={32}
+                className="shrink-0"
+              />
               <span className="font-bold text-lg">المفتاح الشهري</span>
             </div>
             <p className="text-gray-400 text-sm">منصة التأجير الشهري في السعودية</p>

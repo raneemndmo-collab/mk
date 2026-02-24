@@ -16,9 +16,13 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-mk-navy to-mk-dark flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-mk-gold flex items-center justify-center font-bold text-mk-navy text-2xl mx-auto mb-4">
-            MK
-          </div>
+          <img
+            src="/logo-mark.svg"
+            alt="MonthlyKey"
+            width={64}
+            height={64}
+            className="mx-auto mb-4"
+          />
           <h1 className="text-2xl font-bold text-white">المفتاح الشهري</h1>
           <p className="text-gray-400 mt-1">تسجيل الدخول لحسابك</p>
         </div>
