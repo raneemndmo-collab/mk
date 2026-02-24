@@ -1050,6 +1050,37 @@ export const appRouter = router({
       return db.getAiStats();
     }),
 
+    // Admin: Test API key
+    testApiKey: adminWithPermission(PERMISSIONS.MANAGE_KNOWLEDGE)
+      .input(z.object({ apiKey: z.string().min(1) }))
+      .mutation(async ({ input }) => {
+        try {
+          const response = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              authorization: `Bearer ${input.apiKey}`,
+            },
+            body: JSON.stringify({
+              model: "gpt-4o-mini",
+              messages: [{ role: "user", content: "Say OK" }],
+              max_tokens: 5,
+            }),
+          });
+          if (response.ok) {
+            return { success: true };
+          }
+          const errorData = await response.json().catch(() => ({}));
+          const errMsg = (errorData as any)?.error?.message || `HTTP ${response.status}`;
+          if (errMsg.includes("quota") || errMsg.includes("billing")) {
+            return { success: false, error: "\u0627\u0644\u0645\u0641\u062a\u0627\u062d \u0635\u0627\u0644\u062d \u0644\u0643\u0646 \u0644\u0627 \u064a\u0648\u062c\u062f \u0631\u0635\u064a\u062f \u0643\u0627\u0641\u064a. \u0623\u0636\u0641 \u0631\u0635\u064a\u062f \u0641\u064a platform.openai.com" };
+          }
+          return { success: false, error: errMsg };
+        } catch (err: any) {
+          return { success: false, error: err?.message || "Connection failed" };
+        }
+      }),
+
     // Admin: All conversations
     allConversations: adminWithPermission(PERMISSIONS.MANAGE_KNOWLEDGE)
       .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }).optional())

@@ -9,6 +9,7 @@
  */
 import { storagePut } from "server/storage";
 import { ENV } from "./env";
+import { getApiKeyAsync } from "./llm";
 
 export type GenerateImageOptions = {
   prompt: string;
@@ -26,10 +27,7 @@ export type GenerateImageResponse = {
 export async function generateImage(
   options: GenerateImageOptions
 ): Promise<GenerateImageResponse> {
-  const apiKey = ENV.openaiApiKey || ENV.forgeApiKey;
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not configured for image generation");
-  }
+  const apiKey = await getApiKeyAsync();
 
   const baseUrl = (ENV.openaiBaseUrl || "https://api.openai.com/v1").replace(/\/+$/, "");
   const model = ENV.openaiImageModel || "dall-e-3";

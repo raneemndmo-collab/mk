@@ -220,12 +220,51 @@ const resolveApiUrl = () => {
   return `${cleaned}/v1/chat/completions`;
 };
 
-const getApiKey = () => {
+// Cache for DB-stored API key (refreshed every 60s)
+let _cachedDbApiKey: string | null = null;
+let _cacheTimestamp = 0;
+const CACHE_TTL = 60_000; // 60 seconds
+
+export async function refreshApiKeyFromDb(): Promise<string | null> {
+  try {
+    const { getSetting } = await import("../db");
+    const dbKey = await getSetting("ai.apiKey");
+    if (dbKey && dbKey.trim() && dbKey.startsWith("sk-")) {
+      _cachedDbApiKey = dbKey.trim();
+      _cacheTimestamp = Date.now();
+      return _cachedDbApiKey;
+    }
+  } catch { /* DB not available, fall through */ }
+  _cachedDbApiKey = null;
+  return null;
+}
+
+export async function getApiKeyAsync(): Promise<string> {
+  // Check DB cache first
+  if (_cachedDbApiKey && (Date.now() - _cacheTimestamp) < CACHE_TTL) {
+    return _cachedDbApiKey;
+  }
+  // Try refreshing from DB
+  const dbKey = await refreshApiKeyFromDb();
+  if (dbKey) return dbKey;
+  // Fall back to env var
   const key = ENV.openaiApiKey || ENV.forgeApiKey;
   if (!key) {
-    throw new Error("OPENAI_API_KEY is not configured. Set OPENAI_API_KEY environment variable.");
+    throw new Error("OPENAI_API_KEY is not configured. Set it in Admin Panel → AI Settings or as environment variable.");
   }
   return key;
+}
+
+const getApiKey = () => {
+  // Sync version: use cached DB key or env var
+  if (_cachedDbApiKey && (Date.now() - _cacheTimestamp) < CACHE_TTL) {
+    return _cachedDbApiKey;
+  }
+  const key = ENV.openaiApiKey || ENV.forgeApiKey;
+  if (!key && !_cachedDbApiKey) {
+    throw new Error("OPENAI_API_KEY is not configured. Set it in Admin Panel → AI Settings or as environment variable.");
+  }
+  return _cachedDbApiKey || key;
 };
 
 // Legacy alias
@@ -277,7 +316,7 @@ const normalizeResponseFormat = ({
 };
 
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
-  const apiKey = getApiKey();
+  const apiKey = await getApiKeyAsync();
   const model = ENV.openaiModel || "gpt-4o-mini";
 
   const {

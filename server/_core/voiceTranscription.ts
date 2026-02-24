@@ -26,6 +26,7 @@
  * ```
  */
 import { ENV } from "./env";
+import { getApiKeyAsync } from "./llm";
 
 export type TranscribeOptions = {
   audioUrl: string; // URL to the audio file (e.g., S3 URL)
@@ -75,12 +76,14 @@ export async function transcribeAudio(
 ): Promise<TranscriptionResponse | TranscriptionError> {
   try {
     // Step 1: Validate environment configuration
-    const apiKey = ENV.openaiApiKey || ENV.forgeApiKey;
-    if (!apiKey) {
+    let apiKey: string;
+    try {
+      apiKey = await getApiKeyAsync();
+    } catch {
       return {
         error: "Voice transcription service is not configured",
         code: "SERVICE_ERROR",
-        details: "OPENAI_API_KEY is not set"
+        details: "OPENAI_API_KEY is not set. Configure it in Admin Panel → AI Settings."
       };
     }
 

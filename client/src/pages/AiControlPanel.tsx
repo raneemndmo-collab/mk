@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import {
   Bot, Settings, FileText, MessageCircle, Star, Upload,
   Trash2, Eye, EyeOff, ChevronLeft, Save,
-  Brain, BarChart3, File, Download, Loader2,
+  Brain, BarChart3, File, Download, Loader2, Key, CheckCircle2, XCircle, RefreshCw,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -177,6 +177,29 @@ function SettingsTab() {
         </CardContent>
       </Card>
 
+      {/* API Key Management */}
+      <Card className="border-amber-200 bg-amber-50/30 dark:border-amber-900 dark:bg-amber-950/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Key className="w-5 h-5 text-amber-600" />
+            {lang === "ar" ? "مفتاح OpenAI API" : "OpenAI API Key"}
+          </CardTitle>
+          <CardDescription>
+            {lang === "ar"
+              ? "أدخل مفتاح OpenAI API لتشغيل المساعد الذكي. يمكنك الحصول على مفتاح من platform.openai.com"
+              : "Enter your OpenAI API key to power the AI assistant. Get a key from platform.openai.com"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <ApiKeyField
+            lang={lang}
+            getVal={getVal}
+            setVal={setVal}
+            saveSingleSetting={saveSingleSetting}
+          />
+        </CardContent>
+      </Card>
+
       {/* Identity */}
       <Card>
         <CardHeader>
@@ -253,6 +276,111 @@ function SettingsTab() {
           {lang === "ar" ? "حفظ جميع التغييرات" : "Save All Changes"}
         </Button>
       )}
+    </div>
+  );
+}
+
+// ─── API Key Field ────────────────────────────────────────────────
+function ApiKeyField({ lang, getVal, setVal, saveSingleSetting }: {
+  lang: string;
+  getVal: (key: string) => string;
+  setVal: (key: string, value: string) => void;
+  saveSingleSetting: (key: string, value: string) => void;
+}) {
+  const [showKey, setShowKey] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<"success" | "error" | null>(null);
+  const testMutation = trpc.ai.testApiKey.useMutation({
+    onSuccess: (data: any) => {
+      setTesting(false);
+      if (data?.success) {
+        setTestResult("success");
+        toast.success(lang === "ar" ? "المفتاح يعمل بنجاح!" : "API key is working!");
+      } else {
+        setTestResult("error");
+        toast.error(data?.error || (lang === "ar" ? "المفتاح غير صالح" : "Invalid API key"));
+      }
+    },
+    onError: (err) => {
+      setTesting(false);
+      setTestResult("error");
+      toast.error(err.message || (lang === "ar" ? "فشل اختبار المفتاح" : "Failed to test key"));
+    },
+  });
+
+  const currentKey = getVal("ai.apiKey") || "";
+  const maskedKey = currentKey ? `${currentKey.slice(0, 7)}${'*'.repeat(20)}${currentKey.slice(-4)}` : "";
+
+  const handleSaveKey = () => {
+    const key = getVal("ai.apiKey");
+    if (!key || !key.startsWith("sk-")) {
+      toast.error(lang === "ar" ? "المفتاح يجب أن يبدأ بـ sk-" : "Key must start with sk-");
+      return;
+    }
+    saveSingleSetting("ai.apiKey", key);
+    setTestResult(null);
+    toast.success(lang === "ar" ? "تم حفظ المفتاح" : "API key saved");
+  };
+
+  const handleTestKey = () => {
+    const key = getVal("ai.apiKey");
+    if (!key || !key.startsWith("sk-")) {
+      toast.error(lang === "ar" ? "أدخل مفتاح صالح أولاً" : "Enter a valid key first");
+      return;
+    }
+    setTesting(true);
+    setTestResult(null);
+    testMutation.mutate({ apiKey: key });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2">
+          {lang === "ar" ? "مفتاح API" : "API Key"}
+          {testResult === "success" && <CheckCircle2 className="w-4 h-4 text-green-600" />}
+          {testResult === "error" && <XCircle className="w-4 h-4 text-red-600" />}
+        </Label>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Input
+              type={showKey ? "text" : "password"}
+              value={showKey ? (getVal("ai.apiKey") || "") : maskedKey}
+              onChange={(e) => { setVal("ai.apiKey", e.target.value); setTestResult(null); }}
+              placeholder="sk-proj-..."
+              className="font-mono text-sm pe-10"
+              dir="ltr"
+            />
+            <button
+              type="button"
+              onClick={() => setShowKey(!showKey)}
+              className="absolute top-1/2 -translate-y-1/2 end-3 text-muted-foreground hover:text-foreground"
+            >
+              {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-2 flex-wrap">
+        <Button onClick={handleSaveKey} className="bg-emerald-600 hover:bg-emerald-700 gap-2">
+          <Save className="w-4 h-4" />
+          {lang === "ar" ? "حفظ المفتاح" : "Save Key"}
+        </Button>
+        <Button variant="outline" onClick={handleTestKey} disabled={testing} className="gap-2">
+          {testing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
+          {lang === "ar" ? "اختبار المفتاح" : "Test Key"}
+        </Button>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        {lang === "ar"
+          ? "المفتاح يُحفظ بشكل آمن في قاعدة البيانات ويُستخدم لجميع خدمات AI (المحادثة، توليد الصور، تحويل الصوت). احصل على مفتاح من "
+          : "The key is securely stored in the database and used for all AI services (chat, image generation, voice transcription). Get a key from "}
+        <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">
+          platform.openai.com/api-keys
+        </a>
+      </p>
     </div>
   );
 }
