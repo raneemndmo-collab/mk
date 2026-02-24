@@ -10,11 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
   Bot, Settings, FileText, MessageCircle, Star, Upload,
-  Trash2, Eye, EyeOff, ArrowRight, ChevronLeft, Save,
+  Trash2, Eye, EyeOff, ChevronLeft, Save,
   Brain, BarChart3, File, Download, Loader2,
 } from "lucide-react";
 import { Link } from "wouter";
@@ -119,7 +118,8 @@ function OverviewTab() {
 function SettingsTab() {
   const { lang } = useI18n();
   const utils = trpc.useUtils();
-  const { data: settings } = trpc.siteSettings.getAll.useQuery() as { data: any[] | undefined };
+  // FIX: getAllSettings returns Record<string, string>, NOT an array
+  const { data: settings } = trpc.siteSettings.getAll.useQuery() as { data: Record<string, string> | undefined };
   const updateSetting = trpc.siteSettings.update.useMutation({
     onSuccess: () => {
       utils.siteSettings.getAll.invalidate();
@@ -127,10 +127,15 @@ function SettingsTab() {
     },
   });
 
+  // FIX: Access settings as a Record (object), not as an array
   const getSetting = (key: string) => {
-    if (!settings) return "";
-    const s = settings.find((s: any) => s.key === key);
-    return s?.value || "";
+    if (!settings || typeof settings !== "object") return "";
+    // Handle both Record<string, string> and array formats for safety
+    if (Array.isArray(settings)) {
+      const s = (settings as any[]).find((s: any) => s.key === key || s.settingKey === key);
+      return s?.value || s?.settingValue || "";
+    }
+    return (settings as Record<string, string>)[key] || "";
   };
 
   const [localSettings, setLocalSettings] = useState<Record<string, string>>({});
@@ -294,7 +299,6 @@ function DocumentsTab() {
     reader.onload = async () => {
       const base64 = (reader.result as string).split(",")[1];
       
-      // Extract text for text-based files
       let extractedText = "";
       if (file.type === "text/plain" || file.name.endsWith(".txt") || file.name.endsWith(".md")) {
         extractedText = await file.text();
@@ -392,7 +396,7 @@ function DocumentsTab() {
             </p>
           ) : (
             <div className="space-y-3">
-              {documents.map((doc: any) => (
+              {(Array.isArray(documents) ? documents : []).map((doc: any) => (
                 <div key={doc.id} className="flex items-center justify-between p-4 rounded-lg border bg-muted/30">
                   <div className="flex items-center gap-3 min-w-0">
                     <File className="w-8 h-8 text-emerald-600 shrink-0" />
@@ -477,7 +481,7 @@ function ConversationsTab() {
                 {lang === "ar" ? "لا توجد محادثات" : "No conversations"}
               </p>
             ) : (
-              conversations.map((conv: any) => (
+              (Array.isArray(conversations) ? conversations : []).map((conv: any) => (
                 <button
                   key={conv.id}
                   onClick={() => setSelectedConvId(conv.id)}
@@ -519,7 +523,7 @@ function ConversationsTab() {
               </p>
             ) : (
               <div className="p-4 space-y-3">
-                {messages.map((msg: any) => (
+                {(Array.isArray(messages) ? messages : []).map((msg: any) => (
                   <div
                     key={msg.id}
                     className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
@@ -560,11 +564,12 @@ function RatingsTab() {
 
   if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-emerald-600" /></div>;
 
+  const safeRatedMessages = Array.isArray(ratedMessages) ? ratedMessages : [];
   const ratingCounts = [5, 4, 3, 2, 1].map((r) => ({
     rating: r,
-    count: ratedMessages?.filter((m: any) => m.rating === r).length || 0,
+    count: safeRatedMessages.filter((m: any) => m.rating === r).length || 0,
   }));
-  const totalRated = ratedMessages?.length || 0;
+  const totalRated = safeRatedMessages.length;
 
   return (
     <div className="space-y-6">
@@ -601,13 +606,13 @@ function RatingsTab() {
           <CardTitle>{lang === "ar" ? "آخر الرسائل المقيّمة" : "Recent Rated Messages"}</CardTitle>
         </CardHeader>
         <CardContent>
-          {!ratedMessages?.length ? (
+          {!safeRatedMessages.length ? (
             <p className="text-center text-muted-foreground py-8">
               {lang === "ar" ? "لا توجد تقييمات بعد" : "No ratings yet"}
             </p>
           ) : (
             <div className="space-y-4">
-              {ratedMessages.slice(0, 20).map((msg: any) => (
+              {safeRatedMessages.slice(0, 20).map((msg: any) => (
                 <div key={msg.id} className="p-4 rounded-lg border">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-1">
