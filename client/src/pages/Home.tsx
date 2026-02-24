@@ -513,7 +513,7 @@ export default function Home() {
       </section>
 
       {/* ═══ Stats Section with Animated Counters ═══ */}
-      <section className="bg-white border-b border-border/50 section-transition">
+      <section className="bg-white dark:bg-background border-b border-border/50 section-transition">
         <div className="container py-8 sm:py-12">
           <StaggerGrid className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
             {stats.map((stat, i) => (
@@ -529,27 +529,27 @@ export default function Home() {
       </section>
 
       {/* ═══ Services Section with Staggered Cards ═══ */}
-      <section className="bg-[#f5f7fa] py-12 sm:py-20 section-transition">
+      <section className="bg-[#f5f7fa] dark:bg-[#0f1a24] py-12 sm:py-20 section-transition">
         <div className="container">
           <ScrollSection>
             <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-center mb-3 text-[#0B1E2D] dark:text-white">
               {lang === "ar" ? "خدماتنا" : "Our Services"}
             </h2>
-            <p className="text-[#4a5568] dark:text-gray-400 text-center mb-12 max-w-xl mx-auto">
+            <p className="text-[#4a5568] dark:text-gray-300 text-center mb-12 max-w-xl mx-auto">
               {lang === "ar" ? "نقدم مجموعة متكاملة من الخدمات لتسهيل تجربة التأجير الشهري" : "A complete suite of services for a seamless monthly rental experience"}
             </p>
           </ScrollSection>
           <StaggerGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {services.map((service, i) => (
-              <Card key={i} className="group card-hover border-border/50 bg-white cursor-default">
+              <Card key={i} className="group card-hover border-border/50 bg-white dark:bg-card cursor-default">
                 <CardContent className="p-4 sm:p-6">
                   <div className="w-12 h-12 rounded-xl bg-[#3ECFC0]/10 flex items-center justify-center mb-4 group-hover:bg-[#3ECFC0]/20 transition-all duration-500 group-hover:scale-110">
                     <service.icon className="h-6 w-6 text-[#3ECFC0] icon-hover transition-transform duration-300 group-hover:scale-110" />
                   </div>
-                  <h3 className="font-heading font-semibold text-lg mb-2 text-[#0B1E2D] dark:text-white group-hover:text-[#3ECFC0] transition-colors duration-300">
+                  <h3 className="font-heading font-semibold text-lg mb-2 text-[#0B1E2D] dark:text-card-foreground group-hover:text-[#3ECFC0] transition-colors duration-300">
                     {lang === "ar" ? service.titleAr : service.titleEn}
                   </h3>
-                  <p className="text-[#4a5568] dark:text-gray-300 text-sm leading-relaxed">
+                  <p className="text-[#4a5568] dark:text-muted-foreground text-sm leading-relaxed">
                     {lang === "ar" ? service.descAr : service.descEn}
                   </p>
                 </CardContent>
@@ -599,15 +599,15 @@ export default function Home() {
       </section>
 
       {/* ═══ Featured Properties with Slide Animation ═══ */}
-      <section className="py-12 sm:py-20 bg-white section-transition">
+      <section className="py-12 sm:py-20 bg-white dark:bg-background section-transition">
         <div className="container">
           <ScrollSection>
             <div className="flex items-center justify-between mb-6 sm:mb-10">
               <div>
-                <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-[#0B1E2D] dark:text-white">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-[#0B1E2D] dark:text-foreground">
                   {lang === "ar" ? "عقارات مميزة" : "Featured Properties"}
                 </h2>
-                <p className="text-[#4a5568] dark:text-gray-400 mt-1">
+                <p className="text-[#4a5568] dark:text-muted-foreground mt-1">
                   {lang === "ar" ? "اكتشف أفضل العقارات المتاحة للتأجير الشهري" : "Discover the best monthly rental properties"}
                 </p>
               </div>
@@ -654,13 +654,13 @@ export default function Home() {
       </section>
 
       {/* ═══ Cities Section with Photo Cards ═══ */}
-      <section className="bg-[#f5f7fa] py-12 sm:py-20 section-transition">
+      <section className="bg-[#f5f7fa] dark:bg-[#0f1a24] py-12 sm:py-20 section-transition">
         <div className="container">
           <ScrollSection>
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-center mb-3 text-[#0B1E2D] dark:text-white">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-center mb-3 text-[#0B1E2D] dark:text-foreground">
               {lang === "ar" ? "مدننا" : "Our Cities"}
             </h2>
-            <p className="text-[#4a5568] dark:text-gray-400 text-center mb-12">
+            <p className="text-[#4a5568] dark:text-muted-foreground text-center mb-12">
               {lang === "ar" ? "اكتشف العقارات المتاحة في أبرز المدن السعودية" : "Discover properties in Saudi Arabia's top cities"}
             </p>
           </ScrollSection>
@@ -707,13 +707,13 @@ export default function Home() {
       </section>
 
       {/* ═══ Testimonials with Glassmorphism ═══ */}
-      <section className="py-12 sm:py-20 bg-white section-transition">
+      <section className="py-12 sm:py-20 bg-white dark:bg-background section-transition">
         <div className="container">
           <ScrollSection>
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-center mb-3 text-[#0B1E2D] dark:text-white">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-center mb-3 text-[#0B1E2D] dark:text-foreground">
               {lang === "ar" ? "آراء عملائنا" : "What Our Clients Say"}
             </h2>
-            <p className="text-[#4a5568] dark:text-gray-400 text-center mb-12">
+            <p className="text-[#4a5568] dark:text-muted-foreground text-center mb-12">
               {lang === "ar" ? "تجارب حقيقية من مستأجرين وملاك عقارات" : "Real experiences from tenants and property owners"}
             </p>
           </ScrollSection>

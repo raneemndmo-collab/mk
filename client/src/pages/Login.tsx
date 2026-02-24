@@ -50,7 +50,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-cyan-50 flex items-center justify-center p-4" dir={dir}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-cyan-50 dark:from-[#0B1E2D] dark:to-[#0f2a3d] flex items-center justify-center p-4" dir={dir}>
       <SEOHead title="Login" titleAr="تسجيل الدخول" path="/login" noindex={true} />
       <div className="w-full max-w-md">
         {/* Logo */}
@@ -67,7 +67,7 @@ export default function Login() {
 
         <Card className="shadow-xl border-0">
           <CardHeader className="text-center pb-2">
-            <CardTitle className="text-2xl font-bold text-[#0B1E2D]">
+            <CardTitle className="text-2xl font-bold text-[#0B1E2D] dark:text-foreground">
               {t("auth.welcomeBack")}
             </CardTitle>
             <CardDescription className="text-base">
@@ -77,7 +77,7 @@ export default function Login() {
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-5">
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
                   {error}
                 </div>
               )}
