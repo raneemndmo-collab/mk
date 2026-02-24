@@ -143,10 +143,66 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ code: "INTERNAL", message: "Internal server error" });
 });
 
+// ─── Startup Validation ────────────────────────────────────
+//
+// Warn immediately on boot if webhook secret rotation is
+// misconfigured. This catches operator mistakes right after deploy
+// instead of silently rejecting webhooks at runtime.
+//
+
+function validateWebhookSecretConfig(): void {
+  const previous = process.env.BEDS24_WEBHOOK_SECRET_PREVIOUS;
+  const rotationStart = process.env.BEDS24_WEBHOOK_SECRET_ROTATION_START;
+  const secret = process.env.BEDS24_WEBHOOK_SECRET;
+
+  if (previous && !rotationStart) {
+    logger.error(
+      "⚠️  MISCONFIGURATION: BEDS24_WEBHOOK_SECRET_PREVIOUS is set but BEDS24_WEBHOOK_SECRET_ROTATION_START is MISSING. " +
+      "Strict mode will REJECT the previous secret. Set ROTATION_START to a valid ISO 8601 date to activate the rotation window."
+    );
+  }
+
+  if (previous && rotationStart) {
+    const startDate = new Date(rotationStart);
+    if (isNaN(startDate.getTime())) {
+      logger.error(
+        `⚠️  MISCONFIGURATION: BEDS24_WEBHOOK_SECRET_ROTATION_START="${rotationStart}" is not a valid ISO 8601 date. ` +
+        "Strict mode will REJECT the previous secret. Fix the date format (e.g. 2026-03-01T00:00:00Z)."
+      );
+    } else {
+      const windowDays = parseInt(process.env.BEDS24_WEBHOOK_SECRET_ROTATION_WINDOW_DAYS ?? "7", 10);
+      const windowEndMs = startDate.getTime() + windowDays * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+
+      if (now > windowEndMs) {
+        logger.warn(
+          `⚠️  CLEANUP NEEDED: Webhook secret rotation window expired ${Math.floor((now - windowEndMs) / 86400000)} days ago. ` +
+          "Clear BEDS24_WEBHOOK_SECRET_PREVIOUS and BEDS24_WEBHOOK_SECRET_ROTATION_START from .env, then redeploy."
+        );
+      } else {
+        const daysLeft = Math.ceil((windowEndMs - now) / 86400000);
+        logger.info(
+          `✅  Webhook secret rotation active — ${daysLeft} day(s) remaining. Both current and previous secrets are accepted.`
+        );
+      }
+    }
+  }
+
+  if (!secret && !previous) {
+    if (config.features.beds24Webhooks) {
+      logger.warn(
+        "⚠️  BEDS24_WEBHOOK_SECRET is not configured but ENABLE_BEDS24_WEBHOOKS=true. " +
+        "Webhooks will be accepted WITHOUT shared secret verification. Set BEDS24_WEBHOOK_SECRET for production."
+      );
+    }
+  }
+}
+
 // ─── Start Server ───────────────────────────────────────────
 app.listen(config.port, () => {
   logger.info(`Hub API running on port ${config.port}`);
   logger.info(`Modes: CoBnB=${config.modes.cobnb}, MK=${config.modes.monthlykey}, Ops=${config.modes.ops}`);
+  validateWebhookSecretConfig();
 });
 
 export default app;
