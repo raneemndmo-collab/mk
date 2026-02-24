@@ -7,14 +7,14 @@ const pool = mysql.createPool(process.env.DATABASE_URL);
 
 // CDN image URLs
 const IMAGES = {
-  apt1: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663296955420/nWvxDuvZnNJrPUDh.jpeg",
-  apt2: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663296955420/GRQSZjMUXAjibIwg.jpeg",
-  apt3: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663296955420/KlZpbDRDrJBVomcU.jpeg",
-  villa1: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663296955420/UmlElyPGPEahMZvQ.jpg",
-  villa2: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663296955420/EVFSwBDiDVTYIJwa.jpg",
-  villa3: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663296955420/qdnNDAcwAsLYGRNJ.webp",
-  studio1: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663296955420/CSZuQgbzTOVBFooj.jpeg",
-  studio2: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663296955420/mGsXANthjWULJZGv.jpeg",
+  apt1: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/apt1.jpeg",
+  apt2: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/apt2.jpeg",
+  apt3: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/apt3.jpeg",
+  villa1: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/villa1.jpg",
+  villa2: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/villa2.jpg",
+  villa3: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/villa3.webp",
+  studio1: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/studio1.jpeg",
+  studio2: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/properties/studio2.jpeg",
 };
 
 async function seed() {

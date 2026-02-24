@@ -20,9 +20,9 @@ export async function seedCitiesAndDistricts() {
 
     // ─── Cities ──────────────────────────────────────────────────────
     const cityData = [
-      { nameEn: "Riyadh", nameAr: "الرياض", region: "Riyadh", regionAr: "منطقة الرياض", latitude: "24.7136", longitude: "46.6753", sortOrder: 1 },
-      { nameEn: "Jeddah", nameAr: "جدة", region: "Makkah", regionAr: "منطقة مكة المكرمة", latitude: "21.5433", longitude: "39.1728", sortOrder: 2 },
-      { nameEn: "Madinah", nameAr: "المدينة المنورة", region: "Madinah", regionAr: "منطقة المدينة المنورة", latitude: "24.4539", longitude: "39.6142", sortOrder: 3 },
+      { nameEn: "Riyadh", nameAr: "الرياض", region: "Riyadh", regionAr: "منطقة الرياض", latitude: "24.7136", longitude: "46.6753", sortOrder: 1, imageUrl: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/cities/riyadh.jpg" },
+      { nameEn: "Jeddah", nameAr: "جدة", region: "Makkah", regionAr: "منطقة مكة المكرمة", latitude: "21.5433", longitude: "39.1728", sortOrder: 2, imageUrl: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/cities/jeddah.webp" },
+      { nameEn: "Madinah", nameAr: "المدينة المنورة", region: "Madinah", regionAr: "منطقة المدينة المنورة", latitude: "24.4539", longitude: "39.6142", sortOrder: 3, imageUrl: "https://cdn.jsdelivr.net/gh/raneemndmo-collab/assets@main/cities/madinah.jpeg" },
       { nameEn: "Makkah", nameAr: "مكة المكرمة", region: "Makkah", regionAr: "منطقة مكة المكرمة", latitude: "21.3891", longitude: "39.8579", sortOrder: 4 },
       { nameEn: "Dammam", nameAr: "الدمام", region: "Eastern", regionAr: "المنطقة الشرقية", latitude: "26.4207", longitude: "50.0888", sortOrder: 5 },
       { nameEn: "Khobar", nameAr: "الخبر", region: "Eastern", regionAr: "المنطقة الشرقية", latitude: "26.2172", longitude: "50.1971", sortOrder: 6 },
