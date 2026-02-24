@@ -91,6 +91,8 @@ export const ERROR_CODES = {
   // Webhook
   WEBHOOK_DUPLICATE: "WEBHOOK_DUPLICATE",
   WEBHOOK_INVALID_SIGNATURE: "WEBHOOK_INVALID_SIGNATURE",
+  // Payments
+  PAYMENTS_DISABLED: "PAYMENTS_DISABLED",
   // General
   INTERNAL: "INTERNAL",
   TOO_MANY_REQUESTS: "TOO_MANY_REQUESTS",
@@ -189,6 +191,17 @@ export const TICKET_SLA_HOURS: Record<string, number> = {
 export const CHECKOUT_CLEANING_BUFFER_MINUTES = 60;
 
 export const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/**
+ * Beds24 webhook IP allowlist.
+ * If set, only these IPs are allowed to send webhooks.
+ * Empty array = IP check disabled (rely on HMAC signature only).
+ * Beds24 publishes their webhook source IPs in their docs.
+ */
+export const BEDS24_WEBHOOK_IP_ALLOWLIST: string[] = [
+  // Populate from Beds24 documentation when available.
+  // Example: "52.58.0.0/16"
+];
 
 export const SAUDI_CITIES = [
   "الرياض",

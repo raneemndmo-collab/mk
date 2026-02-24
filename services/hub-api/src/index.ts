@@ -52,12 +52,82 @@ app.use("/api/v1/tickets", ticketsRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/webhooks", webhooksRoutes);
 
-// ─── Health Check ───────────────────────────────────────────
+// ─── Health Check (liveness) ──────────────────────────────
 app.get("/health", (_req, res) => {
   res.json({
     status: "ok",
     service: "hub-api",
+    version: process.env.npm_package_version ?? "1.0.0",
     modes: config.modes,
+    features: config.features,
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// ─── Readiness Check (startup dependencies) ───────────────
+app.get("/ready", async (_req, res) => {
+  const checks: Record<string, boolean> = {};
+  let allReady = true;
+
+  // DB connectivity
+  try {
+    const { db: dbConn } = await import("./db/connection.js");
+    await dbConn.execute("SELECT 1" as any);
+    checks.database = true;
+  } catch {
+    checks.database = false;
+    allReady = false;
+  }
+
+  // Redis connectivity (only if webhooks or worker features enabled)
+  if (config.features.beds24Webhooks) {
+    try {
+      const net = await import("net");
+      const url = new URL(config.redisUrl.startsWith("redis://") ? config.redisUrl : `redis://${config.redisUrl}`);
+      await new Promise<void>((resolve, reject) => {
+        const socket = net.createConnection(parseInt(url.port || "6379"), url.hostname);
+        socket.setTimeout(2000);
+        socket.on("connect", () => { socket.destroy(); resolve(); });
+        socket.on("error", reject);
+        socket.on("timeout", () => { socket.destroy(); reject(new Error("timeout")); });
+      });
+      checks.redis = true;
+    } catch {
+      checks.redis = false;
+      allReady = false;
+    }
+  }
+
+  // Beds24 SDK (only if ENABLE_BEDS24=true)
+  if (config.features.beds24) {
+    checks.beds24Token = !!config.beds24.refreshToken;
+    if (!checks.beds24Token) allReady = false;
+  }
+
+  const status = allReady ? 200 : 503;
+  res.status(status).json({
+    ready: allReady,
+    service: "hub-api",
+    checks,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// ─── Metrics (basic operational counters) ─────────────────
+app.get("/metrics", (_req, res) => {
+  const mem = process.memoryUsage();
+  res.json({
+    service: "hub-api",
+    uptime_seconds: Math.floor(process.uptime()),
+    memory: {
+      rss_mb: Math.round(mem.rss / 1024 / 1024),
+      heap_used_mb: Math.round(mem.heapUsed / 1024 / 1024),
+      heap_total_mb: Math.round(mem.heapTotal / 1024 / 1024),
+    },
+    modes: config.modes,
+    features: config.features,
+    node_version: process.version,
     timestamp: new Date().toISOString(),
   });
 });

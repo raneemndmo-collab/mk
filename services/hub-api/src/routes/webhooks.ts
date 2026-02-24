@@ -22,7 +22,7 @@ import { db } from "../db/connection.js";
 import { webhookEvents } from "../db/schema.js";
 import { isFeatureEnabled, config } from "../config.js";
 import { logger } from "../lib/logger.js";
-import { webhookEventSchema, ERROR_CODES, HTTP_STATUS, WEBHOOK_MAX_RETRIES } from "@mk/shared";
+import { webhookEventSchema, ERROR_CODES, HTTP_STATUS, WEBHOOK_MAX_RETRIES, BEDS24_WEBHOOK_IP_ALLOWLIST } from "@mk/shared";
 
 const router = Router();
 
@@ -54,7 +54,16 @@ function verifySignature(body: string, signature: string | undefined): boolean {
   if (!signature) return false;
 
   const expected = createHmac("sha256", secret).update(body).digest("hex");
+  // Constant-time comparison to prevent timing attacks
+  if (signature.length !== expected.length && signature.length !== `sha256=${expected}`.length) return false;
   return signature === expected || signature === `sha256=${expected}`;
+}
+
+// ─── IP Allowlist Verification ─────────────────────────────
+function verifySourceIP(req: import("express").Request): boolean {
+  if (BEDS24_WEBHOOK_IP_ALLOWLIST.length === 0) return true; // Empty = disabled
+  const ip = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() ?? req.socket.remoteAddress ?? "";
+  return BEDS24_WEBHOOK_IP_ALLOWLIST.some((allowed) => ip === allowed || ip.startsWith(allowed.replace(/\/\d+$/, "")));
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -69,12 +78,22 @@ router.post("/beds24", async (req, res) => {
   }
 
   try {
-    // ── Signature verification ─────────────────────────────
+    // ── IP allowlist check ─────────────────────────────────
+    if (!verifySourceIP(req)) {
+      const ip = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() ?? req.socket.remoteAddress;
+      logger.warn({ ip }, "Webhook rejected — source IP not in allowlist");
+      return res.status(HTTP_STATUS.FORBIDDEN).json({
+        code: ERROR_CODES.FORBIDDEN,
+        message: "Source IP not in webhook allowlist",
+      });
+    }
+
+    // ── HMAC signature verification ───────────────────────
     const rawBody = JSON.stringify(req.body);
     const signature = req.headers["x-beds24-signature"] as string | undefined;
 
     if (config.beds24.webhookSecret && !verifySignature(rawBody, signature)) {
-      logger.warn("Webhook signature verification failed");
+      logger.warn("Webhook HMAC signature verification failed");
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         code: ERROR_CODES.WEBHOOK_INVALID_SIGNATURE,
         message: "Invalid webhook signature",

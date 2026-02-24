@@ -114,16 +114,79 @@ Each brand has an independent operation mode that controls **who writes bookings
 | Hub-API | Route catch `WriterLockViolation` | `services/hub-api/src/routes/bookings.ts` | 81 |
 
 **Standalone mode (default, safest):**
-- Each adapter calls Beds24 directly via `@mk/beds24-sdk`
-- No dependency on hub-api for booking writes
-- Hub-api rejects writes for that brand with HTTP 409
-- Ideal for: independent operation, initial deployment, testing
+
+In standalone mode, the adapter is a **fully independent service** with zero hub-api dependency for core operations. The adapter reads AND writes to Beds24 directly using `@mk/beds24-sdk`.
+
+```
+┌──────────────┐     reads + writes     ┌──────────────┐
+│   Adapter    │ ◄──────────────────────► │   Beds24     │
+│  (writer)    │     @mk/beds24-sdk      │   API V2     │
+└──────────────┘                         └──────────────┘
+        ▲
+        │  serves frontend directly
+        │  (units, availability, quotes, bookings)
+        ▼
+┌──────────────┐
+│   Frontend   │
+└──────────────┘
+
+┌──────────────┐
+│   Hub-API    │  ❌ REJECTS booking writes for this brand (409)
+└──────────────┘  ❌ Has NO Beds24 write authority for this brand
+```
+
+The adapter handles all operations for its brand:
+
+| Operation | Source | Target |
+|-----------|--------|--------|
+| List units | Adapter → Beds24 | `GET /api/v2/properties` |
+| Check availability | Adapter → Beds24 | `GET /api/v2/inventory` |
+| Get quote | Adapter → Beds24 | `GET /api/v2/inventory` (calendar) |
+| Create booking | Adapter → Beds24 | `POST /api/v2/bookings` |
+| Read bookings | Adapter → Beds24 | `GET /api/v2/bookings` |
+| Auth (login/register) | Adapter → Hub-API | Proxied to hub-api |
+
+Hub-api is only used for shared concerns (auth, user management). All Beds24 data flows are adapter-direct.
 
 **Integrated mode:**
-- Hub-api is the single writer for that brand
-- Adapter rejects booking writes with HTTP 409
-- Frontend calls hub-api directly for booking creation
-- Ideal for: centralized management, cross-brand coordination
+
+In integrated mode, hub-api is the **single writer** for the brand. The adapter rejects booking writes with 409 and may proxy **reads** to hub-api (or to Beds24 directly for read-only operations). The frontend calls hub-api directly for booking creation.
+
+```
+┌──────────────┐     reads only          ┌──────────────┐
+│   Adapter    │ ─────────────────────── │   Hub-API    │
+│  (read proxy)│     proxy reads         │  (writer)    │
+└──────────────┘                         └──────┬───────┘
+        ▲                                       │
+        │  serves reads                         │ reads + writes
+        ▼                                       ▼
+┌──────────────┐                         ┌──────────────┐
+│   Frontend   │ ── booking writes ────► │   Beds24     │
+│              │    (via hub-api)         │   API V2     │
+└──────────────┘                         └──────────────┘
+```
+
+### Brand Rules — Night Limits
+
+Each brand has hard-coded night-limit rules enforced on **every booking write** (both adapter and hub-api). These rules ensure brand segmentation: CoBnB handles short-stay and MonthlyKey handles long-stay.
+
+| Brand | Min Nights | Max Nights | Label (EN) | Label (AR) |
+|-------|-----------|-----------|------------|------------|
+| CoBnB | 1 | 27 | CoBnB KSA | كو بي إن بي |
+| MonthlyKey | 28 | 365 | Monthly Key | المفتاح الشهري |
+
+The rules are defined in `packages/shared/src/constants.ts` as `BRAND_RULES` and are imported by both adapters and hub-api. There is **no gap and no overlap** between the two brands: night 27 is CoBnB's maximum and night 28 is MonthlyKey's minimum.
+
+If a booking request violates the brand's night limits, the response is:
+
+```json
+{
+  "code": "BRAND_RULE_VIOLATION",
+  "message": "COBNB requires 1-27 nights, got 30"
+}
+```
+
+HTTP status: `400 Bad Request`.
 
 ### Feature Flags
 
@@ -151,6 +214,50 @@ Every booking write (adapter standalone or hub-api integrated) enforces these gu
 | 5 | Availability re-check immediately before write | 409 | `AVAILABILITY_CHANGED` |
 | 6 | Write to Beds24 / local DB | 201 | — |
 | 7 | Cache idempotency response | — | — |
+
+### Webhook Authenticity Verification
+
+Webhook requests from Beds24 are verified using a **two-layer authenticity check** before any processing occurs:
+
+**Layer 1 — IP Allowlist** (optional, disabled by default)
+
+If `BEDS24_WEBHOOK_IP_ALLOWLIST` is populated in `.env`, only requests from those source IPs are accepted. The check uses `x-forwarded-for` (first entry) or `socket.remoteAddress` as fallback. If the IP is not in the allowlist, the request is rejected with `403 Forbidden`.
+
+```
+BEDS24_WEBHOOK_IP_ALLOWLIST=52.58.0.0,52.58.0.1
+```
+
+When the allowlist is empty (default), IP checking is disabled and the system relies solely on HMAC signature verification.
+
+**Layer 2 — HMAC Signature** (recommended, requires `BEDS24_WEBHOOK_SECRET`)
+
+If `BEDS24_WEBHOOK_SECRET` is set, every webhook must include an `x-beds24-signature` header containing either:
+
+| Format | Example |
+|--------|---------|
+| Raw hex | `a1b2c3d4e5f6...` |
+| Prefixed | `sha256=a1b2c3d4e5f6...` |
+
+The server computes `HMAC-SHA256(secret, JSON.stringify(body))` and compares it against the provided signature. Mismatches are rejected with `401 Unauthorized` and `WEBHOOK_INVALID_SIGNATURE` error code.
+
+**Verification order:**
+
+```
+Request arrives → Feature flag check (204 if off)
+  → IP allowlist check (403 if blocked)
+    → HMAC signature check (401 if invalid)
+      → Schema validation (400 if malformed)
+        → Dedup check → Queue for processing
+```
+
+**Configuration in `.env`:**
+
+```bash
+BEDS24_WEBHOOK_SECRET=your-shared-secret-from-beds24-dashboard
+BEDS24_WEBHOOK_IP_ALLOWLIST=              # empty = disabled
+```
+
+Both layers are independent: you can use HMAC only, IP only, or both together for defense in depth.
 
 ### Webhook Processing Pipeline
 
@@ -197,6 +304,122 @@ All proxy requests are logged to an audit trail with **deep PII redaction**:
 - Redacted fields: email, phone, name, address, ID numbers, payment info
 - Matching is case-insensitive and recursive (nested objects, arrays)
 - Both request body and response body are redacted in the audit log
+
+### Payments-Off Behavior
+
+When `ENABLE_PAYMENTS=false` (the default), the platform **blocks booking creation** rather than allowing unpaid bookings.
+
+**Decision: BLOCK with `503 Service Unavailable`**
+
+The alternative (allowing unpaid bookings) was rejected because it creates reconciliation debt, potential fraud vectors, and inconsistent booking states. Blocking is the safer default.
+
+When payments are disabled, `POST /api/v1/bookings` returns:
+
+```json
+{
+  "code": "PAYMENTS_DISABLED",
+  "message": "Booking creation is temporarily unavailable: payment processing is not enabled. Contact support.",
+  "retryable": true
+}
+```
+
+HTTP status: `503 Service Unavailable` with `retryable: true` so clients know to retry later.
+
+This guard is enforced at the **route level** in hub-api (`services/hub-api/src/routes/bookings.ts`) before any other booking write guards. It is the first check in the chain:
+
+```
+Payments check (503) → Writer lock (409) → Idempotency (400/422) → Brand rules (400) → Availability (409) → Write (201)
+```
+
+In standalone adapter mode, the adapter does not enforce this guard because the adapter may have its own payment integration. The guard only applies to hub-api integrated mode booking writes.
+
+**Read operations are unaffected** — quotes, availability checks, and booking reads work regardless of the payments flag.
+
+### Observability Endpoints — /health, /ready, /metrics
+
+Every service exposes three standard observability endpoints at the root level (not under `/api/v1/`):
+
+| Endpoint | Purpose | Status Codes | Auth Required |
+|----------|---------|-------------|---------------|
+| `GET /health` | **Liveness** — Is the process alive? | Always `200` | No |
+| `GET /ready` | **Readiness** — Are dependencies reachable? | `200` (ready) or `503` (not ready) | No |
+| `GET /metrics` | **Metrics** — Operational counters and memory | Always `200` | No |
+
+**`/health` (liveness probe)**
+
+Returns `200` as long as the process is running. Used by container orchestrators (Docker, K8s) to detect crashed processes.
+
+```json
+{
+  "status": "ok",
+  "service": "hub-api",
+  "version": "1.0.0",
+  "modes": { "cobnb": "standalone", "monthlykey": "standalone", "ops": "standalone" },
+  "features": { "beds24": false, "beds24Webhooks": false, ... },
+  "uptime": 3600.5,
+  "timestamp": "2026-02-25T12:00:00.000Z"
+}
+```
+
+**`/ready` (readiness probe)**
+
+Checks that all required dependencies are reachable. Returns `503` if any check fails. Used by load balancers to remove unhealthy instances from rotation.
+
+| Service | Standalone Checks | Integrated Checks |
+|---------|-------------------|--------------------|
+| Hub-API | Database (Postgres) | Database + Redis (if webhooks on) + Beds24 token |
+| Adapter | Beds24 SDK initialized | Hub-API `/health` reachable |
+
+```json
+{
+  "ready": true,
+  "service": "cobnb-adapter-api",
+  "mode": "standalone",
+  "checks": { "beds24Sdk": true },
+  "timestamp": "2026-02-25T12:00:00.000Z"
+}
+```
+
+**`/metrics` (operational counters)**
+
+Returns basic process metrics for monitoring dashboards. Not a Prometheus exporter (yet), but structured JSON that can be scraped.
+
+```json
+{
+  "service": "hub-api",
+  "uptime_seconds": 3600,
+  "memory": { "rss_mb": 85, "heap_used_mb": 42, "heap_total_mb": 64 },
+  "modes": { ... },
+  "features": { ... },
+  "node_version": "v22.13.0",
+  "timestamp": "2026-02-25T12:00:00.000Z"
+}
+```
+
+**Docker / K8s configuration example:**
+
+```yaml
+# docker-compose.yml
+healthcheck:
+  test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+  interval: 30s
+  timeout: 5s
+  retries: 3
+
+# kubernetes deployment
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 4000
+  initialDelaySeconds: 10
+  periodSeconds: 30
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 4000
+  initialDelaySeconds: 5
+  periodSeconds: 10
+```
 
 ### Automated Tests
 

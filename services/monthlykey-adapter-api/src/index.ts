@@ -437,7 +437,7 @@ app.post("/api/v1/auth/:action", async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════
-//  HEALTH
+//  HEALTH (liveness) — Always 200 if process is alive
 // ═══════════════════════════════════════════════════════════
 
 app.get("/health", (_req, res) => {
@@ -451,6 +451,62 @@ app.get("/health", (_req, res) => {
     beds24SdkConnected: beds24 !== null,
     hubApiUrl: MODE === "integrated" ? HUB_API_URL : undefined,
     idempotencyCacheSize: idempotencyCache.size,
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+//  READY (readiness) — 200 if dependencies are reachable
+// ═══════════════════════════════════════════════════════════
+
+app.get("/ready", async (_req, res) => {
+  const checks: Record<string, boolean> = {};
+  let allReady = true;
+
+  if (MODE === "standalone") {
+    // Beds24 SDK must be initialized
+    checks.beds24Sdk = beds24 !== null;
+    if (!checks.beds24Sdk) allReady = false;
+  } else {
+    // Hub-API must be reachable
+    try {
+      const hubRes = await fetch(`${HUB_API_URL}/health`, { signal: AbortSignal.timeout(3000) });
+      checks.hubApi = hubRes.ok;
+    } catch {
+      checks.hubApi = false;
+      allReady = false;
+    }
+  }
+
+  res.status(allReady ? 200 : 503).json({
+    ready: allReady,
+    service: "monthlykey-adapter-api",
+    mode: MODE,
+    checks,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+//  METRICS — Basic operational counters
+// ═══════════════════════════════════════════════════════════
+
+app.get("/metrics", (_req, res) => {
+  const mem = process.memoryUsage();
+  res.json({
+    service: "monthlykey-adapter-api",
+    brand: BRAND,
+    mode: MODE,
+    uptime_seconds: Math.floor(process.uptime()),
+    memory: {
+      rss_mb: Math.round(mem.rss / 1024 / 1024),
+      heap_used_mb: Math.round(mem.heapUsed / 1024 / 1024),
+      heap_total_mb: Math.round(mem.heapTotal / 1024 / 1024),
+    },
+    idempotency_cache_size: idempotencyCache.size,
+    writer: DESIGNATED_WRITER,
+    node_version: process.version,
     timestamp: new Date().toISOString(),
   });
 });

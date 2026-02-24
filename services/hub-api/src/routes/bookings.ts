@@ -18,6 +18,7 @@ import { BookingService, ServiceError, WriterLockViolation } from "../services/b
 import { bookingCreateSchema, quoteParamsSchema } from "@mk/shared";
 import { requireAuth, optionalAuth } from "../middleware/auth.js";
 import { ERROR_CODES, HTTP_STATUS } from "@mk/shared";
+import { isFeatureEnabled } from "../config.js";
 import { logger } from "../lib/logger.js";
 
 const router = Router();
@@ -52,6 +53,18 @@ router.post("/quote", optionalAuth, async (req, res) => {
  */
 router.post("/", requireAuth, async (req, res) => {
   try {
+    // ── Payments-off guard: block booking writes if payments disabled ──
+    // Decision: BLOCK (503) rather than allow unpaid bookings.
+    // Rationale: Allowing unpaid bookings creates reconciliation debt
+    // and potential fraud vectors. Better to fail fast and clearly.
+    if (!isFeatureEnabled("payments")) {
+      return res.status(HTTP_STATUS.SERVICE_UNAVAILABLE).json({
+        code: ERROR_CODES.PAYMENTS_DISABLED,
+        message: "Booking creation is temporarily unavailable: payment processing is not enabled. Contact support.",
+        retryable: true,
+      });
+    }
+
     // ── Extract Idempotency-Key from HTTP header ───────────
     const idempotencyKey = req.headers["idempotency-key"] as string | undefined;
     if (!idempotencyKey || idempotencyKey.length < 8) {
