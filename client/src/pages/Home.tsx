@@ -396,8 +396,8 @@ export default function Home() {
                 style={{ backgroundImage: `url(${s("hero.bgImage")})` }}
               />
             )}
-            {/* Light gradient overlay for text readability over video */}
-            <div className="absolute inset-0 z-[2] bg-gradient-to-b from-black/40 via-black/20 to-black/50" />
+            {/* Gradient overlay for text readability: top darker → bottom lighter */}
+            <div className="absolute inset-0 z-[2] bg-gradient-to-b from-black/55 via-black/30 to-black/20 pointer-events-none" />
           </>
         ) : s("hero.bgImage") ? (
           <>
@@ -413,7 +413,7 @@ export default function Home() {
                 opacity: parseInt(s("hero.overlayOpacity", "60")) / 100
               }}
             />
-            <div className="absolute inset-0 z-[2] bg-gradient-to-b from-[#0B1E2D]/30 via-transparent to-[#0B1E2D]/70" />
+            <div className="absolute inset-0 z-[2] bg-gradient-to-b from-black/55 via-black/25 to-black/15 pointer-events-none" />
           </>
         ) : (
           <>
@@ -425,7 +425,7 @@ export default function Home() {
                 opacity: parseInt(s("hero.overlayOpacity", "60")) / 100
               }}
             />
-            <div className="absolute inset-0 z-[2] bg-gradient-to-b from-[#0B1E2D]/30 via-transparent to-[#0B1E2D]/70" />
+            <div className="absolute inset-0 z-[2] bg-gradient-to-b from-black/55 via-black/25 to-black/15 pointer-events-none" />
           </>  
         )}
         
@@ -449,15 +449,13 @@ export default function Home() {
 
         <div className="container relative z-[3] py-16 sm:py-24 md:py-36">
           <div className="max-w-3xl mx-auto text-center px-2 sm:px-0">
-            {/* Brand Logo in Hero */}
-            <div className="mb-6 sm:mb-8 animate-slide-right">
-              <div className="inline-block bg-white/95 backdrop-blur-sm rounded-2xl px-8 py-6 sm:px-12 sm:py-8 shadow-2xl shadow-black/20 border border-white/20">
-                <img 
-                  src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/lDFKiBXvXbLyTkzm.png" 
-                  alt="Monthly Key - المفتاح الشهري" 
-                  className="h-24 sm:h-32 md:h-40 w-auto object-contain mx-auto" 
-                />
-              </div>
+            {/* Brand Logo in Hero - clean inline mark, no card */}
+            <div className="hero-logo mb-3 animate-slide-right">
+              <img 
+                src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/LAetNVqmPGBDJbDc.png" 
+                alt="المفتاح الشهري - شعار منصة التأجير الشهري في السعودية" 
+                className="h-[56px] sm:h-[72px] md:h-[88px] w-auto object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]" 
+              />
             </div>
 
             {/* Animated Badge */}

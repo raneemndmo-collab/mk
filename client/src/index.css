@@ -450,6 +450,29 @@
   text-shadow: 0 0 20px rgba(62, 207, 192, 0.3);
 }
 
+/* Hero brand mark - clean inline logo, no card */
+.hero-logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  margin-bottom: 12px;
+}
+.hero-logo img,
+.hero-logo svg {
+  height: 88px;
+  width: auto;
+}
+@media (max-width: 768px) {
+  .hero-logo img,
+  .hero-logo svg {
+    height: 56px;
+  }
+}
+
 /* Glassmorphism card */
 .glass-card {
   background: rgba(255, 255, 255, 0.05);
