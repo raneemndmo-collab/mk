@@ -1,0 +1,11 @@
+packages:
+  # Existing MonthlyKey app stays at root for Railway compatibility
+  
+  # New platform packages
+  - "packages/*"
+  
+  # New platform services
+  - "services/*"
+  
+  # New platform web apps
+  - "apps/*"

@@ -1,0 +1,210 @@
+// ─── Enums ──────────────────────────────────────────────────
+export type Brand = "COBNB" | "MONTHLYKEY";
+export type OperationMode = "standalone" | "integrated";
+
+export type UserRole =
+  | "ADMIN"
+  | "OPS_MANAGER"
+  | "CLEANER"
+  | "TECHNICIAN"
+  | "VENDOR"
+  | "SUPPORT"
+  | "OWNER"
+  | "TENANT";
+
+export type TicketType = "CLEANING" | "MAINTENANCE" | "INSPECTION" | "GUEST_ISSUE";
+export type TicketStatus = "OPEN" | "ASSIGNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+export type TicketPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+
+export type BookingStatus = "PENDING" | "CONFIRMED" | "CHECKED_IN" | "CHECKED_OUT" | "CANCELLED" | "NO_SHOW";
+export type PaymentStatus = "INITIATED" | "PAID" | "FAILED" | "PENDING_BANK_TRANSFER" | "REFUNDED";
+export type PaymentMethod = "CARD" | "BANK_TRANSFER" | "CASH";
+
+export type UnitStatus = "ACTIVE" | "INACTIVE" | "MAINTENANCE";
+export type Channel = "COBNB" | "MONTHLYKEY";
+
+export type FeatureFlagScope = "GLOBAL" | "COBNB" | "MONTHLYKEY" | "OPS";
+
+// ─── Data Models ────────────────────────────────────────────
+export interface Unit {
+  id: string;
+  beds24PropertyId: string | null;
+  beds24RoomId: string | null;
+  title: string;
+  titleAr: string;
+  description: string;
+  descriptionAr: string;
+  city: string;
+  zone: string;
+  address: string;
+  latitude: number | null;
+  longitude: number | null;
+  bedrooms: number;
+  bathrooms: number;
+  maxGuests: number;
+  areaSqm: number | null;
+  amenities: string[];
+  images: string[];
+  channelsEnabled: Channel[];
+  status: UnitStatus;
+  monthlyPrice: number | null;
+  dailyPrice: number | null;
+  currency: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Booking {
+  id: string;
+  brand: Brand;
+  unitId: string;
+  beds24BookingId: string | null;
+  guestName: string;
+  guestEmail: string;
+  guestPhone: string;
+  checkIn: string;
+  checkOut: string;
+  nights: number;
+  total: number;
+  currency: string;
+  status: BookingStatus;
+  paymentStatus: PaymentStatus;
+  paymentMethod: PaymentMethod | null;
+  idempotencyKey: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Ticket {
+  id: string;
+  type: TicketType;
+  unitId: string;
+  bookingId: string | null;
+  title: string;
+  description: string;
+  dueAt: string | null;
+  priority: TicketPriority;
+  status: TicketStatus;
+  assignedToUserId: string | null;
+  zone: string | null;
+  notes: string | null;
+  costMaterials: number;
+  costLabor: number;
+  costVendor: number;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+}
+
+export interface TicketTask {
+  id: string;
+  ticketId: string;
+  title: string;
+  done: boolean;
+  photoUrls: string[];
+  completedAt: string | null;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  role: UserRole;
+  zones: string[];
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface FeatureFlag {
+  key: string;
+  enabled: boolean;
+  scope: FeatureFlagScope;
+  description: string;
+  updatedAt: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  actorUserId: string | null;
+  action: string;
+  entityType: string;
+  entityId: string;
+  payload: Record<string, unknown>;
+  createdAt: string;
+}
+
+// ─── API Request/Response ───────────────────────────────────
+export interface SearchParams {
+  brand: Brand;
+  city?: string;
+  zone?: string;
+  checkIn?: string;
+  checkOut?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  bedrooms?: number;
+  guests?: number;
+  page?: number;
+  limit?: number;
+}
+
+export interface QuoteParams {
+  brand: Brand;
+  unitId: string;
+  checkIn: string;
+  checkOut: string;
+  guests?: number;
+}
+
+export interface QuoteResult {
+  unitId: string;
+  checkIn: string;
+  checkOut: string;
+  nights: number;
+  pricePerNight: number;
+  total: number;
+  currency: string;
+  available: boolean;
+}
+
+export interface BookingCreateParams {
+  brand: Brand;
+  unitId: string;
+  checkIn: string;
+  checkOut: string;
+  guestName: string;
+  guestEmail: string;
+  guestPhone: string;
+  guests: number;
+  paymentMethod: PaymentMethod;
+  notes?: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface ApiError {
+  code: string;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
+// ─── Beds24 Proxy ───────────────────────────────────────────
+export interface Beds24ProxyRequest {
+  method: "GET" | "POST" | "PUT" | "DELETE";
+  path: string;
+  query?: Record<string, string>;
+  body?: unknown;
+}
+
+export interface Beds24ProxyResponse {
+  status: number;
+  data: unknown;
+}
