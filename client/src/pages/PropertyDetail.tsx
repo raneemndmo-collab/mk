@@ -213,11 +213,19 @@ export default function PropertyDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Photo gallery — touch swipe enabled */}
+            {/* Photo gallery — touch swipe enabled; buttons use data-action to bypass swipe */}
             <div
               className="relative rounded-xl overflow-hidden aspect-[16/10] cursor-pointer"
-              onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+              onTouchStart={(e) => {
+                // Skip swipe tracking if touch started on an action button
+                const el = e.target as HTMLElement;
+                if (el.closest('[data-action]')) return;
+                touchStartX.current = e.touches[0].clientX;
+              }}
               onTouchEnd={(e) => {
+                // Skip if touch started on action button or no start recorded
+                const el = e.target as HTMLElement;
+                if (el.closest('[data-action]')) return;
                 if (touchStartX.current === null) return;
                 const dx = e.changedTouches[0].clientX - touchStartX.current;
                 const threshold = 50;
@@ -255,12 +263,14 @@ export default function PropertyDetail() {
                 <>
                   <button
                     onClick={() => setCurrentPhoto(p => (p - 1 + photos.length) % photos.length)}
+                    data-action="true"
                     className="absolute start-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 backdrop-blur flex items-center justify-center hover:bg-white"
                   >
                     {dir === "rtl" ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
                   </button>
                   <button
                     onClick={() => setCurrentPhoto(p => (p + 1) % photos.length)}
+                    data-action="true"
                     className="absolute end-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 backdrop-blur flex items-center justify-center hover:bg-white"
                   >
                     {dir === "rtl" ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
@@ -276,21 +286,31 @@ export default function PropertyDetail() {
                   </div>
                 </>
               )}
-              {/* Actions — z-20 to sit above gallery nav arrows; stopPropagation prevents touch swipe handler from swallowing taps */}
-              <div className="absolute top-3 end-3 flex gap-2 z-20">
+              {/* Actions — z-30 above everything; data-action bypasses gallery swipe */}
+              <div className="absolute top-3 end-3 flex gap-2 z-30 pointer-events-auto" data-action="true">
                 <button
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     if (!isAuthenticated) { toast.error(lang === "ar" ? "يرجى تسجيل الدخول" : "Please sign in"); return; }
                     toggleFav.mutate({ propertyId: id });
                   }}
-                  onTouchEnd={(e) => e.stopPropagation()}
-                  className="h-10 w-10 rounded-full bg-white/90 backdrop-blur flex items-center justify-center hover:bg-white active:scale-95 transition-transform"
+                  onTouchStart={(e) => e.stopPropagation()}
+                  onTouchMove={(e) => e.stopPropagation()}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!isAuthenticated) { toast.error(lang === "ar" ? "يرجى تسجيل الدخول" : "Please sign in"); return; }
+                    toggleFav.mutate({ propertyId: id });
+                  }}
+                  className="h-11 w-11 rounded-full bg-white shadow-lg flex items-center justify-center hover:bg-gray-50 active:scale-90 transition-all touch-manipulation"
+                  aria-label={lang === "ar" ? "المفضلة" : "Favorite"}
                 >
-                  <Heart className={`h-5 w-5 ${favCheck.data?.isFavorite ? "fill-destructive text-destructive" : ""}`} />
+                  <Heart className={`h-5 w-5 ${favCheck.data?.isFavorite ? "fill-red-500 text-red-500" : "text-gray-700"}`} />
                 </button>
                 <button
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     if (navigator.share) {
                       navigator.share({ title: document.title, url: window.location.href }).catch(() => {});
@@ -299,10 +319,22 @@ export default function PropertyDetail() {
                       toast.success(lang === "ar" ? "تم نسخ الرابط" : "Link copied");
                     }
                   }}
-                  onTouchEnd={(e) => e.stopPropagation()}
-                  className="h-10 w-10 rounded-full bg-white/90 backdrop-blur flex items-center justify-center hover:bg-white active:scale-95 transition-transform"
+                  onTouchStart={(e) => e.stopPropagation()}
+                  onTouchMove={(e) => e.stopPropagation()}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (navigator.share) {
+                      navigator.share({ title: document.title, url: window.location.href }).catch(() => {});
+                    } else {
+                      navigator.clipboard.writeText(window.location.href);
+                      toast.success(lang === "ar" ? "تم نسخ الرابط" : "Link copied");
+                    }
+                  }}
+                  className="h-11 w-11 rounded-full bg-white shadow-lg flex items-center justify-center hover:bg-gray-50 active:scale-90 transition-all touch-manipulation"
+                  aria-label={lang === "ar" ? "مشاركة" : "Share"}
                 >
-                  <Share2 className="h-5 w-5" />
+                  <Share2 className="h-5 w-5 text-gray-700" />
                 </button>
               </div>
               {/* Badges */}

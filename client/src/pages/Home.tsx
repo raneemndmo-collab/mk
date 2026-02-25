@@ -371,7 +371,7 @@ function HeroSearchBar({ lang, cities, onSearch }: {
           className={`hidden md:flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
             expanded || activeCount > 0
               ? "bg-white/20 text-white shadow-sm border border-white/30"
-              : "bg-white/10 text-white/70 border border-white/15 hover:border-white/30 hover:text-white"
+              : "bg-white/10 text-white/85 border border-white/15 hover:border-white/30 hover:text-white"
           }`}
         >
           <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -391,7 +391,7 @@ function HeroSearchBar({ lang, cities, onSearch }: {
           className={`md:hidden flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
             activeCount > 0
               ? "bg-white/20 text-white shadow-sm border border-white/30"
-              : "bg-white/10 text-white/70 border border-white/15 hover:border-white/30 hover:text-white"
+              : "bg-white/10 text-white/85 border border-white/15 hover:border-white/30 hover:text-white"
           }`}
         >
           <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -731,7 +731,7 @@ export default function Home() {
             <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-center mb-3">
               {lang === "ar" ? "كيف يعمل" : "How It Works"}
             </h2>
-            <p className="text-white/80 text-center mb-14 max-w-xl mx-auto">
+            <p className="text-white/90 text-center mb-14 max-w-xl mx-auto">
               {lang === "ar" ? "ثلاث خطوات بسيطة للحصول على سكنك الشهري المثالي" : "Three simple steps to find your perfect monthly home"}
             </p>
           </ScrollSection>
@@ -753,7 +753,7 @@ export default function Home() {
                 <h3 className="text-xl font-heading font-semibold mb-3 group-hover:text-[#3ECFC0] transition-colors duration-300">
                   {lang === "ar" ? step.titleAr : step.titleEn}
                 </h3>
-                <p className="text-white/80 text-sm leading-relaxed">
+                <p className="text-white/90 text-sm leading-relaxed">
                   {lang === "ar" ? step.descAr : step.descEn}
                 </p>
               </div>
@@ -930,7 +930,7 @@ export default function Home() {
           <h2 className="text-xl sm:text-2xl md:text-4xl font-heading font-bold mb-4">
             {lang === "ar" ? "حقق أقصى استفادة من عقارك" : "Maximize Your Property's Potential"}
           </h2>
-          <p className="text-white/80 mb-6 sm:mb-10 max-w-lg mx-auto text-sm sm:text-lg">
+          <p className="text-white/90 mb-6 sm:mb-10 max-w-lg mx-auto text-sm sm:text-lg">
             {lang === "ar"
               ? "احصل على تقييم إيجار مجاني واكتشف كم يمكن أن يحقق عقارك"
               : "Get a free rental assessment and discover your property's earning potential"}

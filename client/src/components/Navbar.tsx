@@ -100,7 +100,7 @@ function NotificationDropdown() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative h-9 w-9 text-white/80 hover:text-white hover:bg-white/10">
+        <Button variant="ghost" size="icon" className="relative h-9 w-9 text-white/90 hover:text-white hover:bg-white/10">
           <Bell className="h-4 w-4" />
           {count > 0 && (
             <Badge className="absolute -top-1 -end-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-red-500 text-white border-0 animate-pulse">
@@ -209,7 +209,7 @@ function ThemeToggle() {
       variant="ghost"
       size="sm"
       onClick={toggleTheme}
-      className="text-white/80 hover:text-white hover:bg-white/10 w-8 h-8 p-0"
+      className="text-white/90 hover:text-white hover:bg-white/10 w-8 h-8 p-0"
       aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
     >
       {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -268,29 +268,29 @@ export default function Navbar() {
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-1">
             <Link href="/">
-              <Button variant="ghost" size="sm" className={`text-white/80 hover:text-white hover:bg-white/10 ${location === "/" ? "text-[#3ECFC0]" : ""}`}>
+              <Button variant="ghost" size="sm" className={`text-white/90 hover:text-white hover:bg-white/10 ${location === "/" ? "text-[#3ECFC0]" : ""}`}>
                 {t("nav.home")}
               </Button>
             </Link>
             <Link href="/search">
-              <Button variant="ghost" size="sm" className={`text-white/80 hover:text-white hover:bg-white/10 ${location === "/search" ? "text-[#3ECFC0]" : ""}`}>
+              <Button variant="ghost" size="sm" className={`text-white/90 hover:text-white hover:bg-white/10 ${location === "/search" ? "text-[#3ECFC0]" : ""}`}>
                 {t("nav.search")}
               </Button>
             </Link>
             <Link href="/map">
-              <Button variant="ghost" size="sm" className={`text-white/80 hover:text-white hover:bg-white/10 ${location === "/map" ? "text-[#3ECFC0]" : ""}`}>
+              <Button variant="ghost" size="sm" className={`text-white/90 hover:text-white hover:bg-white/10 ${location === "/map" ? "text-[#3ECFC0]" : ""}`}>
                 {t("nav.map")}
               </Button>
             </Link>
             {isAuthenticated && (
               <>
                 <Link href={getDashboardLink()}>
-                  <Button variant="ghost" size="sm" className={`text-white/80 hover:text-white hover:bg-white/10 ${["/tenant", "/landlord", "/admin"].includes(location) ? "text-[#3ECFC0]" : ""}`}>
+                  <Button variant="ghost" size="sm" className={`text-white/90 hover:text-white hover:bg-white/10 ${["/tenant", "/landlord", "/admin"].includes(location) ? "text-[#3ECFC0]" : ""}`}>
                     {t("nav.dashboard")}
                   </Button>
                 </Link>
                 <Link href="/messages">
-                  <Button variant="ghost" size="sm" className={`relative text-white/80 hover:text-white hover:bg-white/10 ${location.startsWith("/messages") ? "text-[#3ECFC0]" : ""}`}>
+                  <Button variant="ghost" size="sm" className={`relative text-white/90 hover:text-white hover:bg-white/10 ${location.startsWith("/messages") ? "text-[#3ECFC0]" : ""}`}>
                     {t("nav.messages")}
                     {(unreadMsgs.data?.count ?? 0) > 0 && (
                       <Badge className="absolute -top-1 -end-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-red-500 text-white border-0">
@@ -309,7 +309,7 @@ export default function Navbar() {
             <ThemeToggle />
 
             {/* Language toggle */}
-            <Button variant="ghost" size="sm" onClick={toggleLang} className="text-white/80 hover:text-white hover:bg-white/10 gap-1.5">
+            <Button variant="ghost" size="sm" onClick={toggleLang} className="text-white/90 hover:text-white hover:bg-white/10 gap-1.5">
               <Globe className="h-4 w-4" />
               <span className="text-xs">{lang === "ar" ? "EN" : "AR"}</span>
             </Button>
@@ -377,7 +377,7 @@ export default function Navbar() {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden h-9 w-9 text-white/80 hover:text-white hover:bg-white/10"
+              className="md:hidden h-9 w-9 text-white/90 hover:text-white hover:bg-white/10"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -389,19 +389,19 @@ export default function Navbar() {
         <div className={`md:hidden border-t border-white/10 overflow-hidden transition-all duration-500 ease-out ${mobileMenuOpen ? "max-h-96 py-3 opacity-100" : "max-h-0 py-0 opacity-0"}`}>
           <div className="space-y-1">
             <Link href="/" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="ghost" className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10">
+              <Button variant="ghost" className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10">
                 <Home className="h-4 w-4 me-2" />
                 {t("nav.home")}
               </Button>
             </Link>
             <Link href="/search" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="ghost" className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10">
+              <Button variant="ghost" className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10">
                 <Search className="h-4 w-4 me-2" />
                 {t("nav.search")}
               </Button>
             </Link>
             <Link href="/map" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="ghost" className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10">
+              <Button variant="ghost" className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10">
                 <MapPin className="h-4 w-4 me-2" />
                 {t("nav.map")}
               </Button>
@@ -409,13 +409,13 @@ export default function Navbar() {
             {isAuthenticated && (
               <>
                 <Link href={getDashboardLink()} onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10">
+                  <Button variant="ghost" className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10">
                     <LayoutDashboard className="h-4 w-4 me-2" />
                     {t("nav.dashboard")}
                   </Button>
                 </Link>
                 <Link href="/messages" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10">
+                  <Button variant="ghost" className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10">
                     <MessageSquare className="h-4 w-4 me-2" />
                     {t("nav.messages")}
                   </Button>
@@ -423,7 +423,7 @@ export default function Navbar() {
                 {/* List property — only for landlord role; tenants use footer/menu link */}
                 {user?.role === "landlord" && (
                   <Link href="/list-property" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10">
+                    <Button variant="ghost" className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10">
                       <Plus className="h-4 w-4 me-2" />
                       {t("nav.listProperty")}
                     </Button>
