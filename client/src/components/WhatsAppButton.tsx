@@ -1,13 +1,18 @@
 import { useI18n } from "@/lib/i18n";
 import { useSiteSettings } from "@/contexts/SiteSettingsContext";
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 
 export default function WhatsAppButton() {
   const { lang } = useI18n();
   const { get: s } = useSiteSettings();
+  const [location] = useLocation();
   const [visible, setVisible] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [pulse, setPulse] = useState(true);
+
+  // Hide on auth pages (login, register, OTP)
+  if (location === "/login" || location === "/register" || location.startsWith("/verify")) return null;
 
   const whatsappNumber = s("whatsapp.number", "966504466528");
   const whatsappMessage = s("whatsapp.message", lang === "ar" ? "مرحباً، أحتاج مساعدة من المفتاح الشهري" : "مرحباً، أحتاج مساعدة من المفتاح الشهري");

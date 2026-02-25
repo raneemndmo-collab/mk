@@ -137,32 +137,35 @@ export default function Register() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {lang === "ar" ? (
                 <div className="space-y-2">
-                  <Label htmlFor="name">{t("auth.fullName")} (EN)</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    value={form.name}
-                    onChange={(e) => update("name", e.target.value)}
-                    placeholder="Full name"
-                    className="h-11"
-                    dir="ltr"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nameAr">{t("auth.fullName")} (AR)</Label>
+                  <Label htmlFor="nameAr">{t("auth.fullName")}</Label>
                   <Input
                     id="nameAr"
                     type="text"
                     value={form.nameAr}
-                    onChange={(e) => update("nameAr", e.target.value)}
-                    placeholder="الاسم بالعربي"
+                    onChange={(e) => { update("nameAr", e.target.value); update("name", e.target.value); }}
+                    placeholder="الاسم الكامل"
+                    required
                     className="h-11"
                     dir="rtl"
                   />
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="name">{t("auth.fullName")}</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => { update("name", e.target.value); update("nameAr", e.target.value); }}
+                    placeholder="Full name"
+                    required
+                    className="h-11"
+                    dir="ltr"
+                  />
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="email">{t("auth.email")}</Label>
