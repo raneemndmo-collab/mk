@@ -16,6 +16,7 @@ import {
   Phone, Mail, MapPin, FileText, Camera, Save, Eye, Upload, X, ImageIcon, Video, Play
 } from "lucide-react";
 import { getLoginUrl } from "@/const";
+import { normalizeMediaUrl } from "@/lib/utils";
 import { MediaLightbox } from "@/components/MediaLightbox";
 import { useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
@@ -925,16 +926,21 @@ function TenantEmergencyTab({ lang }: { lang: string }) {
                           <div className="mt-2">
                             <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
                               {r.imageUrls.map((url: string, idx: number) => {
+                                const normalizedUrl = normalizeMediaUrl(url);
                                 const isVid = /\.(mp4|webm|mov|avi)$/i.test(url);
                                 return (
-                                  <button key={idx} onClick={() => { setLightboxItems((r.imageUrls as string[]).map((u: string) => ({ url: u, type: /\.(mp4|webm|mov|avi)$/i.test(u) ? "video" as const : "image" as const }))); setLightboxIndex(idx); setLightboxOpen(true); }} className="relative block rounded-lg overflow-hidden border bg-muted aspect-square hover:ring-2 hover:ring-[#3ECFC0] transition-all cursor-pointer">
+                                  <button key={idx} onClick={() => { setLightboxItems((r.imageUrls as string[]).map((u: string) => ({ url: normalizeMediaUrl(u), type: /\.(mp4|webm|mov|avi)$/i.test(u) ? "video" as const : "image" as const }))); setLightboxIndex(idx); setLightboxOpen(true); }} className="relative block rounded-lg overflow-hidden border bg-muted aspect-square hover:ring-2 hover:ring-[#3ECFC0] transition-all cursor-pointer">
                                     {isVid ? (
                                       <div className="w-full h-full flex flex-col items-center justify-center bg-black/80">
                                         <Play className="h-6 w-6 text-white" />
                                       </div>
-                                    ) : (
-                                      <img src={url} alt="" className="w-full h-full object-cover" />
-                                    )}
+                                    ) : normalizedUrl ? (
+                                      <img src={normalizedUrl} alt="" className="w-full h-full object-cover" onError={(e) => { const el = e.currentTarget; el.style.display = 'none'; el.parentElement?.querySelector('.img-fallback')?.classList.remove('hidden'); }} />
+                                    ) : null}
+                                    {/* Fallback placeholder for broken images */}
+                                    <div className="img-fallback hidden w-full h-full flex flex-col items-center justify-center bg-muted text-muted-foreground">
+                                      <ImageIcon className="h-5 w-5 opacity-50" />
+                                    </div>
                                   </button>
                                 );
                               })}

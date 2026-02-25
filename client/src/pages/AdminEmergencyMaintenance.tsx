@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertTriangle, Clock, CheckCircle, XCircle, User, Wrench, Zap, Droplets, Flame, Bug, Shield, Package, Loader2, Send, ChevronDown, ChevronUp, ArrowLeft, ImageIcon, Video, Play, ExternalLink, Expand } from "lucide-react";
 import { MediaLightbox, urlsToMediaItems } from "@/components/MediaLightbox";
+import { normalizeMediaUrl } from "@/lib/utils";
 import { useState } from "react";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
@@ -182,17 +183,22 @@ export default function AdminEmergencyMaintenance() {
                             </Label>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                               {t.imageUrls.map((url: string, idx: number) => {
+                                const normalizedUrl = normalizeMediaUrl(url);
                                 const isVideo = /\.(mp4|webm|mov|avi)$/i.test(url);
                                 return (
-                                  <button key={idx} onClick={() => { setLightboxItems(urlsToMediaItems(t.imageUrls as string[])); setLightboxIndex(idx); setLightboxOpen(true); }} className="group relative block rounded-lg overflow-hidden border bg-muted aspect-square hover:ring-2 hover:ring-[#3ECFC0] transition-all cursor-pointer">
+                                  <button key={idx} onClick={() => { setLightboxItems((t.imageUrls as string[]).map(u => ({ url: normalizeMediaUrl(u), type: /\.(mp4|webm|mov|avi)$/i.test(u) ? "video" as const : "image" as const }))); setLightboxIndex(idx); setLightboxOpen(true); }} className="group relative block rounded-lg overflow-hidden border bg-muted aspect-square hover:ring-2 hover:ring-[#3ECFC0] transition-all cursor-pointer">
                                     {isVideo ? (
                                       <div className="w-full h-full flex flex-col items-center justify-center bg-black/80">
                                         <Play className="h-8 w-8 text-white mb-1" />
                                         <span className="text-xs text-white/70">{lang === "ar" ? "فيديو" : "Video"}</span>
                                       </div>
-                                    ) : (
-                                      <img src={url} alt={`Attachment ${idx + 1}`} className="w-full h-full object-cover" />
-                                    )}
+                                    ) : normalizedUrl ? (
+                                      <img src={normalizedUrl} alt={`Attachment ${idx + 1}`} className="w-full h-full object-cover" onError={(e) => { const el = e.currentTarget; el.style.display = 'none'; el.parentElement?.querySelector('.img-fallback')?.classList.remove('hidden'); }} />
+                                    ) : null}
+                                    {/* Fallback for broken images */}
+                                    <div className="img-fallback hidden w-full h-full flex flex-col items-center justify-center bg-muted text-muted-foreground">
+                                      <ImageIcon className="h-5 w-5 opacity-50" />
+                                    </div>
                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                                       <Expand className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                                     </div>
