@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { X, ChevronLeft, ChevronRight, Download, ZoomIn, ZoomOut, Play } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Download, ZoomIn, ZoomOut, Play, ImageIcon } from "lucide-react";
 
 interface MediaItem {
   url: string;
@@ -142,8 +142,15 @@ export function MediaLightbox({ items, initialIndex = 0, open, onClose }: MediaL
             className="max-h-[85vh] rounded-lg shadow-2xl transition-transform duration-200"
             style={{ transform: `scale(${zoom})` }}
             draggable={false}
+            onError={(e) => { const el = e.currentTarget; el.style.display = 'none'; const fb = el.parentElement?.querySelector('.lb-fallback') as HTMLElement; if (fb) fb.style.display = 'flex'; }}
           />
         )}
+        <div className="lb-fallback hidden items-center justify-center text-white/60" style={{ display: 'none' }}>
+          <div className="text-center">
+            <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">Image unavailable</p>
+          </div>
+        </div>
       </div>
 
       {/* Thumbnail strip */}
@@ -162,7 +169,7 @@ export function MediaLightbox({ items, initialIndex = 0, open, onClose }: MediaL
                   <Play className="w-5 h-5 text-white" />
                 </div>
               ) : (
-                <img src={item.url} alt="" className="w-full h-full object-cover" />
+                <img src={item.url} alt="" className="w-full h-full object-cover" onError={(e) => { const el = e.currentTarget; el.style.opacity = '0'; }} />
               )}
             </button>
           ))}

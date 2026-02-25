@@ -170,7 +170,10 @@ export default function MaintenanceRequest() {
               <div className="grid grid-cols-3 gap-3 mt-2">
                 {form.photos.map((url, i) => (
                   <div key={i} className="relative aspect-square rounded-lg overflow-hidden group">
-                    <img src={normalizeMediaUrl(url)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = ''; (e.currentTarget as HTMLImageElement).alt = '⚠'; }} />
+                    <img src={normalizeMediaUrl(url)} alt="" className="w-full h-full object-cover" onError={(e) => { const el = e.currentTarget; el.style.display = 'none'; const fb = el.parentElement?.querySelector('.maint-fb') as HTMLElement; if (fb) fb.style.display = 'flex'; }} />
+                    <div className="maint-fb absolute inset-0 items-center justify-center bg-muted text-muted-foreground" style={{ display: 'none' }}>
+                      <ImagePlus className="h-5 w-5 opacity-50" />
+                    </div>
                     <button
                       onClick={() => setForm(p => ({ ...p, photos: p.photos.filter((_, idx) => idx !== i) }))}
                       className="absolute top-1 end-1 h-6 w-6 rounded-full bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
