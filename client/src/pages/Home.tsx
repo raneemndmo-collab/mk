@@ -350,7 +350,7 @@ function HeroSearchBar({ lang, cities, onSearch }: {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={lang === "ar" ? "ابحث بالمدينة، الحي، أو اسم العقار..." : "Search by city, neighborhood, or property..."}
-            className="flex-1 py-3.5 text-sm sm:text-base text-white placeholder-white/50 focus:outline-none bg-transparent"
+            className="flex-1 py-3.5 text-sm sm:text-base text-white placeholder-white/70 focus:outline-none bg-transparent"
             dir={lang === "ar" ? "rtl" : "ltr"}
           />
         </div>
@@ -636,7 +636,7 @@ export default function Home() {
                 ? "إدارة إيجارات شهرية متميزة"
                 : "Premium Monthly Rental Management")}
             </h1>
-            <p className="text-sm sm:text-lg md:text-xl text-white/70 mb-6 sm:mb-10 leading-relaxed max-w-2xl mx-auto fade-up visible" style={{ animationDelay: '0.3s' }}>
+            <p className="text-sm sm:text-lg md:text-xl text-white/85 mb-6 sm:mb-10 leading-relaxed max-w-2xl mx-auto fade-up visible" style={{ animationDelay: '0.3s' }}>
               {sl("hero.subtitle", lang) || (lang === "ar"
                 ? "إدارة إيجارات شهرية متميزة | الرياض • جدة • المدينة المنورة"
                 : "Premium monthly rental management | Riyadh • Jeddah • Madinah")}
@@ -699,7 +699,7 @@ export default function Home() {
             <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-center mb-3 text-[#0B1E2D] dark:text-white">
               {lang === "ar" ? "خدماتنا" : "Our Services"}
             </h2>
-            <p className="text-[#4a5568] dark:text-gray-300 text-center mb-12 max-w-xl mx-auto">
+            <p className="text-[#4a5568] dark:text-gray-300/90 text-center mb-12 max-w-xl mx-auto">
               {lang === "ar" ? "نقدم مجموعة متكاملة من الخدمات لتسهيل تجربة التأجير الشهري" : "A complete suite of services for a seamless monthly rental experience"}
             </p>
           </ScrollSection>
@@ -713,7 +713,7 @@ export default function Home() {
                   <h3 className="font-heading font-semibold text-lg mb-2 text-[#0B1E2D] dark:text-card-foreground group-hover:text-[#3ECFC0] transition-colors duration-300">
                     {lang === "ar" ? service.titleAr : service.titleEn}
                   </h3>
-                  <p className="text-[#4a5568] dark:text-muted-foreground text-sm leading-relaxed">
+                  <p className="text-[#4a5568] dark:text-gray-300 text-sm leading-relaxed">
                     {lang === "ar" ? service.descAr : service.descEn}
                   </p>
                 </CardContent>
@@ -731,7 +731,7 @@ export default function Home() {
             <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-center mb-3">
               {lang === "ar" ? "كيف يعمل" : "How It Works"}
             </h2>
-            <p className="text-white/60 text-center mb-14 max-w-xl mx-auto">
+            <p className="text-white/80 text-center mb-14 max-w-xl mx-auto">
               {lang === "ar" ? "ثلاث خطوات بسيطة للحصول على سكنك الشهري المثالي" : "Three simple steps to find your perfect monthly home"}
             </p>
           </ScrollSection>
@@ -753,7 +753,7 @@ export default function Home() {
                 <h3 className="text-xl font-heading font-semibold mb-3 group-hover:text-[#3ECFC0] transition-colors duration-300">
                   {lang === "ar" ? step.titleAr : step.titleEn}
                 </h3>
-                <p className="text-white/60 text-sm leading-relaxed">
+                <p className="text-white/80 text-sm leading-relaxed">
                   {lang === "ar" ? step.descAr : step.descEn}
                 </p>
               </div>
@@ -771,7 +771,7 @@ export default function Home() {
                 <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-[#0B1E2D] dark:text-foreground">
                   {lang === "ar" ? "عقارات مميزة" : "Featured Properties"}
                 </h2>
-                <p className="text-[#4a5568] dark:text-muted-foreground mt-1">
+                <p className="text-[#4a5568] dark:text-gray-300 mt-1">
                   {lang === "ar" ? "اكتشف أفضل العقارات المتاحة للتأجير الشهري" : "Discover the best monthly rental properties"}
                 </p>
               </div>
@@ -824,7 +824,7 @@ export default function Home() {
             <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-center mb-3 text-[#0B1E2D] dark:text-foreground">
               {lang === "ar" ? "مدننا" : "Our Cities"}
             </h2>
-            <p className="text-[#4a5568] dark:text-muted-foreground text-center mb-12">
+            <p className="text-[#4a5568] dark:text-gray-300 text-center mb-12">
               {lang === "ar" ? "اكتشف العقارات المتاحة في أبرز المدن السعودية" : "Discover properties in Saudi Arabia's top cities"}
             </p>
           </ScrollSection>
@@ -855,7 +855,7 @@ export default function Home() {
                     {lang === "ar" ? city.nameAr : city.nameEn}
                   </h3>
                   {(city.region || city.regionAr) && (
-                    <p className="text-white/70 text-sm">
+                    <p className="text-white/90 text-sm">
                       {lang === "ar" ? (city.regionAr || city.region || "") : (city.region || "")}
                     </p>
                   )}
@@ -877,7 +877,7 @@ export default function Home() {
             <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-center mb-3 text-[#0B1E2D] dark:text-foreground">
               {lang === "ar" ? "آراء عملائنا" : "What Our Clients Say"}
             </h2>
-            <p className="text-[#4a5568] dark:text-muted-foreground text-center mb-12">
+            <p className="text-[#4a5568] dark:text-gray-300 text-center mb-12">
               {lang === "ar" ? "تجارب حقيقية من مستأجرين وملاك عقارات" : "Real experiences from tenants and property owners"}
             </p>
           </ScrollSection>
@@ -930,7 +930,7 @@ export default function Home() {
           <h2 className="text-xl sm:text-2xl md:text-4xl font-heading font-bold mb-4">
             {lang === "ar" ? "حقق أقصى استفادة من عقارك" : "Maximize Your Property's Potential"}
           </h2>
-          <p className="text-white/60 mb-6 sm:mb-10 max-w-lg mx-auto text-sm sm:text-lg">
+          <p className="text-white/80 mb-6 sm:mb-10 max-w-lg mx-auto text-sm sm:text-lg">
             {lang === "ar"
               ? "احصل على تقييم إيجار مجاني واكتشف كم يمكن أن يحقق عقارك"
               : "Get a free rental assessment and discover your property's earning potential"}

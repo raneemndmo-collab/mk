@@ -199,7 +199,7 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
             <span className="font-bold text-[#3ECFC0] text-base sm:text-lg tracking-tight">
               {Number(property.monthlyRent).toLocaleString()} {t("payment.sar")}
             </span>
-            <span className="text-white/60 text-xs ms-1">{t("property.perMonth")}</span>
+            <span className="text-white/80 text-xs ms-1">{t("property.perMonth")}</span>
           </div>
         </div>
 

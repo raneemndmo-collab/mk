@@ -201,7 +201,7 @@ export default function MaintenanceMode() {
         </h1>
 
         {/* Subtitle */}
-        <p className="text-lg sm:text-xl text-white/60 text-center max-w-2xl mb-6">
+        <p className="text-lg sm:text-xl text-white/80 text-center max-w-2xl mb-6">
           {subtitle}
         </p>
 
@@ -237,7 +237,7 @@ export default function MaintenanceMode() {
         {/* Social Media Links */}
         {activeSocials.length > 0 && (
           <div className="mb-10">
-            <p className="text-sm text-white/40 text-center mb-4 font-medium">
+            <p className="text-sm text-white/60 text-center mb-4 font-medium">
               {lang === "ar" ? "تابعنا على" : "Follow us on"}
             </p>
             <div className="flex items-center justify-center gap-3 flex-wrap">
@@ -272,7 +272,7 @@ export default function MaintenanceMode() {
         </div>
 
         {/* Footer info */}
-        <p className="text-sm text-white/30 text-center">
+        <p className="text-sm text-white/50 text-center">
           {lang === "ar" 
             ? "نعمل بجد لتقديم أفضل تجربة إيجار شهري في المملكة العربية السعودية"
             : "Working hard to deliver the best monthly rental experience in Saudi Arabia"

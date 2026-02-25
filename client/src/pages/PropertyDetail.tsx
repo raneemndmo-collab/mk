@@ -276,20 +276,31 @@ export default function PropertyDetail() {
                   </div>
                 </>
               )}
-              {/* Actions */}
-              <div className="absolute top-3 end-3 flex gap-2">
+              {/* Actions — z-20 to sit above gallery nav arrows; stopPropagation prevents touch swipe handler from swallowing taps */}
+              <div className="absolute top-3 end-3 flex gap-2 z-20">
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     if (!isAuthenticated) { toast.error(lang === "ar" ? "يرجى تسجيل الدخول" : "Please sign in"); return; }
                     toggleFav.mutate({ propertyId: id });
                   }}
-                  className="h-10 w-10 rounded-full bg-white/90 backdrop-blur flex items-center justify-center hover:bg-white"
+                  onTouchEnd={(e) => e.stopPropagation()}
+                  className="h-10 w-10 rounded-full bg-white/90 backdrop-blur flex items-center justify-center hover:bg-white active:scale-95 transition-transform"
                 >
                   <Heart className={`h-5 w-5 ${favCheck.data?.isFavorite ? "fill-destructive text-destructive" : ""}`} />
                 </button>
                 <button
-                  onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success(lang === "ar" ? "تم نسخ الرابط" : "Link copied"); }}
-                  className="h-10 w-10 rounded-full bg-white/90 backdrop-blur flex items-center justify-center hover:bg-white"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (navigator.share) {
+                      navigator.share({ title: document.title, url: window.location.href }).catch(() => {});
+                    } else {
+                      navigator.clipboard.writeText(window.location.href);
+                      toast.success(lang === "ar" ? "تم نسخ الرابط" : "Link copied");
+                    }
+                  }}
+                  onTouchEnd={(e) => e.stopPropagation()}
+                  className="h-10 w-10 rounded-full bg-white/90 backdrop-blur flex items-center justify-center hover:bg-white active:scale-95 transition-transform"
                 >
                   <Share2 className="h-5 w-5" />
                 </button>

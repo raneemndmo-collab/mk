@@ -426,7 +426,7 @@ export default function BookingFlow() {
                   : "Once approved, you'll be able to complete payment via PayPal, Apple Pay, or Google Pay from your dashboard."}
               </p>
               <div className="flex gap-3 justify-center">
-                <Button variant="outline" onClick={() => setLocation("/dashboard")} className="border-2">
+                <Button variant="outline" onClick={() => setLocation("/tenant")} className="border-2">
                   {t("dashboard.tenant")}
                 </Button>
                 <Button onClick={() => setLocation("/search")} className="bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] btn-animate border-0 font-semibold">
