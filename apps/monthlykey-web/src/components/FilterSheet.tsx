@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef } from "react";
-import { X, SlidersHorizontal, ChevronDown, ChevronUp, Search, RotateCcw } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Search, SlidersHorizontal, ChevronDown, ChevronUp, RotateCcw, X } from "lucide-react";
 import { useLocale } from "../contexts/LocaleContext";
 
 /**
- * FilterSheet — redesigned property filters.
- * Clean search input + quick filters (city, type, budget) + "More" expandable advanced filters.
- * Mobile: bottom sheet overlay for advanced filters.
- * Desktop: dropdown panel.
+ * FilterSheet — Clean search bar + "More options" toggle underneath.
+ * Top: single clean search input + search button.
+ * Below: toggle that expands all filters (city, type, budget, bedrooms, bathrooms, furnished, area, amenities).
+ * Mobile: filters expand as bottom sheet.
+ * Desktop: filters expand inline below the bar.
  * Full AR/EN + RTL/LTR support.
  */
 
@@ -36,15 +37,7 @@ export const EMPTY_FILTERS: FilterValues = {
   amenities: [],
 };
 
-interface FilterSheetProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  values: FilterValues;
-  onChange: (values: FilterValues) => void;
-  onApply: () => void;
-  onReset: () => void;
-}
-
+/* ─── Data ─── */
 const CITIES_AR = [
   { value: "", label: "الكل" },
   { value: "الرياض", label: "الرياض" },
@@ -56,7 +49,6 @@ const CITIES_AR = [
   { value: "أبها", label: "أبها" },
   { value: "تبوك", label: "تبوك" },
 ];
-
 const CITIES_EN = [
   { value: "", label: "All" },
   { value: "الرياض", label: "Riyadh" },
@@ -79,7 +71,6 @@ const TYPES_AR = [
   { value: "مجمع سكني", label: "مجمع سكني" },
   { value: "شقة فندقية", label: "شقة فندقية" },
 ];
-
 const TYPES_EN = [
   { value: "", label: "All" },
   { value: "شقة", label: "Apartment" },
@@ -89,24 +80,6 @@ const TYPES_EN = [
   { value: "دوبلكس", label: "Duplex" },
   { value: "مجمع سكني", label: "Residential Complex" },
   { value: "شقة فندقية", label: "Hotel Apartment" },
-];
-
-const BUDGET_RANGES_AR = [
-  { value: "", label: "الكل" },
-  { value: "0-3000", label: "أقل من 3,000" },
-  { value: "3000-5000", label: "3,000 - 5,000" },
-  { value: "5000-8000", label: "5,000 - 8,000" },
-  { value: "8000-15000", label: "8,000 - 15,000" },
-  { value: "15000-999999", label: "أكثر من 15,000" },
-];
-
-const BUDGET_RANGES_EN = [
-  { value: "", label: "All" },
-  { value: "0-3000", label: "Under 3,000" },
-  { value: "3000-5000", label: "3,000 - 5,000" },
-  { value: "5000-8000", label: "5,000 - 8,000" },
-  { value: "8000-15000", label: "8,000 - 15,000" },
-  { value: "15000-999999", label: "Over 15,000" },
 ];
 
 const BEDROOMS = ["", "1", "2", "3", "4"];
@@ -122,7 +95,6 @@ const AMENITIES_AR = [
   { value: "ac", label: "تكييف مركزي" },
   { value: "kitchen", label: "مطبخ مجهز" },
 ];
-
 const AMENITIES_EN = [
   { value: "parking", label: "Parking" },
   { value: "pool", label: "Pool" },
@@ -134,71 +106,7 @@ const AMENITIES_EN = [
   { value: "kitchen", label: "Equipped Kitchen" },
 ];
 
-/* ─── Quick Filter Chip ─── */
-function QuickChip({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: { value: string; label: string }[];
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  const selected = options.find((o) => o.value === value);
-  const displayLabel = value && selected ? selected.label : label;
-  const isActive = !!value;
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen(!open)}
-        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
-          isActive
-            ? "bg-mk-teal text-white shadow-sm"
-            : "bg-white text-gray-600 border border-gray-200 hover:border-mk-teal/50 hover:text-mk-navy"
-        }`}
-      >
-        <span>{displayLabel}</span>
-        <ChevronDown size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && (
-        <div className="absolute top-full mt-1.5 z-50 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 min-w-[160px] max-h-[240px] overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-150">
-          {options.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => {
-                onChange(opt.value);
-                setOpen(false);
-              }}
-              className={`w-full text-start px-4 py-2 text-sm transition-colors ${
-                opt.value === value
-                  ? "bg-mk-teal/10 text-mk-teal font-medium"
-                  : "text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─── Pill Selector (for bedrooms/bathrooms) ─── */
+/* ─── Pill Selector ─── */
 function PillSelector({
   label,
   options,
@@ -234,8 +142,8 @@ function PillSelector({
   );
 }
 
-/* ─── Advanced Filters Content ─── */
-function AdvancedFiltersContent({
+/* ─── All Filters Content (used in both inline expand and mobile sheet) ─── */
+function AllFiltersContent({
   values,
   onChange,
   onApply,
@@ -259,7 +167,7 @@ function AdvancedFiltersContent({
 
   return (
     <div className="space-y-5">
-      {/* City & Type */}
+      {/* Row 1: City & Type */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-semibold text-mk-navy mb-2">
@@ -291,7 +199,7 @@ function AdvancedFiltersContent({
         </div>
       </div>
 
-      {/* Price Range */}
+      {/* Row 2: Price Range */}
       <div>
         <label className="block text-sm font-semibold text-mk-navy mb-2">
           {t("نطاق السعر (ر.س/شهر)", "Price Range (SAR/mo)")}
@@ -315,7 +223,7 @@ function AdvancedFiltersContent({
         </div>
       </div>
 
-      {/* Bedrooms & Bathrooms */}
+      {/* Row 3: Bedrooms & Bathrooms */}
       <div className="grid grid-cols-2 gap-4">
         <PillSelector
           label={t("غرف النوم", "Bedrooms")}
@@ -333,7 +241,7 @@ function AdvancedFiltersContent({
         />
       </div>
 
-      {/* Furnished */}
+      {/* Row 4: Furnished */}
       <div>
         <label className="block text-sm font-semibold text-mk-navy mb-2">
           {t("التأثيث", "Furnishing")}
@@ -359,7 +267,7 @@ function AdvancedFiltersContent({
         </div>
       </div>
 
-      {/* Property Size */}
+      {/* Row 5: Property Size */}
       <div>
         <label className="block text-sm font-semibold text-mk-navy mb-2">
           {t("المساحة (م²)", "Size (m²)")}
@@ -383,7 +291,7 @@ function AdvancedFiltersContent({
         </div>
       </div>
 
-      {/* Amenities */}
+      {/* Row 6: Amenities */}
       <div>
         <label className="block text-sm font-semibold text-mk-navy mb-2">
           {t("المرافق", "Amenities")}
@@ -426,31 +334,23 @@ function AdvancedFiltersContent({
   );
 }
 
-/* ─── Main FilterSheet (Advanced overlay) ─── */
-export default function FilterSheet({
+/* ─── Mobile Bottom Sheet (for "More options" on mobile) ─── */
+function MobileFilterSheet({
   open,
-  onOpenChange,
+  onClose,
   values,
   onChange,
   onApply,
   onReset,
-}: FilterSheetProps) {
+}: {
+  open: boolean;
+  onClose: () => void;
+  values: FilterValues;
+  onChange: (v: FilterValues) => void;
+  onApply: () => void;
+  onReset: () => void;
+}) {
   const { t } = useLocale();
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onOpenChange(false);
-      }
-    };
-    const timer = setTimeout(() => document.addEventListener("mousedown", handler), 100);
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener("mousedown", handler);
-    };
-  }, [open, onOpenChange]);
 
   useEffect(() => {
     if (open) {
@@ -464,68 +364,43 @@ export default function FilterSheet({
   if (!open) return null;
 
   return (
-    <>
-      {/* Mobile: bottom sheet overlay */}
-      <div className="md:hidden fixed inset-0 z-50">
-        <div
-          className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-          onClick={() => onOpenChange(false)}
-        />
-        <div
-          ref={panelRef}
-          className="absolute bottom-0 inset-x-0 bg-white rounded-t-2xl shadow-2xl max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300"
-          style={{ paddingBottom: "env(safe-area-inset-bottom, 16px)" }}
-        >
-          <div className="flex justify-center pt-3 pb-1">
-            <div className="w-10 h-1 rounded-full bg-gray-300" />
-          </div>
-          <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
-            <h3 className="font-bold text-mk-navy text-lg">
-              {t("فلاتر متقدمة", "Advanced Filters")}
-            </h3>
-            <button
-              onClick={() => onOpenChange(false)}
-              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <X size={20} className="text-gray-500" />
-            </button>
-          </div>
-          <div className="px-5 py-4">
-            <AdvancedFiltersContent
-              values={values}
-              onChange={onChange}
-              onApply={() => { onApply(); onOpenChange(false); }}
-              onReset={onReset}
-            />
-          </div>
+    <div className="md:hidden fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="absolute bottom-0 inset-x-0 bg-white rounded-t-2xl shadow-2xl max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 16px)" }}
+      >
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-gray-300" />
+        </div>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+          <h3 className="font-bold text-mk-navy text-lg">
+            {t("خيارات إضافية", "More Options")}
+          </h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+            <X size={20} className="text-gray-500" />
+          </button>
+        </div>
+        <div className="px-5 py-4">
+          <AllFiltersContent
+            values={values}
+            onChange={onChange}
+            onApply={() => { onApply(); onClose(); }}
+            onReset={onReset}
+          />
         </div>
       </div>
-
-      {/* Desktop: dropdown panel */}
-      <div
-        className="hidden md:block absolute top-full start-0 end-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 z-40 animate-in fade-in slide-in-from-top-2 duration-200"
-        style={{ minWidth: "560px" }}
-      >
-        <AdvancedFiltersContent
-          values={values}
-          onChange={onChange}
-          onApply={() => { onApply(); onOpenChange(false); }}
-          onReset={onReset}
-        />
-      </div>
-    </>
+    </div>
   );
 }
 
-/* ─── Search Bar with Quick Filters ─── */
+/* ─── Main Export: SearchBarWithFilters ─── */
 export function SearchBarWithFilters({
   query,
   onQueryChange,
   onSearch,
   filters,
   onFiltersChange,
-  onAdvancedOpen,
-  advancedOpen,
   onApply,
   onReset,
 }: {
@@ -534,34 +409,17 @@ export function SearchBarWithFilters({
   onSearch: () => void;
   filters: FilterValues;
   onFiltersChange: (f: FilterValues) => void;
-  onAdvancedOpen: (open: boolean) => void;
-  advancedOpen: boolean;
   onApply: () => void;
   onReset: () => void;
 }) {
-  const { locale, t } = useLocale();
-  const cities = locale === "ar" ? CITIES_AR : CITIES_EN;
-  const types = locale === "ar" ? TYPES_AR : TYPES_EN;
-  const budgets = locale === "ar" ? BUDGET_RANGES_AR : BUDGET_RANGES_EN;
+  const { t } = useLocale();
+  const [expanded, setExpanded] = useState(false);
+  const [mobileSheet, setMobileSheet] = useState(false);
 
-  const updateFilter = (key: keyof FilterValues, val: any) => {
-    onFiltersChange({ ...filters, [key]: val });
-  };
-
-  const handleBudgetChange = (rangeStr: string) => {
-    if (!rangeStr) {
-      onFiltersChange({ ...filters, minBudget: "", maxBudget: "" });
-    } else {
-      const [min, max] = rangeStr.split("-");
-      onFiltersChange({ ...filters, minBudget: min, maxBudget: max });
-    }
-  };
-
-  const currentBudgetValue = filters.minBudget && filters.maxBudget
-    ? `${filters.minBudget}-${filters.maxBudget}`
-    : "";
-
-  const advancedCount = [
+  const activeCount = [
+    filters.city,
+    filters.type,
+    filters.minBudget || filters.maxBudget ? "budget" : "",
     filters.bedrooms,
     filters.bathrooms,
     filters.furnished,
@@ -570,11 +428,11 @@ export function SearchBarWithFilters({
   ].filter(Boolean).length;
 
   return (
-    <div className="w-full relative">
-      {/* Search Input */}
-      <div className="flex items-center bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-mk-teal/30 transition-all overflow-hidden">
+    <div className="w-full">
+      {/* ── Clean Search Bar ── */}
+      <div className="flex items-center bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-mk-teal/30 transition-all overflow-hidden">
         <div className="flex items-center flex-1 px-4 gap-3">
-          <Search size={18} className="text-gray-400 shrink-0" />
+          <Search size={20} className="text-gray-400 shrink-0" />
           <input
             type="text"
             value={query}
@@ -584,72 +442,103 @@ export function SearchBarWithFilters({
               "ابحث بالمدينة، الحي، أو اسم العقار...",
               "Search by city, neighborhood, or property name..."
             )}
-            className="flex-1 py-3 text-sm text-mk-navy placeholder:text-gray-400 focus:outline-none bg-transparent"
+            className="flex-1 py-3.5 text-sm text-mk-navy placeholder:text-gray-400 focus:outline-none bg-transparent"
           />
         </div>
         <button
           onClick={onSearch}
-          className="bg-mk-teal text-white px-5 py-3 text-sm font-medium hover:bg-mk-teal/90 transition-colors shrink-0"
+          className="bg-mk-teal text-white px-6 py-3.5 text-sm font-semibold hover:bg-mk-teal/90 transition-colors shrink-0"
         >
           {t("بحث", "Search")}
         </button>
       </div>
 
-      {/* Quick Filters Row */}
-      <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1 scrollbar-hide">
-        <QuickChip
-          label={t("المدينة", "City")}
-          options={cities}
-          value={filters.city}
-          onChange={(v) => updateFilter("city", v)}
-        />
-        <QuickChip
-          label={t("النوع", "Type")}
-          options={types}
-          value={filters.type}
-          onChange={(v) => updateFilter("type", v)}
-        />
-        <QuickChip
-          label={t("الميزانية", "Budget")}
-          options={budgets}
-          value={currentBudgetValue}
-          onChange={handleBudgetChange}
-        />
-
-        {/* More / Advanced button */}
+      {/* ── "More Options" Toggle ── */}
+      <div className="flex justify-center mt-3">
+        {/* Desktop: toggle inline expand */}
         <button
-          onClick={() => onAdvancedOpen(!advancedOpen)}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
-            advancedOpen || advancedCount > 0
-              ? "bg-mk-navy text-white"
-              : "bg-white text-gray-600 border border-gray-200 hover:border-mk-navy/50 hover:text-mk-navy"
+          onClick={() => setExpanded(!expanded)}
+          className={`hidden md:flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+            expanded || activeCount > 0
+              ? "bg-mk-navy text-white shadow-sm"
+              : "bg-white/80 text-gray-600 border border-gray-200 hover:border-mk-navy/40 hover:text-mk-navy"
           }`}
         >
-          <SlidersHorizontal size={14} />
-          <span>{t("المزيد", "More")}</span>
-          {advancedCount > 0 && (
-            <span className="bg-white/20 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-              {advancedCount}
+          <SlidersHorizontal size={15} />
+          <span>{t("خيارات إضافية", "More Options")}</span>
+          {activeCount > 0 && (
+            <span className="bg-mk-teal text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+              {activeCount}
             </span>
           )}
-          {advancedOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+
+        {/* Mobile: open bottom sheet */}
+        <button
+          onClick={() => setMobileSheet(true)}
+          className={`md:hidden flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+            activeCount > 0
+              ? "bg-mk-navy text-white shadow-sm"
+              : "bg-white/80 text-gray-600 border border-gray-200 hover:border-mk-navy/40 hover:text-mk-navy"
+          }`}
+        >
+          <SlidersHorizontal size={15} />
+          <span>{t("خيارات إضافية", "More Options")}</span>
+          {activeCount > 0 && (
+            <span className="bg-mk-teal text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+              {activeCount}
+            </span>
+          )}
+          <ChevronDown size={14} />
         </button>
       </div>
 
-      {/* Advanced Filters Panel */}
-      <FilterSheet
-        open={advancedOpen}
-        onOpenChange={onAdvancedOpen}
+      {/* ── Desktop: Inline Expanded Filters ── */}
+      {expanded && (
+        <div className="hidden md:block mt-4 bg-white rounded-2xl border border-gray-100 shadow-lg p-6 animate-in fade-in slide-in-from-top-2 duration-200">
+          <AllFiltersContent
+            values={filters}
+            onChange={onFiltersChange}
+            onApply={() => { onApply(); setExpanded(false); }}
+            onReset={onReset}
+          />
+        </div>
+      )}
+
+      {/* ── Mobile: Bottom Sheet ── */}
+      <MobileFilterSheet
+        open={mobileSheet}
+        onClose={() => setMobileSheet(false)}
         values={filters}
         onChange={onFiltersChange}
-        onApply={onApply}
+        onApply={() => { onApply(); setMobileSheet(false); }}
         onReset={onReset}
       />
     </div>
   );
 }
 
-/** Trigger button for opening the filter sheet (legacy compat) */
+/* ─── Legacy compat exports ─── */
+export default function FilterSheet({
+  open,
+  onOpenChange,
+  values,
+  onChange,
+  onApply,
+  onReset,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  values: FilterValues;
+  onChange: (v: FilterValues) => void;
+  onApply: () => void;
+  onReset: () => void;
+}) {
+  // Legacy wrapper — not used by new SearchBarWithFilters
+  return null;
+}
+
 export function FilterTrigger({
   onClick,
   activeCount = 0,

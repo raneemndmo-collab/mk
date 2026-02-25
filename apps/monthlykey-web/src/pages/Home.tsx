@@ -15,7 +15,6 @@ export default function Home() {
   const navigate = useNavigate();
   const { locale, t } = useLocale();
   const [searchQuery, setSearchQuery] = useState("");
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [filters, setFilters] = useState<FilterValues>(EMPTY_FILTERS);
 
   const handleApplyFilters = () => {
@@ -62,8 +61,6 @@ export default function Home() {
               onSearch={handleApplyFilters}
               filters={filters}
               onFiltersChange={setFilters}
-              onAdvancedOpen={setAdvancedOpen}
-              advancedOpen={advancedOpen}
               onApply={handleApplyFilters}
               onReset={() => { setFilters(EMPTY_FILTERS); setSearchQuery(""); }}
             />

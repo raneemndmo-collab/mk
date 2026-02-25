@@ -21,7 +21,6 @@ export default function Search() {
   const page = Math.max(1, Number(params.get("page") ?? "1"));
 
   const [searchQuery, setSearchQuery] = useState(query);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [filters, setFilters] = useState<FilterValues>({
     ...EMPTY_FILTERS,
     city,
@@ -107,8 +106,6 @@ export default function Search() {
             onSearch={handleSearch}
             filters={filters}
             onFiltersChange={setFilters}
-            onAdvancedOpen={setAdvancedOpen}
-            advancedOpen={advancedOpen}
             onApply={handleApplyFilters}
             onReset={handleReset}
           />
