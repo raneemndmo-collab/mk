@@ -22,14 +22,12 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Navbar */}
-      <nav className="bg-mk-navy text-white px-6 py-4 flex items-center justify-between">
+      <nav className="bg-mk-navy text-white px-4 md:px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
           <img
-            src="/logo-mark.svg"
+            src="/mark-header-gold.png"
             alt="MonthlyKey"
-            width={32}
-            height={32}
-            className="shrink-0"
+            className="shrink-0 h-[26px] md:h-[34px] w-auto"
           />
           <span className="font-bold">المفتاح الشهري</span>
         </div>
@@ -152,11 +150,9 @@ export default function Home() {
           <div>
             <div className="flex items-center gap-3 mb-3">
               <img
-                src="/logo-mark.svg"
+                src="/mark-header-gold.png"
                 alt="MonthlyKey"
-                width={32}
-                height={32}
-                className="shrink-0"
+                className="shrink-0 h-[34px] w-auto"
               />
               <span className="font-bold text-lg">المفتاح الشهري</span>
             </div>

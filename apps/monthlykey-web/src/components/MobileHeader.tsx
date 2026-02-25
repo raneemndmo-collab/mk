@@ -182,15 +182,13 @@ export default function MobileHeader({ transparent = false }: MobileHeaderProps)
  * Uses the SVG file from /public for crisp rendering at all DPIs.
  * The SVG is the same key-in-gold-square design, just properly vectorized.
  */
-function MKLogo({ size = 32 }: { size?: number }) {
+function MKLogo({ size = 26 }: { size?: number }) {
   return (
     <img
-      src="/logo-mark.svg"
+      src="/mark-header-gold.png"
       alt="MonthlyKey"
-      width={size}
-      height={size}
       className="shrink-0"
-      style={{ width: size, height: size }}
+      style={{ height: size, width: 'auto' }}
     />
   );
 }

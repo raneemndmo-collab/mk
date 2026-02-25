@@ -17,11 +17,9 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <img
-            src="/logo-mark.svg"
+            src="/mark-header-gold.png"
             alt="MonthlyKey"
-            width={64}
-            height={64}
-            className="mx-auto mb-4"
+            className="mx-auto mb-4 h-16 w-auto"
           />
           <h1 className="text-2xl font-bold text-white">المفتاح الشهري</h1>
           <p className="text-gray-400 mt-1">تسجيل الدخول لحسابك</p>

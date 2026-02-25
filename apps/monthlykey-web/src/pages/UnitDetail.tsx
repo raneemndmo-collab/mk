@@ -6,9 +6,9 @@ export default function UnitDetail() {
 
   return (
     <div className="min-h-screen bg-white">
-      <nav className="bg-mk-navy text-white px-6 py-4 flex items-center gap-4">
+      <nav className="bg-mk-navy text-white px-4 md:px-6 py-3 flex items-center gap-4">
         <Link to="/" className="flex items-center gap-2">
-          <img src="/logo-mark.svg" alt="MonthlyKey" width={28} height={28} className="shrink-0" />
+          <img src="/mark-header-gold.png" alt="MonthlyKey" className="shrink-0 h-[26px] md:h-[34px] w-auto" />
           <span className="font-bold text-sm">المفتاح الشهري</span>
         </Link>
       </nav>

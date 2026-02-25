@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <!-- MonthlyKey Logo Mark — Dark background variant -->
-  <!-- Navy rounded square + gold key icon -->
-  <rect width="512" height="512" rx="128" fill="#0B1E2D"/>
-  <path d="M256 128a80 80 0 0 0-78.4 96.64L128 274.24V352h48v-32h32v-32h24l25.6-25.6A80 80 0 1 0 256 128Zm24 80a24 24 0 1 1 0-48 24 24 0 0 1 0 48Z" fill="#C5A55A"/>
-</svg>
