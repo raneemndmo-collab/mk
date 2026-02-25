@@ -68,11 +68,28 @@ export const units = pgTable("units", {
   dailyPrice: integer("daily_price"),
   currency: varchar("currency", { length: 3 }).notNull().default("SAR"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  managerId: uuid("manager_id").references(() => users.id),
+  propertyType: varchar("property_type", { length: 50 }).notNull().default("apartment"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   cityIdx: index("units_city_idx").on(t.city),
   statusIdx: index("units_status_idx").on(t.status),
   beds24PropIdx: index("units_beds24_prop_idx").on(t.beds24PropertyId),
+  managerIdx: index("units_manager_idx").on(t.managerId),
+}));
+
+// ─── Property Photos ───────────────────────────────────────
+export const propertyPhotos = pgTable("property_photos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  propertyId: uuid("property_id").notNull().references(() => units.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  altTextEn: varchar("alt_text_en", { length: 500 }),
+  altTextAr: varchar("alt_text_ar", { length: 500 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  propertyIdx: index("photos_property_idx").on(t.propertyId),
+  sortIdx: index("photos_sort_idx").on(t.propertyId, t.sortOrder),
 }));
 
 // ─── Bookings ───────────────────────────────────────────────

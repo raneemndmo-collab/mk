@@ -892,3 +892,18 @@
 - [ ] Map: Custom markers and brand colors
 - [ ] Dashboard: Charts and visual stats improvements
 - [ ] RTL: Comprehensive audit across all components
+
+## Mobile UX Overhaul (Feb 2026)
+- [ ] A1: Rewire MobileHeader into Home, Search, UnitDetail, Login
+- [ ] A2: MobileHeader layout: hamburger left, logo center, lang+account right
+- [ ] B1: Clean main search bar with Filters button
+- [ ] B2: FilterSheet bottom sheet (mobile) / dropdown (desktop): city, type, budget, bedrooms
+- [ ] C1: HelpFAB: expandable WhatsApp + AI assistant
+- [ ] C2: RTL-aware positioning + safe-area padding
+- [ ] D1: PropertyImage component with skeleton + fallback placeholder
+- [ ] D2: Fix seed data / DB image URLs
+- [ ] E1: Verify logo mark-header-gold.png on all dark headers
+- [ ] E2: Remove any old simplified key-in-square icon references
+- [ ] F1: i18n tab title: AR=المفتاح الشهري / EN=Monthly Key
+- [ ] F2: html lang/dir switch + RTL layout stability
+- [ ] G: Commit + push to GitHub
