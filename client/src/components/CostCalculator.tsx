@@ -210,26 +210,29 @@ export default function CostCalculator({
                 </span>
               </div>
 
-              {/* Insurance/Deposit */}
-              <div className="flex justify-between items-center">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="text-muted-foreground flex items-center gap-1 cursor-help">
-                        <Shield className="h-3.5 w-3.5 text-[#C9A96E]" />
-                        {isAr ? labels?.insuranceAr : labels?.insuranceEn} ({result.appliedRates.insuranceRate}%)
-                        <Info className="h-3 w-3 text-muted-foreground/50" />
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[250px] text-xs">
-                      {isAr ? labels?.insuranceTooltipAr : labels?.insuranceTooltipEn}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <span className="font-medium">
-                  {result.insuranceAmount.toLocaleString()} {currency}
-                </span>
-              </div>
+              {/* Insurance/Deposit — hidden when admin enables hideInsuranceFromTenant */}
+              {!result.insuranceHidden && (
+                <div className="flex justify-between items-center">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-muted-foreground flex items-center gap-1 cursor-help">
+                          <Shield className="h-3.5 w-3.5 text-[#C9A96E]" />
+                          {isAr ? labels?.insuranceAr : labels?.insuranceEn}
+                          {result.appliedRates.insuranceMode === "percentage" && ` (${result.appliedRates.insuranceRate}%)`}
+                          <Info className="h-3 w-3 text-muted-foreground/50" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[250px] text-xs">
+                        {isAr ? labels?.insuranceTooltipAr : labels?.insuranceTooltipEn}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <span className="font-medium">
+                    {result.insuranceAmount.toLocaleString()} {currency}
+                  </span>
+                </div>
+              )}
 
               {/* Service Fee */}
               <div className="flex justify-between items-center">
@@ -330,11 +333,15 @@ export default function CostCalculator({
           {isAr ? "العودة لتفاصيل السعر" : "Back to pricing details"}
         </Button>
 
-        {/* Disclaimer */}
+        {/* Disclaimer — adjust text based on whether insurance is visible */}
         <p className="text-[10px] text-muted-foreground/60 text-center leading-relaxed">
-          {isAr
-            ? "* الأسعار تقريبية وقد تختلف عند الحجز الفعلي. التأمين قابل للاسترداد."
-            : "* Prices are approximate and may vary at actual booking. Deposit is refundable."}
+          {result?.insuranceHidden
+            ? (isAr
+              ? "* الأسعار تقريبية وقد تختلف عند الحجز الفعلي."
+              : "* Prices are approximate and may vary at actual booking.")
+            : (isAr
+              ? "* الأسعار تقريبية وقد تختلف عند الحجز الفعلي. التأمين قابل للاسترداد."
+              : "* Prices are approximate and may vary at actual booking. Deposit is refundable.")}
         </p>
       </CardContent>
     </Card>

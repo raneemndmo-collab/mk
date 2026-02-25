@@ -58,11 +58,20 @@ export default function BookingFlow() {
   const serviceFeePercent = parseFloat(setting("fees.serviceFeePercent", "5")) || 5;
   const vatPercent = parseFloat(setting("fees.vatPercent", "15")) || 15;
   const depositPercent = parseFloat(setting("fees.depositPercent", "10")) || 10;
+  const insuranceMode = setting("calculator.insuranceMode", "percentage");
+  const insuranceFixedAmount = parseFloat(setting("calculator.insuranceFixedAmount", "0")) || 0;
+  const hideInsurance = setting("calculator.hideInsuranceFromTenant", "false") === "true";
   const monthlyRent = prop ? Number(prop.monthlyRent) : 0;
   const totalRent = monthlyRent * durationMonths;
-  const securityDeposit = Math.round(totalRent * (depositPercent / 100));
+  // Calculate insurance based on mode
+  const securityDeposit = insuranceMode === "fixed"
+    ? Math.round(insuranceFixedAmount)
+    : Math.round(monthlyRent * (depositPercent / 100));
   const serviceFee = Math.round(monthlyRent * (serviceFeePercent / 100));
-  const vatAmount = Math.round(serviceFee * (vatPercent / 100));
+  // When insurance is hidden, merge it into displayed rent and compute VAT on full subtotal
+  const displayedRent = hideInsurance ? totalRent + securityDeposit : totalRent;
+  const subtotalForVat = totalRent + securityDeposit + serviceFee;
+  const vatAmount = Math.round(subtotalForVat * (vatPercent / 100));
   const totalAmount = totalRent + securityDeposit + serviceFee + vatAmount;
 
   const moveInDateStr = selectedDate ? format(selectedDate, "yyyy-MM-dd") : "";
@@ -345,11 +354,14 @@ export default function BookingFlow() {
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">{t("property.monthlyRent")} x {durationMonths}</span>
-                    <span className="font-medium">{totalRent.toLocaleString()} {t("payment.sar")}</span>
+                    <span className="font-medium">{(hideInsurance ? displayedRent : totalRent).toLocaleString()} {t("payment.sar")}</span>
                   </div>
-                  {securityDeposit > 0 && (
+                  {!hideInsurance && securityDeposit > 0 && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t("property.securityDeposit")} ({depositPercent}%)</span>
+                      <span className="text-muted-foreground">
+                        {t("property.securityDeposit")}
+                        {insuranceMode === "percentage" && ` (${depositPercent}%)`}
+                      </span>
                       <span className="font-medium">{securityDeposit.toLocaleString()} {t("payment.sar")}</span>
                     </div>
                   )}

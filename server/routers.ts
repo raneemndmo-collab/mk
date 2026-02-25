@@ -2395,9 +2395,16 @@ export const appRouter = router({
       } catch {
         allowedMonths = [1, 2];
       }
+      // Insurance mode: "percentage" or "fixed"
+      const insuranceMode = settings["calculator.insuranceMode"] || "percentage";
+      const hideInsurance = settings["calculator.hideInsuranceFromTenant"] === "true";
+
       return {
         allowedMonths: allowedMonths.sort((a, b) => a - b),
         insuranceRate: parseFloat(settings["fees.depositPercent"] || "10"),
+        insuranceFixedAmount: parseFloat(settings["calculator.insuranceFixedAmount"] || "0"),
+        insuranceMode,
+        hideInsuranceFromTenant: hideInsurance,
         serviceFeeRate: parseFloat(settings["fees.serviceFeePercent"] || "5"),
         vatRate: parseFloat(settings["fees.vatPercent"] || "15"),
         currency: settings["payment.currency"] || "SAR",
@@ -2463,15 +2470,27 @@ export const appRouter = router({
         }
 
         // Get rates from settings (single source of truth)
+        const insuranceMode = settings["calculator.insuranceMode"] || "percentage";
+        const hideInsurance = settings["calculator.hideInsuranceFromTenant"] === "true";
         const insuranceRate = parseFloat(settings["fees.depositPercent"] || "10") / 100;
+        const insuranceFixedAmount = parseFloat(settings["calculator.insuranceFixedAmount"] || "0");
         const serviceFeeRate = parseFloat(settings["fees.serviceFeePercent"] || "5") / 100;
         const vatRate = parseFloat(settings["fees.vatPercent"] || "15") / 100;
 
-        // Calculate
-        const rentTotal = Math.round(input.monthlyRent * input.selectedMonths);
-        const insuranceAmount = Math.round(input.monthlyRent * insuranceRate);
-        const serviceFeeAmount = Math.round(rentTotal * serviceFeeRate);
-        const subtotal = rentTotal + insuranceAmount + serviceFeeAmount;
+        // Calculate insurance based on mode
+        const insuranceAmount = insuranceMode === "fixed"
+          ? Math.round(insuranceFixedAmount)
+          : Math.round(input.monthlyRent * insuranceRate);
+
+        // Calculate rent total
+        const baseRentTotal = Math.round(input.monthlyRent * input.selectedMonths);
+
+        // If insurance is hidden from tenant, merge it into the displayed rent
+        const displayedRentTotal = hideInsurance ? baseRentTotal + insuranceAmount : baseRentTotal;
+        const serviceFeeAmount = Math.round(baseRentTotal * serviceFeeRate);
+
+        // Subtotal: always includes rent + insurance + service fee (for correct VAT)
+        const subtotal = baseRentTotal + insuranceAmount + serviceFeeAmount;
         const vatAmount = Math.round(subtotal * vatRate);
         const grandTotal = subtotal + vatAmount;
 
@@ -2479,20 +2498,30 @@ export const appRouter = router({
           // Input echo
           monthlyRent: input.monthlyRent,
           selectedMonths: input.selectedMonths,
-          // Breakdown
-          rentTotal,
-          insuranceAmount,
+          // Breakdown for tenant (insurance may be hidden)
+          rentTotal: displayedRentTotal,
+          insuranceAmount: hideInsurance ? 0 : insuranceAmount,
           serviceFeeAmount,
-          subtotal,
+          subtotal: hideInsurance ? (displayedRentTotal + serviceFeeAmount) : subtotal,
           vatAmount,
           grandTotal,
+          // Flag so frontend knows whether to show insurance line
+          insuranceHidden: hideInsurance,
           // Applied rates (for transparency)
           appliedRates: {
             insuranceRate: parseFloat(settings["fees.depositPercent"] || "10"),
             serviceFeeRate: parseFloat(settings["fees.serviceFeePercent"] || "5"),
             vatRate: parseFloat(settings["fees.vatPercent"] || "15"),
+            insuranceMode,
           },
           currency: settings["payment.currency"] || "SAR",
+          // Admin-only breakdown (full details for backend/admin use)
+          _adminBreakdown: {
+            baseRentTotal,
+            insuranceAmount,
+            insuranceMode,
+            insuranceHidden: hideInsurance,
+          },
         };
       }),
   }),

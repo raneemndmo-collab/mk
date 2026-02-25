@@ -448,7 +448,6 @@ export default function AdminSettings() {
                   <SettingField label={t("settings.vatPercent")} settingKey="fees.vatPercent" type="number" placeholder="15" />
                   <SettingField label={`${t("settings.minRent")} (SAR)`} settingKey="fees.minRent" type="number" placeholder="500" />
                   <SettingField label={`${t("settings.maxRent")} (SAR)`} settingKey="fees.maxRent" type="number" placeholder="100000" />
-                  <SettingField label={lang === 'ar' ? 'نسبة التأمين %' : 'Security Deposit %'} settingKey="fees.depositPercent" type="number" placeholder="10" />
                 </div>
 
                 {/* Rental Duration Limits */}
@@ -473,9 +472,87 @@ export default function AdminSettings() {
                     {lang === "ar" ? "إعدادات حاسبة التكاليف" : "Cost Calculator Settings"}
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    {lang === "ar" ? "تحكم في المدد المسموحة والتسميات التي تظهر في حاسبة التكاليف للعملاء" : "Control allowed durations and labels shown in the customer cost calculator"}
+                    {lang === "ar" ? "تحكم في المدد المسموحة والتسميات وطريقة احتساب التأمين" : "Control allowed durations, labels, and insurance calculation method"}
                   </p>
                   <div className="space-y-4">
+                    {/* Insurance Configuration — Admin-only controls */}
+                    <div className="p-4 rounded-lg border-2 border-amber-500/30 bg-amber-500/5 space-y-4">
+                      <h4 className="text-sm font-bold flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                        <Shield className="h-4 w-4" />
+                        {lang === "ar" ? "⚙️ إعدادات التأمين (مرئي للأدمن فقط)" : "⚙️ Insurance Settings (Admin-only)"}
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        {lang === "ar"
+                          ? "عند تفعيل إخفاء التأمين، سيتم دمج مبلغ التأمين في سعر الإيجار الظاهر للمستأجر. الإجمالي يبقى نفسه."
+                          : "When hidden, insurance amount is merged into the displayed rent total. Grand total stays the same."}
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Insurance Mode: percentage or fixed */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">
+                            {lang === "ar" ? "طريقة احتساب التأمين" : "Insurance Calculation Mode"}
+                          </Label>
+                          <select
+                            value={settings["calculator.insuranceMode"] || "percentage"}
+                            onChange={(e) => updateSetting("calculator.insuranceMode", e.target.value)}
+                            className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          >
+                            <option value="percentage">{lang === "ar" ? "نسبة مئوية (%)" : "Percentage (%)"}</option>
+                            <option value="fixed">{lang === "ar" ? "مبلغ ثابت (SAR)" : "Fixed Amount (SAR)"}</option>
+                          </select>
+                        </div>
+                        {/* Conditional: show % field or fixed amount field */}
+                        {(settings["calculator.insuranceMode"] || "percentage") === "percentage" ? (
+                          <SettingField
+                            label={lang === "ar" ? "نسبة التأمين %" : "Insurance Rate %"}
+                            settingKey="fees.depositPercent"
+                            type="number"
+                            placeholder="10"
+                          />
+                        ) : (
+                          <SettingField
+                            label={lang === "ar" ? "مبلغ التأمين الثابت (SAR)" : "Fixed Insurance Amount (SAR)"}
+                            settingKey="calculator.insuranceFixedAmount"
+                            type="number"
+                            placeholder="1000"
+                          />
+                        )}
+                      </div>
+                      {/* Hide insurance from tenant toggle */}
+                      <div className="flex items-center justify-between p-3 rounded-md border bg-background">
+                        <div>
+                          <Label className="text-sm font-medium">
+                            {lang === "ar" ? "إخفاء التأمين عن المستأجر" : "Hide Insurance from Tenant"}
+                          </Label>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {lang === "ar"
+                              ? "يدمج التأمين في سعر الإيجار بدون علم المستأجر"
+                              : "Merges insurance into rent price without tenant knowing"}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => updateSetting(
+                            "calculator.hideInsuranceFromTenant",
+                            settings["calculator.hideInsuranceFromTenant"] === "true" ? "false" : "true"
+                          )}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                            settings["calculator.hideInsuranceFromTenant"] === "true"
+                              ? "bg-amber-500"
+                              : "bg-gray-300 dark:bg-gray-600"
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              settings["calculator.hideInsuranceFromTenant"] === "true"
+                                ? (dir === "rtl" ? "-translate-x-6" : "translate-x-6")
+                                : (dir === "rtl" ? "-translate-x-1" : "translate-x-1")
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+
                     <SettingField
                       label={lang === "ar" ? "المدد المسموحة (JSON array بالأشهر)" : "Allowed Months (JSON array)"}
                       settingKey="calculator.allowedMonths"

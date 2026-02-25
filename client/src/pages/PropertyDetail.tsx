@@ -75,6 +75,8 @@ export default function PropertyDetail() {
   const id = Number(params?.id);
   const property = trpc.property.getById.useQuery({ id }, { enabled: !!id });
   const reviews = trpc.property.getReviews.useQuery({ propertyId: id }, { enabled: !!id });
+  // Fetch calculator config to check if insurance should be hidden from tenant
+  const calcConfig = trpc.calculator.getConfig.useQuery(undefined, { staleTime: 5 * 60 * 1000, refetchOnWindowFocus: false });
   const favCheck = trpc.favorite.check.useQuery({ propertyId: id }, { enabled: isAuthenticated && !!id });
   const toggleFav = trpc.favorite.toggle.useMutation({
     onSuccess: () => {
@@ -571,7 +573,8 @@ export default function PropertyDetail() {
 
                     <Separator />
 
-                    {prop.securityDeposit && (
+                    {/* Hide security deposit when admin has enabled insurance hiding */}
+                    {prop.securityDeposit && !calcConfig.data?.hideInsuranceFromTenant && (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">{t("property.securityDeposit")}</span>
                         <span className="font-medium">{Number(prop.securityDeposit).toLocaleString()} {t("payment.sar")}</span>

@@ -207,16 +207,25 @@ export default function PaymentPage() {
 
             <Separator />
 
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{t("property.monthlyRent")} x {b.durationMonths}</span>
-              <span className="font-medium">{(monthlyRent * b.durationMonths).toLocaleString()} {t("payment.sar")}</span>
-            </div>
-            {b.securityDeposit && Number(b.securityDeposit) > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">{t("property.securityDeposit")}</span>
-                <span className="font-medium">{Number(b.securityDeposit).toLocaleString()} {t("payment.sar")}</span>
-              </div>
-            )}
+            {(() => {
+              const hideIns = setting("calculator.hideInsuranceFromTenant", "false") === "true";
+              const rentTotal = monthlyRent * b.durationMonths;
+              const deposit = b.securityDeposit ? Number(b.securityDeposit) : 0;
+              return (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{t("property.monthlyRent")} x {b.durationMonths}</span>
+                    <span className="font-medium">{(hideIns ? rentTotal + deposit : rentTotal).toLocaleString()} {t("payment.sar")}</span>
+                  </div>
+                  {!hideIns && deposit > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">{t("property.securityDeposit")}</span>
+                      <span className="font-medium">{deposit.toLocaleString()} {t("payment.sar")}</span>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
             <Separator />
             <div className="flex justify-between text-lg font-bold">
               <span>{t("common.total")}</span>
