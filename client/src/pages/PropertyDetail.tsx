@@ -160,8 +160,8 @@ export default function PropertyDetail() {
       <div className="min-h-screen flex flex-col bg-background text-foreground">
         <SEOHead title="Property Details" titleAr="تفاصيل العقار" description="View property details, photos, amenities and book monthly rental in Saudi Arabia" path="/property" />
         <Navbar />
-        <div className="container py-8 space-y-6">
-          <Skeleton className="h-[400px] rounded-xl" />
+        <div className="container pt-3 pb-4 sm:py-8 space-y-6 flex-1">
+          <Skeleton className="h-[300px] sm:h-[400px] rounded-lg sm:rounded-xl" />
           <Skeleton className="h-8 w-64" />
           <Skeleton className="h-4 w-96" />
         </div>
@@ -174,8 +174,8 @@ export default function PropertyDetail() {
       <div className="min-h-screen flex flex-col bg-background text-foreground">
         <SEOHead title="Property Details" titleAr="تفاصيل العقار" description="View property details, photos, amenities and book monthly rental in Saudi Arabia" path="/property" />
         <Navbar />
-        <div className="container py-20 text-center">
-          <p className="text-muted-foreground">{lang === "ar" ? "العقار غير موجود" : "Property not found"}</p>
+        <div className="container pt-3 pb-4 sm:py-20 text-center flex-1">
+          <p className="text-muted-foreground mt-16">{lang === "ar" ? "العقار غير موجود" : "Property not found"}</p>
           <Button className="mt-4" onClick={() => setLocation("/search")}>{t("common.back")}</Button>
         </div>
         <Footer />
@@ -205,19 +205,19 @@ export default function PropertyDetail() {
       <SEOHead title="Property Details" titleAr="تفاصيل العقار" description="View property details, photos, amenities and book monthly rental in Saudi Arabia" path="/property" />
       <Navbar />
 
-      <div className="container py-4 sm:py-6">
+      <div className="container pt-3 pb-4 sm:py-6 flex-1">
         {/* Back button */}
-        <Button variant="ghost" size="sm" onClick={() => setLocation("/search")} className="mb-4">
+        <Button variant="ghost" size="sm" onClick={() => setLocation("/search")} className="mb-3 sm:mb-4">
           <BackArrow className="h-4 w-4 me-1.5" />
           {t("common.back")}
         </Button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Main content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* Photo gallery — touch swipe enabled; buttons use data-action to bypass swipe */}
             <div
-              className="relative rounded-xl sm:rounded-xl rounded-lg overflow-hidden aspect-[16/10] sm:aspect-[16/10] cursor-pointer"
+              className="relative rounded-lg sm:rounded-xl overflow-hidden aspect-[16/10] cursor-pointer bg-muted"
               onTouchStart={(e) => {
                 // Skip swipe tracking if touch started on an action button
                 const el = e.target as HTMLElement;
@@ -377,11 +377,11 @@ export default function PropertyDetail() {
             />
 
             {/* Title & Location */}
-            <div>
+            <div className="bg-background">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <Badge variant="secondary" className="mb-2">{t(`type.${prop.propertyType}` as any)}</Badge>
-                  <h1 className="text-2xl font-heading font-bold">{title}</h1>
+                  <h1 className="text-xl sm:text-2xl font-heading font-bold text-foreground">{title}</h1>
                 </div>
                 {reviews.data && reviews.data.avgRating > 0 && (
                   <div className="flex items-center gap-1 shrink-0">
@@ -400,29 +400,29 @@ export default function PropertyDetail() {
             </div>
 
             {/* Quick stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
               {prop.bedrooms != null && (
                 <Card><CardContent className="p-4 flex items-center gap-3">
                   <BedDouble className="h-5 w-5 text-primary" />
-                  <div><div className="text-sm text-muted-foreground">{t("search.bedrooms")}</div><div className="font-semibold">{prop.bedrooms}</div></div>
+                  <div><div className="text-sm text-muted-foreground">{t("search.bedrooms")}</div><div className="font-semibold text-foreground">{prop.bedrooms}</div></div>
                 </CardContent></Card>
               )}
               {prop.bathrooms != null && (
                 <Card><CardContent className="p-4 flex items-center gap-3">
                   <Bath className="h-5 w-5 text-primary" />
-                  <div><div className="text-sm text-muted-foreground">{t("search.bathrooms")}</div><div className="font-semibold">{prop.bathrooms}</div></div>
+                  <div><div className="text-sm text-muted-foreground">{t("search.bathrooms")}</div><div className="font-semibold text-foreground">{prop.bathrooms}</div></div>
                 </CardContent></Card>
               )}
               {prop.sizeSqm != null && (
                 <Card><CardContent className="p-4 flex items-center gap-3">
                   <Maximize2 className="h-5 w-5 text-primary" />
-                  <div><div className="text-sm text-muted-foreground">{t("property.size")}</div><div className="font-semibold">{prop.sizeSqm} {t("property.sqm")}</div></div>
+                  <div><div className="text-sm text-muted-foreground">{t("property.size")}</div><div className="font-semibold text-foreground">{prop.sizeSqm} {t("property.sqm")}</div></div>
                 </CardContent></Card>
               )}
               {prop.floor != null && (
                 <Card><CardContent className="p-4 flex items-center gap-3">
                   <Building className="h-5 w-5 text-primary" />
-                  <div><div className="text-sm text-muted-foreground">{t("property.floor")}</div><div className="font-semibold">{prop.floor}</div></div>
+                  <div><div className="text-sm text-muted-foreground">{t("property.floor")}</div><div className="font-semibold text-foreground">{prop.floor}</div></div>
                 </CardContent></Card>
               )}
             </div>
@@ -527,7 +527,7 @@ export default function PropertyDetail() {
                               </div>
                             )}
                             <div>
-                              <p className="font-medium text-sm">{lang === "ar" ? (r.tenantNameAr || r.tenantName) : r.tenantName}</p>
+                              <p className="font-medium text-sm text-foreground">{lang === "ar" ? (r.tenantNameAr || r.tenantName) : r.tenantName}</p>
                               <p className="text-xs text-muted-foreground">
                                 {new Date(r.createdAt).toLocaleDateString(lang === "ar" ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" })}
                               </p>
@@ -560,14 +560,14 @@ export default function PropertyDetail() {
 
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <div className="sticky top-20 space-y-4">
+            <div className="lg:sticky lg:top-20 space-y-4">
 
               {/* Booking Card — hidden when calculator is open */}
               {!showCalculator && (
                 <Card className="shadow-lg">
                   <CardContent className="p-6 space-y-4">
                     <div>
-                      <div className="text-3xl font-bold text-primary font-heading">
+                      <div className="text-2xl sm:text-3xl font-bold text-primary font-heading">
                         {Number(prop.monthlyRent).toLocaleString()} {t("payment.sar")}
                       </div>
                       <span className="text-muted-foreground text-sm">{t("property.perMonth")}</span>
@@ -579,24 +579,24 @@ export default function PropertyDetail() {
                     {prop.securityDeposit && !calcConfig.data?.hideInsuranceFromTenant && (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">{t("property.securityDeposit")}</span>
-                        <span className="font-medium">{Number(prop.securityDeposit).toLocaleString()} {t("payment.sar")}</span>
+                        <span className="font-medium text-foreground">{Number(prop.securityDeposit).toLocaleString()} {t("payment.sar")}</span>
                       </div>
                     )}
 
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">{lang === "ar" ? "الحد الأدنى للإقامة" : "Min Stay"}</span>
-                      <span className="font-medium">1 {lang === "ar" ? "شهر" : "Month"}</span>
+                      <span className="font-medium text-foreground">1 {lang === "ar" ? "شهر" : "Month"}</span>
                     </div>
 
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">{lang === "ar" ? "الحد الأقصى للإقامة" : "Max Stay"}</span>
-                      <span className="font-medium">2 {lang === "ar" ? "أشهر" : "Months"}</span>
+                      <span className="font-medium text-foreground">2 {lang === "ar" ? "أشهر" : "Months"}</span>
                     </div>
 
                     {prop.furnishedLevel && (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">{t("search.furnished")}</span>
-                        <span className="font-medium">{t(`search.${prop.furnishedLevel}` as any)}</span>
+                        <span className="font-medium text-foreground">{t(`search.${prop.furnishedLevel}` as any)}</span>
                       </div>
                     )}
 
@@ -730,7 +730,7 @@ export default function PropertyDetail() {
                         {((prop as any).manager.name || '').split(' ').filter(Boolean).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase() || 'PM'}
                       </div>
                       <div>
-                        <h4 className="font-semibold font-heading">
+                        <h4 className="font-semibold font-heading text-foreground">
                           {lang === "ar" ? ((prop as any).manager.nameAr || (prop as any).manager.name) : (prop as any).manager.name}
                         </h4>
                         <p className="text-xs text-muted-foreground">
@@ -763,8 +763,8 @@ export default function PropertyDetail() {
         </div>
       </div>
 
-      {/* Bottom spacer for mobile FABs */}
-      <div className="h-20 sm:h-0" />
+      {/* Bottom spacer for mobile FABs (WhatsApp + AI buttons) */}
+      <div className="h-28 sm:h-0" />
       <Footer />
     </div>
   );
