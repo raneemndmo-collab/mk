@@ -97,10 +97,15 @@ export function registerAuthRoutes(app: Express) {
       });
     } catch (error) {
       console.error("[Auth] Login failed:", error);
+      console.error("[Auth] Login error stack:", (error as any)?.stack);
+      console.error("[Auth] Login error cause:", (error as any)?.cause);
       logAuthEvent("LOGIN_ERROR", { ip, error: String(error) });
       res.status(500).json({
         error: "Login failed",
         errorAr: "فشل تسجيل الدخول",
+        debug: String(error),
+        debugStack: (error as any)?.stack?.substring(0, 500),
+        debugCause: String((error as any)?.cause),
       });
     }
   });
