@@ -652,20 +652,21 @@ export default function Home() {
               setLocation(`/search?${params.toString()}`);
             }} />
 
-            {/* CTA Buttons with micro-interactions */}
+            {/* CTA Buttons — mobile: tenant-only; desktop: both */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mt-6">
+              {/* Owner CTA — desktop only */}
               <Button
                 size="lg"
-                className="btn-animate bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-bold text-sm sm:text-base px-6 sm:px-8 h-11 sm:h-12 w-full sm:w-auto"
+                className="btn-animate bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-bold text-sm sm:text-base px-6 sm:px-8 h-11 sm:h-12 hidden sm:inline-flex"
                 onClick={() => setLocation("/list-property")}
               >
                 {lang === "ar" ? "أدرج عقارك" : "List Your Property"}
                 <ArrowIcon className="h-4 w-4 ms-2" />
               </Button>
+              {/* Tenant CTA — always visible, primary on mobile */}
               <Button
                 size="lg"
-                variant="outline"
-                className="btn-animate border-[#3ECFC0]/40 text-[#3ECFC0] hover:bg-[#3ECFC0]/10 hover:text-[#3ECFC0] font-bold text-sm sm:text-base px-6 sm:px-8 h-11 sm:h-12 w-full sm:w-auto"
+                className="btn-animate bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-bold text-sm sm:text-base px-6 sm:px-8 h-11 sm:h-12 w-full sm:w-auto sm:bg-transparent sm:border sm:border-[#3ECFC0]/40 sm:text-[#3ECFC0] sm:hover:bg-[#3ECFC0]/10"
                 onClick={() => setLocation("/search")}
               >
                 {lang === "ar" ? "احجز إقامتك" : "Book Your Stay"}
@@ -801,8 +802,8 @@ export default function Home() {
               <p className="text-muted-foreground">
                 {lang === "ar" ? "لا توجد عقارات متاحة حالياً" : "No properties available yet"}
               </p>
-              <Button className="mt-4 bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 btn-animate" onClick={() => setLocation("/list-property")}>
-                {t("nav.listProperty")}
+              <Button className="mt-4 bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 btn-animate" onClick={() => setLocation("/search")}>
+                {lang === "ar" ? "تصفح العقارات" : "Browse Properties"}
               </Button>
             </Card>
           )}
@@ -935,18 +936,19 @@ export default function Home() {
               : "Get a free rental assessment and discover your property's earning potential"}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+            {/* Owner CTA — desktop only */}
             <Button
               size="lg"
-              className="btn-animate bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-bold text-sm sm:text-base px-6 sm:px-8 h-11 sm:h-12 w-full sm:w-auto animate-glow"
+              className="btn-animate bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-bold text-sm sm:text-base px-6 sm:px-8 h-11 sm:h-12 hidden sm:inline-flex animate-glow"
               onClick={() => setLocation("/list-property")}
             >
               {lang === "ar" ? "أدرج عقارك مجاناً" : "List Your Property Free"}
               <ArrowIcon className="h-4 w-4 ms-2" />
             </Button>
+            {/* Tenant CTA — primary on mobile */}
             <Button
               size="lg"
-              variant="outline"
-              className="btn-animate border-white/30 text-white hover:bg-white/10 font-bold text-sm sm:text-base px-6 sm:px-8 h-11 sm:h-12 w-full sm:w-auto"
+              className="btn-animate bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] border-0 font-bold text-sm sm:text-base px-6 sm:px-8 h-11 sm:h-12 w-full sm:w-auto sm:bg-transparent sm:border sm:border-white/30 sm:text-white sm:hover:bg-white/10"
               onClick={() => setLocation("/search")}
             >
               {lang === "ar" ? "تصفح العقارات" : "Browse Properties"}

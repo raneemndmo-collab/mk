@@ -70,6 +70,7 @@ export default function PropertyDetail() {
   const mapRef = useRef<MapInstance | null>(null);
   const [showCalculator, setShowCalculator] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const touchStartX = useRef<number | null>(null);
 
   const id = Number(params?.id);
   const property = trpc.property.getById.useQuery({ id }, { enabled: !!id });
@@ -210,13 +211,38 @@ export default function PropertyDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Photo gallery */}
-            <div className="relative rounded-xl overflow-hidden aspect-[16/10] cursor-pointer" onClick={() => setLightboxOpen(true)}>
+            {/* Photo gallery — touch swipe enabled */}
+            <div
+              className="relative rounded-xl overflow-hidden aspect-[16/10] cursor-pointer"
+              onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+              onTouchEnd={(e) => {
+                if (touchStartX.current === null) return;
+                const dx = e.changedTouches[0].clientX - touchStartX.current;
+                const threshold = 50;
+                if (Math.abs(dx) > threshold) {
+                  if (dir === "rtl" ? dx > 0 : dx < 0) {
+                    setCurrentPhoto(p => (p + 1) % photos.length);
+                  } else {
+                    setCurrentPhoto(p => (p - 1 + photos.length) % photos.length);
+                  }
+                } else {
+                  setLightboxOpen(true);
+                }
+                touchStartX.current = null;
+              }}
+            >
               <img
                 src={photos[currentPhoto]}
                 alt={title}
                 loading="eager"
                 className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.02]"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (!target.dataset.fallback) {
+                    target.dataset.fallback = "1";
+                    target.src = "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop";
+                  }
+                }}
               />
               {/* Photo count badge */}
               <div className="absolute bottom-3 end-3 bg-black/60 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 z-10">
@@ -392,9 +418,26 @@ export default function PropertyDetail() {
                   initialZoom={15}
                   onMapReady={handleMapReady}
                 />
-                <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-                  <MapPin className="h-4 w-4 text-primary shrink-0" />
-                  <span>{district && `${district}، `}{city}</span>
+                <div className="mt-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4 text-primary shrink-0" />
+                    <span>{district && `${district}، `}{city}</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0 gap-1.5 border-[#3ECFC0]/40 text-[#3ECFC0] hover:bg-[#3ECFC0]/10"
+                    onClick={() => {
+                      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                      const url = isIOS
+                        ? `maps://maps.apple.com/?daddr=${lat},${lng}`
+                        : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+                      window.open(url, "_blank");
+                    }}
+                  >
+                    <MapPin className="h-3.5 w-3.5" />
+                    {lang === "ar" ? "الاتجاهات" : "Directions"}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
