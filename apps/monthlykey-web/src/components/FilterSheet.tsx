@@ -5,7 +5,7 @@ import { useLocale } from "../contexts/LocaleContext";
 /**
  * FilterSheet — Clean search bar + "More options" toggle underneath.
  * Top: single clean search input + search button.
- * Below: toggle that expands all filters (city, type, budget, bedrooms, bathrooms, furnished, area, amenities).
+ * Below: toggle that expands all filters (city, type, budget, bedrooms, bathrooms, area, amenities).
  * Mobile: filters expand as bottom sheet.
  * Desktop: filters expand inline below the bar.
  * Full AR/EN + RTL/LTR support.
@@ -241,31 +241,6 @@ function AllFiltersContent({
         />
       </div>
 
-      {/* Row 4: Furnished */}
-      <div>
-        <label className="block text-sm font-semibold text-mk-navy mb-2">
-          {t("التأثيث", "Furnishing")}
-        </label>
-        <div className="flex gap-2 flex-wrap">
-          {[
-            { value: "", label: t("الكل", "All") },
-            { value: "furnished", label: t("مفروش", "Furnished") },
-            { value: "unfurnished", label: t("غير مفروش", "Unfurnished") },
-          ].map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => update("furnished", opt.value)}
-              className={`px-4 py-2 rounded-lg text-sm border font-medium transition-colors ${
-                values.furnished === opt.value
-                  ? "bg-mk-teal text-white border-mk-teal"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-mk-teal/50"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Row 5: Property Size */}
       <div>
@@ -422,7 +397,7 @@ export function SearchBarWithFilters({
     filters.minBudget || filters.maxBudget ? "budget" : "",
     filters.bedrooms,
     filters.bathrooms,
-    filters.furnished,
+
     filters.minArea || filters.maxArea ? "area" : "",
     ...(filters.amenities || []),
   ].filter(Boolean).length;

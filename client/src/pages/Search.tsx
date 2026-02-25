@@ -27,7 +27,7 @@ export default function Search() {
   const [minPrice, setMinPrice] = useState<number | undefined>();
   const [maxPrice, setMaxPrice] = useState<number | undefined>();
   const [bedrooms, setBedrooms] = useState<number | undefined>();
-  const [furnishedLevel, setFurnishedLevel] = useState("");
+
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(true);
   const [page, setPage] = useState(0);
@@ -61,10 +61,10 @@ export default function Search() {
     minPrice: debouncedMinPrice,
     maxPrice: debouncedMaxPrice,
     bedrooms: debouncedBedrooms,
-    furnishedLevel: furnishedLevel || undefined,
+
     limit: 12,
     offset: page * 12,
-  }), [debouncedSearchText, city, propertyType, debouncedMinPrice, debouncedMaxPrice, debouncedBedrooms, furnishedLevel, page]);
+  }), [debouncedSearchText, city, propertyType, debouncedMinPrice, debouncedMaxPrice, debouncedBedrooms, page]);
 
   const results = trpc.property.search.useQuery(searchInput, { placeholderData: (prev: any) => prev });
 
@@ -80,12 +80,12 @@ export default function Search() {
 
   const clearFilters = () => {
     setSearchText(""); setCity(""); setDistrict(""); setPropertyType(""); setMinPrice(undefined); setMaxPrice(undefined);
-    setBedrooms(undefined); setFurnishedLevel(""); setPage(0);
+    setBedrooms(undefined); setPage(0);
     // Clear URL params
     window.history.replaceState({}, '', '/search');
   };
 
-  const hasFilters = searchText || city || district || propertyType || minPrice || maxPrice || bedrooms || furnishedLevel;
+  const hasFilters = searchText || city || district || propertyType || minPrice || maxPrice || bedrooms;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -266,20 +266,7 @@ export default function Search() {
                   </div>
                 </div>
 
-                {/* Furnished Level */}
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block">{t("search.furnished")}</label>
-                  <Select value={furnishedLevel} onValueChange={(v) => { setFurnishedLevel(v); setPage(0); }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("search.furnished")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unfurnished">{t("search.unfurnished")}</SelectItem>
-                      <SelectItem value="semi_furnished">{t("search.semi_furnished")}</SelectItem>
-                      <SelectItem value="fully_furnished">{t("search.fully_furnished")}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+
               </CardContent>
             </Card>
           </div>

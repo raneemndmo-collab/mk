@@ -13,7 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Search, Building2, Key, Home as HomeIcon, Shield, MapPin,
   ArrowLeft, ArrowRight, Star, Users, CheckCircle, Headphones,
-  TrendingUp, Paintbrush, UserCheck, BarChart3, Quote, Sparkles
+  TrendingUp, Paintbrush, UserCheck, BarChart3, Quote, Sparkles,
+  SlidersHorizontal, ChevronDown, ChevronUp, X, RotateCcw
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
@@ -88,7 +89,7 @@ function StaggerGrid({ children, className = "" }: { children: React.ReactNode; 
   );
 }
 
-/* ─── Hero Search Bar ─── */
+/* ─── Hero Search Bar (Clean: input + button + "More options" toggle) ─── */
 function HeroSearchBar({ lang, cities, onSearch }: {
   lang: string;
   cities: Array<{ id: number; nameAr: string; nameEn: string }>;
@@ -98,9 +99,13 @@ function HeroSearchBar({ lang, cities, onSearch }: {
   const [city, setCity] = useState("");
   const [type, setType] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [bedrooms, setBedrooms] = useState("");
+  const [bathrooms, setBathrooms] = useState("");
+  const [minArea, setMinArea] = useState("");
+  const [maxArea, setMaxArea] = useState("");
+  const [amenities, setAmenities] = useState<string[]>([]);
+  const [expanded, setExpanded] = useState(false);
+  const [mobileSheet, setMobileSheet] = useState(false);
 
   const propertyTypes = [
     { value: "apartment", ar: "شقة", en: "Apartment" },
@@ -112,171 +117,328 @@ function HeroSearchBar({ lang, cities, onSearch }: {
     { value: "hotel_apartment", ar: "شقة فندقية", en: "Hotel Apartment" },
   ];
 
-  // Autocomplete suggestions based on query
-  const suggestions = useMemo(() => {
-    if (!query || query.length < 2) return [];
-    const q = query.toLowerCase();
-    const results: Array<{ label: string; type: "city" | "propertyType"; value: string }> = [];
-    // Match cities
-    cities.forEach(c => {
-      if (c.nameAr.includes(query) || c.nameEn.toLowerCase().includes(q)) {
-        results.push({ label: lang === "ar" ? c.nameAr : c.nameEn, type: "city", value: c.nameEn });
-      }
-    });
-    // Match property types
-    propertyTypes.forEach(pt => {
-      if (pt.ar.includes(query) || pt.en.toLowerCase().includes(q)) {
-        results.push({ label: lang === "ar" ? pt.ar : pt.en, type: "propertyType", value: pt.value });
-      }
-    });
-    return results.slice(0, 6);
-  }, [query, cities, lang]);
+  const amenityOptions = lang === "ar"
+    ? [
+        { value: "parking", label: "موقف سيارات" },
+        { value: "pool", label: "مسبح" },
+        { value: "gym", label: "صالة رياضية" },
+        { value: "elevator", label: "مصعد" },
+        { value: "security", label: "حراسة أمنية" },
+        { value: "garden", label: "حديقة" },
+        { value: "ac", label: "تكييف مركزي" },
+        { value: "kitchen", label: "مطبخ مجهز" },
+      ]
+    : [
+        { value: "parking", label: "Parking" },
+        { value: "pool", label: "Pool" },
+        { value: "gym", label: "Gym" },
+        { value: "elevator", label: "Elevator" },
+        { value: "security", label: "Security" },
+        { value: "garden", label: "Garden" },
+        { value: "ac", label: "Central AC" },
+        { value: "kitchen", label: "Equipped Kitchen" },
+      ];
 
-  // Close suggestions on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  const toggleAmenity = (a: string) => {
+    setAmenities(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]);
+  };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setShowSuggestions(false);
+  const activeCount = [city, type, maxPrice, bedrooms, bathrooms, minArea || maxArea ? "area" : "", ...amenities].filter(Boolean).length;
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
     onSearch(query, city, type, maxPrice);
   };
 
-  const handleSuggestionClick = (s: { label: string; type: "city" | "propertyType"; value: string }) => {
-    if (s.type === "city") {
-      setCity(s.value);
-      setQuery(s.label);
-    } else {
-      setType(s.value);
-      setQuery(s.label);
-    }
-    setShowSuggestions(false);
-    onSearch(s.type === "city" ? "" : query, s.type === "city" ? s.value : city, s.type === "propertyType" ? s.value : type, maxPrice);
+  const handleReset = () => {
+    setCity(""); setType(""); setMaxPrice(""); setBedrooms(""); setBathrooms("");
+    setMinArea(""); setMaxArea(""); setAmenities([]);
   };
 
-  return (
-    <form onSubmit={handleSubmit} className="w-full max-w-3xl mx-auto mt-8 fade-up visible" style={{ animationDelay: '0.4s' }}>
-      <div ref={wrapperRef} className="relative">
-        {/* Main search container */}
-        <div className="flex flex-col sm:flex-row items-stretch gap-2 sm:gap-0 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl sm:rounded-full p-2 sm:p-1.5 shadow-2xl shadow-black/20 transition-all duration-300 hover:bg-white/15 hover:border-white/30">
-          {/* Search input */}
-          <div className="flex items-center flex-1 gap-2 px-3 sm:px-4">
-            <Search className="h-5 w-5 text-[#3ECFC0] shrink-0" />
-            <input
-              ref={inputRef}
-              type="text"
-              value={query}
-              onChange={(e) => { setQuery(e.target.value); setShowSuggestions(true); }}
-              onFocus={() => query.length >= 2 && setShowSuggestions(true)}
-              placeholder={lang === "ar" ? "ابحث بالاسم أو الموقع أو الحي..." : "Search by name, location, or district..."}
-              className="w-full bg-transparent text-white placeholder-white/50 text-sm sm:text-base py-3 sm:py-2.5 outline-none"
-              dir={lang === "ar" ? "rtl" : "ltr"}
-            />
-          </div>
+  // Lock body scroll when mobile sheet is open
+  useEffect(() => {
+    if (mobileSheet) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileSheet]);
 
-          {/* Divider */}
-          <div className="hidden sm:block w-px h-8 self-center bg-white/20" />
-
-          {/* City select */}
-          <div className="flex items-center gap-2 px-3 sm:px-4 sm:min-w-[140px]">
-            <MapPin className="h-4 w-4 text-[#C9A96E] shrink-0" />
-            <select
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              className="w-full bg-transparent text-white text-sm py-2.5 outline-none appearance-none cursor-pointer [&>option]:bg-[#0B1E2D] [&>option]:text-white"
-              dir={lang === "ar" ? "rtl" : "ltr"}
-            >
-              <option value="">{lang === "ar" ? "كل المدن" : "All Cities"}</option>
-              {cities.map(c => (
-                <option key={c.id} value={c.nameEn}>{lang === "ar" ? c.nameAr : c.nameEn}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Divider */}
-          <div className="hidden sm:block w-px h-8 self-center bg-white/20" />
-
-          {/* Type select */}
-          <div className="flex items-center gap-2 px-3 sm:px-4 sm:min-w-[130px]">
-            <Building2 className="h-4 w-4 text-[#C9A96E] shrink-0" />
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="w-full bg-transparent text-white text-sm py-2.5 outline-none appearance-none cursor-pointer [&>option]:bg-[#0B1E2D] [&>option]:text-white"
-              dir={lang === "ar" ? "rtl" : "ltr"}
-            >
-              <option value="">{lang === "ar" ? "كل الأنواع" : "All Types"}</option>
-              {propertyTypes.map(pt => (
-                <option key={pt.value} value={pt.value}>{lang === "ar" ? pt.ar : pt.en}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Budget select */}
-          <div className="flex items-center gap-2 px-3 sm:px-4 sm:min-w-[130px]">
-            <span className="text-[#C9A96E] text-sm font-bold shrink-0">﷼</span>
-            <select
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(e.target.value)}
-              className="w-full bg-transparent text-white text-sm py-2.5 outline-none appearance-none cursor-pointer [&>option]:bg-[#0B1E2D] [&>option]:text-white"
-              dir={lang === "ar" ? "rtl" : "ltr"}
-            >
-              <option value="">{lang === "ar" ? "الميزانية" : "Budget"}</option>
-              <option value="3000">{lang === "ar" ? "حتى 3,000 ر.س" : "Up to 3,000 SAR"}</option>
-              <option value="5000">{lang === "ar" ? "حتى 5,000 ر.س" : "Up to 5,000 SAR"}</option>
-              <option value="8000">{lang === "ar" ? "حتى 8,000 ر.س" : "Up to 8,000 SAR"}</option>
-              <option value="12000">{lang === "ar" ? "حتى 12,000 ر.س" : "Up to 12,000 SAR"}</option>
-              <option value="20000">{lang === "ar" ? "حتى 20,000 ر.س" : "Up to 20,000 SAR"}</option>
-              <option value="50000">{lang === "ar" ? "أكثر من 20,000 ر.س" : "20,000+ SAR"}</option>
-            </select>
-          </div>
-
-          {/* Divider */}
-          <div className="hidden sm:block w-px h-8 self-center bg-white/20" />
-
-          {/* Search button */}
-          <button
-            type="submit"
-            className="flex items-center justify-center gap-2 bg-[#3ECFC0] hover:bg-[#2ab5a6] text-[#0B1E2D] font-bold text-sm px-6 py-3 sm:py-2.5 rounded-xl sm:rounded-full transition-all duration-200 hover:shadow-lg hover:shadow-[#3ECFC0]/25 shrink-0"
+  /* ── Filters content (shared between desktop inline + mobile sheet) ── */
+  const filtersContent = (
+    <div className="space-y-5">
+      {/* City & Type */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-semibold text-[#0B1E2D] mb-2">
+            {lang === "ar" ? "المدينة" : "City"}
+          </label>
+          <select
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#3ECFC0]/30 focus:border-[#3ECFC0] appearance-none"
           >
-            <Search className="h-4 w-4" />
-            <span className="sm:hidden">{lang === "ar" ? "بحث" : "Search"}</span>
-          </button>
+            <option value="">{lang === "ar" ? "الكل" : "All"}</option>
+            {cities.map(c => (
+              <option key={c.id} value={c.nameEn}>{lang === "ar" ? c.nameAr : c.nameEn}</option>
+            ))}
+          </select>
         </div>
+        <div>
+          <label className="block text-sm font-semibold text-[#0B1E2D] mb-2">
+            {lang === "ar" ? "نوع العقار" : "Property Type"}
+          </label>
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#3ECFC0]/30 focus:border-[#3ECFC0] appearance-none"
+          >
+            <option value="">{lang === "ar" ? "الكل" : "All"}</option>
+            {propertyTypes.map(pt => (
+              <option key={pt.value} value={pt.value}>{lang === "ar" ? pt.ar : pt.en}</option>
+            ))}
+          </select>
+        </div>
+      </div>
 
-        {/* Autocomplete suggestions dropdown */}
-        {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute top-full mt-2 w-full bg-[#0B1E2D]/95 backdrop-blur-xl border border-white/15 rounded-2xl overflow-hidden shadow-2xl z-50">
-            {suggestions.map((s: { label: string; type: "city" | "propertyType"; value: string }, i: number) => (
+      {/* Price Range */}
+      <div>
+        <label className="block text-sm font-semibold text-[#0B1E2D] mb-2">
+          {lang === "ar" ? "نطاق السعر (ر.س/شهر)" : "Price Range (SAR/mo)"}
+        </label>
+        <div className="flex gap-2 items-center">
+          <select
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(e.target.value)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#3ECFC0]/30 focus:border-[#3ECFC0] appearance-none"
+          >
+            <option value="">{lang === "ar" ? "الكل" : "All"}</option>
+            <option value="3000">{lang === "ar" ? "حتى 3,000 ر.س" : "Up to 3,000 SAR"}</option>
+            <option value="5000">{lang === "ar" ? "حتى 5,000 ر.س" : "Up to 5,000 SAR"}</option>
+            <option value="8000">{lang === "ar" ? "حتى 8,000 ر.س" : "Up to 8,000 SAR"}</option>
+            <option value="12000">{lang === "ar" ? "حتى 12,000 ر.س" : "Up to 12,000 SAR"}</option>
+            <option value="20000">{lang === "ar" ? "حتى 20,000 ر.س" : "Up to 20,000 SAR"}</option>
+            <option value="50000">{lang === "ar" ? "أكثر من 20,000 ر.س" : "20,000+ SAR"}</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Bedrooms & Bathrooms */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-semibold text-[#0B1E2D] mb-2">
+            {lang === "ar" ? "غرف النوم" : "Bedrooms"}
+          </label>
+          <div className="flex gap-2 flex-wrap">
+            {["", "1", "2", "3", "4"].map((opt) => (
               <button
-                key={i}
+                key={opt}
                 type="button"
-                onClick={() => handleSuggestionClick(s)}
-                className="flex items-center gap-3 w-full px-4 py-3 text-start hover:bg-white/10 transition-colors"
+                onClick={() => setBedrooms(opt)}
+                className={`min-w-[44px] h-10 px-3 rounded-lg text-sm border font-medium transition-colors ${
+                  bedrooms === opt
+                    ? "bg-[#3ECFC0] text-white border-[#3ECFC0]"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-[#3ECFC0]/50"
+                }`}
               >
-                {s.type === "city" ? (
-                  <MapPin className="h-4 w-4 text-[#3ECFC0] shrink-0" />
-                ) : (
-                  <Building2 className="h-4 w-4 text-[#C9A96E] shrink-0" />
-                )}
-                <span className="text-white text-sm">{s.label}</span>
-                <span className="text-white/40 text-xs ms-auto">
-                  {s.type === "city" ? (lang === "ar" ? "مدينة" : "City") : (lang === "ar" ? "نوع" : "Type")}
-                </span>
+                {opt === "" ? (lang === "ar" ? "الكل" : "All") : opt === "4" ? "4+" : opt}
               </button>
             ))}
           </div>
-        )}
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-[#0B1E2D] mb-2">
+            {lang === "ar" ? "دورات المياه" : "Bathrooms"}
+          </label>
+          <div className="flex gap-2 flex-wrap">
+            {["", "1", "2", "3"].map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => setBathrooms(opt)}
+                className={`min-w-[44px] h-10 px-3 rounded-lg text-sm border font-medium transition-colors ${
+                  bathrooms === opt
+                    ? "bg-[#3ECFC0] text-white border-[#3ECFC0]"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-[#3ECFC0]/50"
+                }`}
+              >
+                {opt === "" ? (lang === "ar" ? "الكل" : "All") : opt}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Quick filter tags */}
+      {/* Property Size */}
+      <div>
+        <label className="block text-sm font-semibold text-[#0B1E2D] mb-2">
+          {lang === "ar" ? "المساحة (م²)" : "Size (m²)"}
+        </label>
+        <div className="flex gap-2 items-center">
+          <input
+            type="number"
+            value={minArea}
+            onChange={(e) => setMinArea(e.target.value)}
+            placeholder={lang === "ar" ? "من" : "Min"}
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3ECFC0]/30 focus:border-[#3ECFC0]"
+          />
+          <span className="text-gray-400 text-sm">—</span>
+          <input
+            type="number"
+            value={maxArea}
+            onChange={(e) => setMaxArea(e.target.value)}
+            placeholder={lang === "ar" ? "إلى" : "Max"}
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3ECFC0]/30 focus:border-[#3ECFC0]"
+          />
+        </div>
+      </div>
+
+      {/* Amenities */}
+      <div>
+        <label className="block text-sm font-semibold text-[#0B1E2D] mb-2">
+          {lang === "ar" ? "المرافق" : "Amenities"}
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {amenityOptions.map((a) => (
+            <button
+              key={a.value}
+              type="button"
+              onClick={() => toggleAmenity(a.value)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                amenities.includes(a.value)
+                  ? "bg-[#3ECFC0]/10 text-[#3ECFC0] border-[#3ECFC0]/30"
+                  : "bg-white text-gray-500 border-gray-200 hover:border-[#3ECFC0]/30"
+              }`}
+            >
+              {a.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-3 pt-3 border-t border-gray-100">
+        <button
+          type="button"
+          onClick={handleReset}
+          className="flex items-center justify-center gap-1.5 flex-1 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+          {lang === "ar" ? "إعادة تعيين" : "Reset"}
+        </button>
+        <button
+          type="button"
+          onClick={() => { handleSubmit(); setExpanded(false); setMobileSheet(false); }}
+          className="flex items-center justify-center gap-1.5 flex-1 py-3 rounded-xl bg-[#3ECFC0] text-white text-sm font-medium hover:bg-[#2ab5a6] transition-colors shadow-sm"
+        >
+          <Search className="h-3.5 w-3.5" />
+          {lang === "ar" ? "عرض النتائج" : "Show Results"}
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="w-full max-w-2xl mx-auto mt-8 fade-up visible" style={{ animationDelay: '0.4s' }}>
+      {/* ── Clean Search Bar ── */}
+      <form onSubmit={handleSubmit} className="flex items-center bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl shadow-black/20 transition-all duration-300 hover:bg-white/15 hover:border-white/30 overflow-hidden">
+        <div className="flex items-center flex-1 px-4 gap-3">
+          <Search className="h-5 w-5 text-[#3ECFC0] shrink-0" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={lang === "ar" ? "ابحث بالمدينة، الحي، أو اسم العقار..." : "Search by city, neighborhood, or property..."}
+            className="flex-1 py-3.5 text-sm sm:text-base text-white placeholder-white/50 focus:outline-none bg-transparent"
+            dir={lang === "ar" ? "rtl" : "ltr"}
+          />
+        </div>
+        <button
+          type="submit"
+          className="bg-[#3ECFC0] hover:bg-[#2ab5a6] text-[#0B1E2D] px-6 py-3.5 text-sm font-bold transition-colors shrink-0"
+        >
+          {lang === "ar" ? "بحث" : "Search"}
+        </button>
+      </form>
+
+      {/* ── "More Options" Toggle ── */}
+      <div className="flex justify-center mt-3">
+        {/* Desktop: toggle inline expand */}
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          className={`hidden md:flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+            expanded || activeCount > 0
+              ? "bg-white/20 text-white shadow-sm border border-white/30"
+              : "bg-white/10 text-white/70 border border-white/15 hover:border-white/30 hover:text-white"
+          }`}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          <span>{lang === "ar" ? "خيارات إضافية" : "More Options"}</span>
+          {activeCount > 0 && (
+            <span className="bg-[#3ECFC0] text-[#0B1E2D] text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+              {activeCount}
+            </span>
+          )}
+          {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        </button>
+
+        {/* Mobile: open bottom sheet */}
+        <button
+          type="button"
+          onClick={() => setMobileSheet(true)}
+          className={`md:hidden flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+            activeCount > 0
+              ? "bg-white/20 text-white shadow-sm border border-white/30"
+              : "bg-white/10 text-white/70 border border-white/15 hover:border-white/30 hover:text-white"
+          }`}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          <span>{lang === "ar" ? "خيارات إضافية" : "More Options"}</span>
+          {activeCount > 0 && (
+            <span className="bg-[#3ECFC0] text-[#0B1E2D] text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+              {activeCount}
+            </span>
+          )}
+          <ChevronDown className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {/* ── Desktop: Inline Expanded Filters ── */}
+      {expanded && (
+        <div className="hidden md:block mt-4 bg-white rounded-2xl border border-gray-100 shadow-lg p-6">
+          {filtersContent}
+        </div>
+      )}
+
+      {/* ── Mobile: Bottom Sheet ── */}
+      {mobileSheet && (
+        <div className="md:hidden fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileSheet(false)} />
+          <div
+            className="absolute bottom-0 inset-x-0 bg-white rounded-t-2xl shadow-2xl max-h-[85vh] overflow-y-auto"
+            style={{ paddingBottom: "env(safe-area-inset-bottom, 16px)" }}
+          >
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-gray-300" />
+            </div>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+              <h3 className="font-bold text-[#0B1E2D] text-lg">
+                {lang === "ar" ? "خيارات إضافية" : "More Options"}
+              </h3>
+              <button type="button" onClick={() => setMobileSheet(false)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            <div className="px-5 py-4">
+              {filtersContent}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick city tags */}
       <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
         {["الرياض", "جدة", "المدينة المنورة", "الدمام"].map((cityName, i) => {
           const cityEn = ["Riyadh", "Jeddah", "Madinah", "Dammam"][i];
@@ -293,7 +455,7 @@ function HeroSearchBar({ lang, cities, onSearch }: {
           );
         })}
       </div>
-    </form>
+    </div>
   );
 }
 
