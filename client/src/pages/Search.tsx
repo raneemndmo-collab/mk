@@ -33,6 +33,7 @@ export default function Search() {
   const [page, setPage] = useState(0);
   const debouncedSearchText = useDebounce(searchText, 300);
   const filterPanelRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   // Lock body scroll when mobile filter overlay is open
   useEffect(() => {
@@ -161,21 +162,25 @@ export default function Search() {
         </div>
 
         <div className="flex gap-6">
-          {/* ── Mobile Filter Overlay (portal-style) ── */}
+          {/* ── Mobile Filter Bottom Sheet ── */}
           {showFilters && (
             <div className="fixed inset-0 z-50 md:hidden">
               {/* Backdrop — tap to close */}
               <div
-                className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+                className="absolute inset-0 bg-black/50 backdrop-blur-[2px] animate-in fade-in duration-200"
                 onClick={closeFilters}
               />
-              {/* Panel */}
+              {/* Bottom Sheet Panel — 85% height, rounded top */}
               <div
                 ref={filterPanelRef}
-                className="absolute inset-x-0 top-0 bottom-0 bg-background overflow-y-auto overscroll-contain"
-                style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+                className="absolute inset-x-0 bottom-0 bg-background rounded-t-2xl overflow-y-auto overscroll-contain animate-in slide-in-from-bottom duration-300"
+                style={{ maxHeight: "85vh" }}
               >
-                {/* Mobile header bar */}
+                {/* Drag handle */}
+                <div className="flex justify-center pt-3 pb-1">
+                  <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+                </div>
+                {/* Sheet header bar */}
                 <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b px-4 py-3 flex items-center justify-between">
                   <h2 className="text-lg font-heading font-semibold">{t("search.filters")}</h2>
                   <Button variant="ghost" size="icon" onClick={closeFilters} className="h-9 w-9 -me-2">
@@ -324,7 +329,7 @@ export default function Search() {
                     <X className="h-4 w-4 me-1.5" />
                     {lang === "ar" ? "مسح" : "Clear"}
                   </Button>
-                  <Button className="flex-1 h-11 bg-[#3ECFC0] hover:bg-[#2ab5a6] text-[#0B1E2D] font-semibold" onClick={closeFilters}>
+                  <Button className="flex-1 h-11 bg-[#3ECFC0] hover:bg-[#2ab5a6] text-[#0B1E2D] font-semibold" onClick={() => { closeFilters(); setTimeout(() => { resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100); }}>
                     {lang === "ar" ? "عرض النتائج" : "Show Results"}
                     {results.data ? ` (${results.data.total})` : ""}
                   </Button>
@@ -469,7 +474,7 @@ export default function Search() {
           </div>
 
           {/* Results */}
-          <div className="flex-1">
+          <div className="flex-1" ref={resultsRef}>
             {/* Active filters */}
             {hasFilters && (
               <div className="flex flex-wrap gap-2 mb-4">
