@@ -36,7 +36,7 @@ export default function Footer() {
           <div className="md:col-span-4 flex flex-col items-center md:items-start">
             {/* Logo — light variant on dark footer, locale-aware */}
             <img 
-              src={lang === "ar" ? "/logo-ar-light.svg" : "/logo-horizontal-light.svg"}
+              src={lang === "ar" ? "/logo-ar-light.png" : "/logo-horizontal-light.png"}
               alt={lang === "ar" ? "المفتاح الشهري" : "Monthly Key"} 
               className="h-16 sm:h-20 w-auto object-contain mb-5 drop-shadow-lg"
               style={{ maxWidth: '240px' }} 

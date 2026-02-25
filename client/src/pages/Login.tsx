@@ -57,7 +57,7 @@ export default function Login() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
             <img 
-              src="/logo-mark.svg" 
+              src="/logo-mark.png" 
               alt="Monthly Key - المفتاح الشهري" 
               className="h-32 sm:h-36 w-auto object-contain mx-auto drop-shadow-lg" 
             />

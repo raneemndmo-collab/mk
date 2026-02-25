@@ -73,7 +73,7 @@ export default function DashboardLayout({
         <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
           <div className="flex flex-col items-center gap-6">
             <img 
-              src="/logo-mark.svg" 
+              src="/logo-mark.png" 
               alt="Monthly Key - المفتاح الشهري" 
               className="h-24 w-auto object-contain drop-shadow-lg"
               style={{ maxWidth: '120px' }} 
@@ -189,7 +189,7 @@ function DashboardLayoutContent({
               {!isCollapsed ? (
                 <div className="flex items-center min-w-0">
                   <img 
-                    src="/logo-horizontal.svg" 
+                    src="/logo-horizontal.png" 
                     alt="Monthly Key - المفتاح الشهري" 
                     className="h-8 w-auto object-contain"
                     style={{ maxWidth: '160px' }} 
@@ -198,7 +198,7 @@ function DashboardLayoutContent({
               ) : (
                 <div className="flex items-center justify-center">
                   <img 
-                    src="/logo-mark.svg" 
+                    src="/logo-mark.png" 
                     alt="MK" 
                     className="h-7 w-7 object-contain" 
                   />
