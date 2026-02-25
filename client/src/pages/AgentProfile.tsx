@@ -88,7 +88,7 @@ export default function AgentProfile() {
   const showPhoto = manager.photoUrl && !imgError;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8F9FA]">
+    <div className="min-h-screen flex flex-col bg-[#F8F9FA] dark:bg-background">
       <Navbar />
 
       <div className="container py-6">
@@ -130,7 +130,7 @@ export default function AgentProfile() {
             {/* Info + Actions - always below the banner */}
             <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
               <div className="flex-1">
-                <h1 className="text-2xl font-heading font-bold text-[#0B1E2D]">{name}</h1>
+                <h1 className="text-2xl font-heading font-bold text-[#0B1E2D] dark:text-white">{name}</h1>
                 <p className="text-muted-foreground flex items-center gap-1.5 mt-1">
                   <Briefcase className="h-4 w-4" />
                   {title}
@@ -195,7 +195,7 @@ export default function AgentProfile() {
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">{lang === "ar" ? "الهاتف" : "Phone"}</div>
-                    <a href={`tel:${manager.phone}`} className="text-sm font-medium hover:text-[#3ECFC0] transition-colors" dir="ltr">
+                    <a href={`tel:${manager.phone}`} className="text-sm font-medium text-foreground hover:text-[#3ECFC0] transition-colors" dir="ltr">
                       {manager.phone}
                     </a>
                   </div>
@@ -203,12 +203,12 @@ export default function AgentProfile() {
               )}
               {manager.email && (
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center shrink-0">
                     <Mail className="h-5 w-5 text-blue-500" />
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">{lang === "ar" ? "البريد الإلكتروني" : "Email"}</div>
-                    <a href={`mailto:${manager.email}`} className="text-sm font-medium hover:text-blue-500 transition-colors">
+                    <a href={`mailto:${manager.email}`} className="text-sm font-medium text-foreground hover:text-blue-500 transition-colors">
                       {manager.email}
                     </a>
                   </div>
@@ -216,12 +216,12 @@ export default function AgentProfile() {
               )}
               {manager.whatsapp && (
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-green-50 dark:bg-green-500/10 flex items-center justify-center shrink-0">
                     <MessageSquare className="h-5 w-5 text-green-500" />
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">{lang === "ar" ? "واتساب" : "WhatsApp"}</div>
-                    <a href={`https://wa.me/${manager.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener" className="text-sm font-medium hover:text-green-500 transition-colors" dir="ltr">
+                    <a href={`https://wa.me/${manager.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener" className="text-sm font-medium text-foreground hover:text-green-500 transition-colors" dir="ltr">
                       {manager.whatsapp}
                     </a>
                   </div>
@@ -235,7 +235,7 @@ export default function AgentProfile() {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-6">
             <Building2 className="h-5 w-5 text-[#3ECFC0]" />
-            <h2 className="text-xl font-heading font-bold">
+            <h2 className="text-xl font-heading font-bold text-foreground">
               {lang === "ar" ? "العقارات المُدارة" : "Managed Properties"}
             </h2>
             <Badge variant="secondary" className="ms-auto">
