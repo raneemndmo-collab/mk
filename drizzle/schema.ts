@@ -653,6 +653,7 @@ export const buildings = mysqlTable("buildings", {
   managerId: int("managerId"),
   notes: text("notes"),
   isActive: boolean("isActive").default(true).notNull(),
+  isArchived: boolean("isArchived").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -673,6 +674,7 @@ export const units = mysqlTable("units", {
   monthlyBaseRentSAR: decimal("monthlyBaseRentSAR", { precision: 10, scale: 2 }),
   propertyId: int("propertyId"),
   notes: text("notes"),
+  isArchived: boolean("isArchived").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -798,3 +800,20 @@ export const paymentMethodSettings = mysqlTable("payment_method_settings", {
 });
 export type PaymentMethodSetting = typeof paymentMethodSettings.$inferSelect;
 export type InsertPaymentMethodSetting = typeof paymentMethodSettings.$inferInsert;
+
+// ─── Audit Log ────────────────────────────────────────────────────────
+export const auditLog = mysqlTable("audit_log", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId"),
+  userName: varchar("userName", { length: 255 }),
+  action: mysqlEnum("action", ["CREATE", "UPDATE", "ARCHIVE", "RESTORE", "DELETE", "LINK_BEDS24", "UNLINK_BEDS24"]).notNull(),
+  entityType: mysqlEnum("entityType", ["BUILDING", "UNIT", "BEDS24_MAP", "LEDGER", "EXTENSION", "PAYMENT_METHOD"]).notNull(),
+  entityId: int("entityId").notNull(),
+  entityLabel: varchar("entityLabel", { length: 255 }),
+  changes: json("changes").$type<Record<string, { old: unknown; new: unknown }>>(),
+  metadata: json("metadata").$type<Record<string, unknown>>(),
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type AuditLog = typeof auditLog.$inferSelect;
+export type InsertAuditLog = typeof auditLog.$inferInsert;

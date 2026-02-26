@@ -13,12 +13,18 @@ import { PERMISSIONS } from "./permissions";
 import * as finance from "./finance-registry";
 import * as occupancy from "./occupancy";
 import * as renewal from "./renewal";
+import { logAudit, computeChanges, getAuditLog } from "./audit-log";
+
+/** Helper to get userName from ctx, converting null to undefined */
+function auditUserName(ctx: { user?: { name?: string | null; email?: string | null } | null }): string | undefined {
+  return ctx.user?.name ?? ctx.user?.email ?? undefined;
+}
 
 export const financeRouter = router({
   // ─── Buildings ──────────────────────────────────────────────────────
   buildings: router({
     list: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS)
-      .input(z.object({ isActive: z.boolean().optional(), limit: z.number().optional(), offset: z.number().optional() }).optional())
+      .input(z.object({ isActive: z.boolean().optional(), includeArchived: z.boolean().optional(), limit: z.number().optional(), offset: z.number().optional() }).optional())
       .query(async ({ input }) => {
         return finance.getBuildings(input || {});
       }),
@@ -43,8 +49,13 @@ export const financeRouter = router({
         managerId: z.number().optional(),
         notes: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const id = await finance.createBuilding(input);
+        await logAudit({
+          userId: ctx.user?.id, userName: auditUserName(ctx),
+          action: "CREATE", entityType: "BUILDING", entityId: id,
+          entityLabel: input.buildingName,
+        });
         return { id };
       }),
     update: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
@@ -58,14 +69,55 @@ export const financeRouter = router({
         cityAr: z.string().optional(),
         district: z.string().optional(),
         districtAr: z.string().optional(),
+        latitude: z.string().optional(),
+        longitude: z.string().optional(),
         totalUnits: z.number().optional(),
         managerId: z.number().optional(),
         notes: z.string().optional(),
         isActive: z.boolean().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const { id, ...data } = input;
+        const oldBuilding = await finance.getBuildingById(id);
         await finance.updateBuilding(id, data);
+        if (oldBuilding) {
+          const changes = computeChanges(oldBuilding as any, data as any,
+            ["buildingName","buildingNameAr","address","city","district","latitude","longitude","totalUnits","notes","isActive"]
+          );
+          if (changes) {
+            await logAudit({
+              userId: ctx.user?.id, userName: auditUserName(ctx),
+              action: "UPDATE", entityType: "BUILDING", entityId: id,
+              entityLabel: oldBuilding.buildingName, changes,
+            });
+          }
+        }
+        return { success: true };
+      }),
+    archive: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const building = await finance.getBuildingById(input.id);
+        const result = await finance.archiveBuilding(input.id);
+        if (result.success) {
+          await logAudit({
+            userId: ctx.user?.id, userName: auditUserName(ctx),
+            action: "ARCHIVE", entityType: "BUILDING", entityId: input.id,
+            entityLabel: building?.buildingName,
+          });
+        }
+        return result;
+      }),
+    restore: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await finance.restoreBuilding(input.id);
+        const building = await finance.getBuildingById(input.id);
+        await logAudit({
+          userId: ctx.user?.id, userName: auditUserName(ctx),
+          action: "RESTORE", entityType: "BUILDING", entityId: input.id,
+          entityLabel: building?.buildingName,
+        });
         return { success: true };
       }),
     kpis: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS)
@@ -110,8 +162,19 @@ export const financeRouter = router({
         propertyId: z.number().optional(),
         notes: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        // Validate unique unit number within building
+        const isUnique = await finance.isUnitNumberUnique(input.buildingId, input.unitNumber);
+        if (!isUnique) {
+          throw new TRPCError({ code: "CONFLICT", message: `Unit number "${input.unitNumber}" already exists in this building.` });
+        }
         const id = await finance.createUnit(input);
+        await logAudit({
+          userId: ctx.user?.id, userName: auditUserName(ctx),
+          action: "CREATE", entityType: "UNIT", entityId: id,
+          entityLabel: `Unit ${input.unitNumber}`,
+          metadata: { buildingId: input.buildingId },
+        });
         return { id };
       }),
     update: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
@@ -127,10 +190,64 @@ export const financeRouter = router({
         propertyId: z.number().optional(),
         notes: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const { id, ...data } = input;
+        const oldUnit = await finance.getUnitById(id);
+        // Validate unique unit number if changing
+        if (data.unitNumber && oldUnit) {
+          const isUnique = await finance.isUnitNumberUnique(oldUnit.buildingId, data.unitNumber, id);
+          if (!isUnique) {
+            throw new TRPCError({ code: "CONFLICT", message: `Unit number "${data.unitNumber}" already exists in this building.` });
+          }
+        }
         await finance.updateUnit(id, data);
+        if (oldUnit) {
+          const changes = computeChanges(oldUnit as any, data as any,
+            ["unitNumber","floor","bedrooms","bathrooms","sizeSqm","unitStatus","monthlyBaseRentSAR","notes"]
+          );
+          if (changes) {
+            await logAudit({
+              userId: ctx.user?.id, userName: auditUserName(ctx),
+              action: "UPDATE", entityType: "UNIT", entityId: id,
+              entityLabel: `Unit ${oldUnit.unitNumber}`, changes,
+              metadata: { buildingId: oldUnit.buildingId },
+            });
+          }
+        }
         return { success: true };
+      }),
+    archive: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const unit = await finance.getUnitById(input.id);
+        const result = await finance.archiveUnit(input.id);
+        if (result.success) {
+          await logAudit({
+            userId: ctx.user?.id, userName: auditUserName(ctx),
+            action: "ARCHIVE", entityType: "UNIT", entityId: input.id,
+            entityLabel: `Unit ${unit?.unitNumber}`,
+            metadata: { buildingId: unit?.buildingId },
+          });
+        }
+        return result;
+      }),
+    restore: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await finance.restoreUnit(input.id);
+        const unit = await finance.getUnitById(input.id);
+        await logAudit({
+          userId: ctx.user?.id, userName: auditUserName(ctx),
+          action: "RESTORE", entityType: "UNIT", entityId: input.id,
+          entityLabel: `Unit ${unit?.unitNumber}`,
+          metadata: { buildingId: unit?.buildingId },
+        });
+        return { success: true };
+      }),
+    checkUniqueNumber: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
+      .input(z.object({ buildingId: z.number(), unitNumber: z.string(), excludeUnitId: z.number().optional() }))
+      .query(async ({ input }) => {
+        return { isUnique: await finance.isUnitNumberUnique(input.buildingId, input.unitNumber, input.excludeUnitId) };
       }),
     financeDetails: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS)
       .input(z.object({ unitId: z.number() }))
@@ -337,14 +454,32 @@ export const financeRouter = router({
         beds24ApiKey: z.string().optional(),
         sourceOfTruth: z.enum(["BEDS24", "LOCAL"]).optional(),
       }))
-      .mutation(async ({ input }) => {
-        return finance.upsertBeds24Mapping(input);
+      .mutation(async ({ ctx, input }) => {
+        const result = await finance.upsertBeds24Mapping(input);
+        await logAudit({
+          userId: ctx.user?.id, userName: auditUserName(ctx),
+          action: "LINK_BEDS24", entityType: "BEDS24_MAP", entityId: result.id,
+          entityLabel: `Unit ${input.unitId} → Beds24 ${input.beds24PropertyId || ''}/${input.beds24RoomId || ''}`,
+          metadata: { unitId: input.unitId, connectionType: input.connectionType },
+        });
+        return result;
       }),
     /** Delete a Beds24 mapping */
     delete: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
-        return finance.deleteBeds24Mapping(input.id);
+      .mutation(async ({ ctx, input }) => {
+        const result = await finance.deleteBeds24Mapping(input.id);
+        await logAudit({
+          userId: ctx.user?.id, userName: auditUserName(ctx),
+          action: "UNLINK_BEDS24", entityType: "BEDS24_MAP", entityId: input.id,
+        });
+        return result;
+      }),
+    /** Get mapping by unit ID */
+    byUnit: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS)
+      .input(z.object({ unitId: z.number() }))
+      .query(async ({ input }) => {
+        return finance.getBeds24MapByUnit(input.unitId);
       }),
     /** Get connection stats (API vs iCal counts, sync status) */
     stats: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS)
@@ -361,6 +496,22 @@ export const financeRouter = router({
     syncAllICal: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
       .mutation(async () => {
         return occupancy.syncAllICalUnits();
+      }),
+  }),
+
+  // ─── Audit Log ────────────────────────────────────────────────────
+  auditLog: router({
+    list: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS)
+      .input(z.object({
+        entityType: z.enum(["BUILDING","UNIT","BEDS24_MAP","LEDGER","EXTENSION","PAYMENT_METHOD"]).optional(),
+        entityId: z.number().optional(),
+        userId: z.number().optional(),
+        action: z.enum(["CREATE","UPDATE","ARCHIVE","RESTORE","DELETE","LINK_BEDS24","UNLINK_BEDS24"]).optional(),
+        limit: z.number().optional(),
+        offset: z.number().optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        return getAuditLog(input || {});
       }),
   }),
 

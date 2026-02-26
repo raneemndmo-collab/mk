@@ -44,13 +44,14 @@ export async function createBuilding(data: {
   return result.insertId;
 }
 
-export async function getBuildings(filters?: { isActive?: boolean; limit?: number; offset?: number }) {
+export async function getBuildings(filters?: { isActive?: boolean; includeArchived?: boolean; limit?: number; offset?: number }) {
   const pool = getPool();
   if (!pool) return { items: [], total: 0 };
   const limit = filters?.limit || 50;
   const offset = filters?.offset || 0;
   let where = "1=1";
   const params: any[] = [];
+  if (!filters?.includeArchived) { where += " AND isArchived = false"; }
   if (filters?.isActive !== undefined) { where += " AND isActive = ?"; params.push(filters.isActive); }
   const [rows] = await pool.query<RowDataPacket[]>(`SELECT * FROM buildings WHERE ${where} ORDER BY createdAt DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);
   const [countResult] = await pool.query<RowDataPacket[]>(`SELECT COUNT(*) as total FROM buildings WHERE ${where}`, params);
@@ -67,6 +68,7 @@ export async function getBuildingById(id: number) {
 export async function updateBuilding(id: number, data: Partial<{
   buildingName: string; buildingNameAr: string; address: string; addressAr: string;
   city: string; cityAr: string; district: string; districtAr: string;
+  latitude: string; longitude: string;
   totalUnits: number; managerId: number; notes: string; isActive: boolean;
 }>) {
   const pool = getPool();
@@ -79,6 +81,30 @@ export async function updateBuilding(id: number, data: Partial<{
   if (fields.length === 0) return;
   values.push(id);
   await pool.execute(`UPDATE buildings SET ${fields.join(", ")} WHERE id = ?`, values);
+}
+
+/**
+ * Soft-archive a building. Never hard-delete if linked to units/ledger.
+ */
+export async function archiveBuilding(id: number): Promise<{ success: boolean; reason?: string }> {
+  const pool = getPool();
+  if (!pool) throw new Error("Database not available");
+  // Check if building has active (non-archived) units
+  const [unitRows] = await pool.query<RowDataPacket[]>(
+    "SELECT COUNT(*) as cnt FROM units WHERE buildingId = ? AND isArchived = false", [id]
+  );
+  const activeUnits = (unitRows[0] as any)?.cnt || 0;
+  if (activeUnits > 0) {
+    return { success: false, reason: `Cannot archive: building has ${activeUnits} active unit(s). Archive units first.` };
+  }
+  await pool.execute("UPDATE buildings SET isArchived = true, isActive = false WHERE id = ?", [id]);
+  return { success: true };
+}
+
+export async function restoreBuilding(id: number): Promise<void> {
+  const pool = getPool();
+  if (!pool) throw new Error("Database not available");
+  await pool.execute("UPDATE buildings SET isArchived = false, isActive = true WHERE id = ?", [id]);
 }
 
 // ─── Units ──────────────────────────────────────────────────────────
@@ -99,11 +125,12 @@ export async function createUnit(data: {
   return result.insertId;
 }
 
-export async function getUnitsByBuilding(buildingId: number) {
+export async function getUnitsByBuilding(buildingId: number, includeArchived = false) {
   const pool = getPool();
   if (!pool) return [];
+  const archiveFilter = includeArchived ? "" : " AND isArchived = false";
   const [rows] = await pool.query<RowDataPacket[]>(
-    "SELECT * FROM units WHERE buildingId = ? ORDER BY unitNumber ASC", [buildingId]
+    `SELECT * FROM units WHERE buildingId = ?${archiveFilter} ORDER BY unitNumber ASC`, [buildingId]
   );
   return rows;
 }
@@ -118,7 +145,7 @@ export async function getUnitById(id: number) {
 export async function updateUnit(id: number, data: Partial<{
   unitNumber: string; floor: number; bedrooms: number; bathrooms: number;
   sizeSqm: number; unitStatus: string; monthlyBaseRentSAR: string;
-  propertyId: number; notes: string;
+  propertyId: number; notes: string; buildingId: number;
 }>) {
   const pool = getPool();
   if (!pool) return;
@@ -130,6 +157,48 @@ export async function updateUnit(id: number, data: Partial<{
   if (fields.length === 0) return;
   values.push(id);
   await pool.execute(`UPDATE units SET ${fields.join(", ")} WHERE id = ?`, values);
+}
+
+/**
+ * Soft-archive a unit. Never hard-delete if linked to ledger/Beds24.
+ */
+export async function archiveUnit(id: number): Promise<{ success: boolean; reason?: string }> {
+  const pool = getPool();
+  if (!pool) throw new Error("Database not available");
+  // Check if unit has pending ledger entries
+  const [ledgerRows] = await pool.query<RowDataPacket[]>(
+    "SELECT COUNT(*) as cnt FROM payment_ledger WHERE unitId = ? AND status IN ('DUE','PENDING')", [id]
+  );
+  const pendingLedger = (ledgerRows[0] as any)?.cnt || 0;
+  if (pendingLedger > 0) {
+    return { success: false, reason: `Cannot archive: unit has ${pendingLedger} pending payment(s). Resolve them first.` };
+  }
+  // Check if unit is mapped to Beds24
+  const beds24 = await getBeds24MapByUnit(id);
+  if (beds24) {
+    return { success: false, reason: "Cannot archive: unit is mapped to Beds24. Unlink first." };
+  }
+  await pool.execute("UPDATE units SET isArchived = true, unitStatus = 'BLOCKED' WHERE id = ?", [id]);
+  return { success: true };
+}
+
+export async function restoreUnit(id: number): Promise<void> {
+  const pool = getPool();
+  if (!pool) throw new Error("Database not available");
+  await pool.execute("UPDATE units SET isArchived = false, unitStatus = 'AVAILABLE' WHERE id = ?", [id]);
+}
+
+/**
+ * Check if unitNumber is unique within a building (excluding a specific unit for edits).
+ */
+export async function isUnitNumberUnique(buildingId: number, unitNumber: string, excludeUnitId?: number): Promise<boolean> {
+  const pool = getPool();
+  if (!pool) return true;
+  let query = "SELECT COUNT(*) as cnt FROM units WHERE buildingId = ? AND unitNumber = ? AND isArchived = false";
+  const params: any[] = [buildingId, unitNumber];
+  if (excludeUnitId) { query += " AND id != ?"; params.push(excludeUnitId); }
+  const [rows] = await pool.query<RowDataPacket[]>(query, params);
+  return ((rows[0] as any)?.cnt || 0) === 0;
 }
 
 // ─── Beds24 Map ─────────────────────────────────────────────────────

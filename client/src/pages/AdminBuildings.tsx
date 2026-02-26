@@ -8,19 +8,145 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Building2, ArrowLeft, Loader2, TrendingUp, Users, CreditCard,
   AlertTriangle, Home, ChevronRight, BarChart3, DollarSign, Percent,
-  Wifi, Calendar, Link2
+  Wifi, Calendar, Link2, Plus, Pencil, Archive, RotateCcw, Eye
 } from "lucide-react";
 import { Link, useRoute } from "wouter";
 import { getLoginUrl } from "@/const";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { toast } from "sonner";
+
+// ─── Building Form (Create/Edit) ────────────────────────────────────
+function BuildingForm({ building, onSuccess, onCancel, lang }: {
+  building?: any; onSuccess: () => void; onCancel: () => void; lang: string;
+}) {
+  const isRtl = lang === "ar";
+  const isEdit = !!building;
+  const [form, setForm] = useState({
+    buildingName: building?.buildingName || "",
+    buildingNameAr: building?.buildingNameAr || "",
+    address: building?.address || "",
+    addressAr: building?.addressAr || "",
+    city: building?.city || "",
+    cityAr: building?.cityAr || "",
+    district: building?.district || "",
+    districtAr: building?.districtAr || "",
+    latitude: building?.latitude || "",
+    longitude: building?.longitude || "",
+    notes: building?.notes || "",
+  });
+  const [saving, setSaving] = useState(false);
+  const createMutation = trpc.finance.buildings.create.useMutation();
+  const updateMutation = trpc.finance.buildings.update.useMutation();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.buildingName.trim()) {
+      toast.error(isRtl ? "اسم المبنى مطلوب" : "Building name is required");
+      return;
+    }
+    setSaving(true);
+    try {
+      if (isEdit) {
+        await updateMutation.mutateAsync({ id: building.id, ...form });
+        toast.success(isRtl ? "تم تحديث المبنى" : "Building updated");
+      } else {
+        await createMutation.mutateAsync(form);
+        toast.success(isRtl ? "تم إنشاء المبنى" : "Building created");
+      }
+      onSuccess();
+    } catch (err: any) {
+      toast.error(err.message || "Error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const set = (key: string, val: string) => setForm(prev => ({ ...prev, [key]: val }));
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4" dir={isRtl ? "rtl" : "ltr"}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>{isRtl ? "اسم المبنى (EN)" : "Building Name (EN)"} *</Label>
+          <Input value={form.buildingName} onChange={e => set("buildingName", e.target.value)} required />
+        </div>
+        <div className="space-y-2">
+          <Label>{isRtl ? "اسم المبنى (AR)" : "Building Name (AR)"}</Label>
+          <Input value={form.buildingNameAr} onChange={e => set("buildingNameAr", e.target.value)} dir="rtl" />
+        </div>
+        <div className="space-y-2">
+          <Label>{isRtl ? "المدينة (EN)" : "City (EN)"}</Label>
+          <Input value={form.city} onChange={e => set("city", e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label>{isRtl ? "المدينة (AR)" : "City (AR)"}</Label>
+          <Input value={form.cityAr} onChange={e => set("cityAr", e.target.value)} dir="rtl" />
+        </div>
+        <div className="space-y-2">
+          <Label>{isRtl ? "الحي (EN)" : "District (EN)"}</Label>
+          <Input value={form.district} onChange={e => set("district", e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label>{isRtl ? "الحي (AR)" : "District (AR)"}</Label>
+          <Input value={form.districtAr} onChange={e => set("districtAr", e.target.value)} dir="rtl" />
+        </div>
+        <div className="space-y-2">
+          <Label>{isRtl ? "العنوان (EN)" : "Address (EN)"}</Label>
+          <Input value={form.address} onChange={e => set("address", e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label>{isRtl ? "العنوان (AR)" : "Address (AR)"}</Label>
+          <Input value={form.addressAr} onChange={e => set("addressAr", e.target.value)} dir="rtl" />
+        </div>
+        <div className="space-y-2">
+          <Label>{isRtl ? "خط العرض" : "Latitude"}</Label>
+          <Input value={form.latitude} onChange={e => set("latitude", e.target.value)} placeholder="24.7136" />
+        </div>
+        <div className="space-y-2">
+          <Label>{isRtl ? "خط الطول" : "Longitude"}</Label>
+          <Input value={form.longitude} onChange={e => set("longitude", e.target.value)} placeholder="46.6753" />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label>{isRtl ? "ملاحظات" : "Notes"}</Label>
+        <Textarea value={form.notes} onChange={e => set("notes", e.target.value)} rows={2} />
+      </div>
+      <div className="flex gap-3 justify-end">
+        <Button type="button" variant="outline" onClick={onCancel}>{isRtl ? "إلغاء" : "Cancel"}</Button>
+        <Button type="submit" disabled={saving}>
+          {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+          {isEdit ? (isRtl ? "حفظ التعديلات" : "Save Changes") : (isRtl ? "إنشاء المبنى" : "Create Building")}
+        </Button>
+      </div>
+    </form>
+  );
+}
 
 // ─── Building List View ─────────────────────────────────────────────
 function BuildingList({ lang }: { lang: string }) {
   const isRtl = lang === "ar";
-  const { data, isLoading } = trpc.finance.buildings.list.useQuery({});
+  const [showArchived, setShowArchived] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const utils = trpc.useUtils();
+  const { data, isLoading } = trpc.finance.buildings.list.useQuery({ includeArchived: showArchived });
+
+  const handleCreated = useCallback(() => {
+    setCreateOpen(false);
+    utils.finance.buildings.list.invalidate();
+  }, [utils]);
 
   if (isLoading) return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -28,56 +154,115 @@ function BuildingList({ lang }: { lang: string }) {
     </div>
   );
 
-  if (!data?.items?.length) return (
-    <div className="text-center py-16 text-muted-foreground">
-      <Building2 className="h-12 w-12 mx-auto mb-4 opacity-30" />
-      <p>{lang === "ar" ? "لا توجد مباني مسجلة" : "No buildings registered"}</p>
-    </div>
-  );
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {data.items.map((b: any) => (
-        <Link key={b.id} href={`/admin/buildings/${b.id}`}>
-          <Card className="cursor-pointer hover:shadow-md transition-shadow border-border/50 group">
-            <CardContent className="pt-6">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Building2 className="h-5 w-5 text-primary" />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <Button variant={showArchived ? "secondary" : "outline"} size="sm" onClick={() => setShowArchived(!showArchived)}>
+          <Archive className="h-4 w-4 mr-1" />
+          {isRtl ? "عرض المؤرشفة" : "Show Archived"}
+        </Button>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogTrigger asChild>
+            <Button><Plus className="h-4 w-4 mr-1" />{isRtl ? "إضافة مبنى" : "Add Building"}</Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{isRtl ? "إنشاء مبنى جديد" : "Create New Building"}</DialogTitle>
+              <DialogDescription>{isRtl ? "أدخل بيانات المبنى" : "Enter building details"}</DialogDescription>
+            </DialogHeader>
+            <BuildingForm lang={lang} onSuccess={handleCreated} onCancel={() => setCreateOpen(false)} />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {!data?.items?.length ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <Building2 className="h-12 w-12 mx-auto mb-4 opacity-30" />
+          <p>{isRtl ? "لا توجد مباني مسجلة" : "No buildings registered"}</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {data.items.map((b: any) => (
+            <Link key={b.id} href={`/admin/buildings/${b.id}`}>
+              <Card className={`cursor-pointer hover:shadow-md transition-shadow border-border/50 group ${b.isArchived ? "opacity-60" : ""}`}>
+                <CardContent className="pt-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                        <Building2 className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">{isRtl ? b.buildingNameAr || b.buildingName : b.buildingName}</h3>
+                        <p className="text-xs text-muted-foreground">
+                          {isRtl ? b.cityAr || b.city : b.city}
+                          {b.district ? ` - ${isRtl ? b.districtAr || b.district : b.district}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {b.isArchived && <Badge variant="secondary" className="text-xs">{isRtl ? "مؤرشف" : "Archived"}</Badge>}
+                      <ChevronRight className={`h-4 w-4 text-muted-foreground ${isRtl ? "rotate-180" : ""}`} />
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold">{lang === "ar" ? b.buildingNameAr || b.buildingName : b.buildingName}</h3>
-                    <p className="text-xs text-muted-foreground">{lang === "ar" ? b.cityAr || b.city : b.city}{b.district ? ` - ${lang === "ar" ? b.districtAr || b.district : b.district}` : ""}</p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Home className="h-3.5 w-3.5" />
+                      <span>{b.totalUnits || 0} {isRtl ? "وحدة" : "units"}</span>
+                    </div>
+                    <Badge variant={b.isActive ? "default" : "secondary"} className="text-xs w-fit">
+                      {b.isActive ? (isRtl ? "نشط" : "Active") : (isRtl ? "غير نشط" : "Inactive")}
+                    </Badge>
                   </div>
-                </div>
-                <ChevronRight className={`h-4 w-4 text-muted-foreground ${isRtl ? "rotate-180" : ""}`} />
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <Home className="h-3.5 w-3.5" />
-                  <span>{b.totalUnits || 0} {lang === "ar" ? "وحدة" : "units"}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Badge variant={b.isActive ? "default" : "secondary"} className="text-xs">
-                    {b.isActive ? (lang === "ar" ? "نشط" : "Active") : (lang === "ar" ? "غير نشط" : "Inactive")}
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-      ))}
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-// ─── Building Detail View with KPIs ─────────────────────────────────
+// ─── Building Detail View ───────────────────────────────────────────
 function BuildingDetail({ buildingId, lang }: { buildingId: number; lang: string }) {
   const isRtl = lang === "ar";
+  const [editOpen, setEditOpen] = useState(false);
+  const utils = trpc.useUtils();
   const { data: building, isLoading: loadingBuilding } = trpc.finance.buildings.getById.useQuery({ id: buildingId });
   const { data: kpis, isLoading: loadingKpis } = trpc.finance.buildings.kpis.useQuery({ buildingId });
   const { data: units, isLoading: loadingUnits } = trpc.finance.buildings.unitsWithFinance.useQuery({ buildingId });
+  const archiveMutation = trpc.finance.buildings.archive.useMutation();
+  const restoreMutation = trpc.finance.buildings.restore.useMutation();
+
+  const handleUpdated = useCallback(() => {
+    setEditOpen(false);
+    utils.finance.buildings.getById.invalidate({ id: buildingId });
+    utils.finance.buildings.list.invalidate();
+  }, [utils, buildingId]);
+
+  const handleArchive = async () => {
+    try {
+      const result = await archiveMutation.mutateAsync({ id: buildingId });
+      if (result.success) {
+        toast.success(isRtl ? "تم أرشفة المبنى" : "Building archived");
+      } else {
+        toast.error(result.reason || "Cannot archive");
+      }
+      utils.finance.buildings.getById.invalidate({ id: buildingId });
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleRestore = async () => {
+    try {
+      await restoreMutation.mutateAsync({ id: buildingId });
+      toast.success(isRtl ? "تم استعادة المبنى" : "Building restored");
+      utils.finance.buildings.getById.invalidate({ id: buildingId });
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
 
   if (loadingBuilding || loadingKpis) return (
     <div className="space-y-4">
@@ -88,105 +273,160 @@ function BuildingDetail({ buildingId, lang }: { buildingId: number; lang: string
     </div>
   );
 
-  if (!building) return <div className="text-center py-16 text-muted-foreground">{lang === "ar" ? "المبنى غير موجود" : "Building not found"}</div>;
+  if (!building) return (
+    <div className="text-center py-16 text-muted-foreground">
+      <Building2 className="h-12 w-12 mx-auto mb-4 opacity-30" />
+      <p>{isRtl ? "المبنى غير موجود" : "Building not found"}</p>
+    </div>
+  );
 
   const kpiCards = kpis ? [
-    { icon: Home, label: lang === "ar" ? "إجمالي الوحدات" : "Total Units", value: `${kpis.totalUnits} (${kpis.availableUnits} ${lang === "ar" ? "متاح" : "avail"})`, color: "text-blue-600" },
-    { icon: Users, label: lang === "ar" ? "الوحدات المشغولة" : "Occupied Units", value: kpis.occupiedUnits, color: "text-emerald-600" },
-    { icon: Percent, label: lang === "ar" ? "نسبة الإشغال" : "Occupancy Rate", value: `${kpis.occupancyRate}%${kpis.unknownUnits > 0 ? ` (${kpis.unknownUnits} ${lang === "ar" ? "غير معروف" : "unknown"})` : ""}`, color: "text-primary" },
-    { icon: DollarSign, label: lang === "ar" ? "الإيجار السنوي المحتمل" : "PAR", value: `${kpis.potentialAnnualRent.toLocaleString()} SAR`, color: "text-blue-600" },
-    { icon: DollarSign, label: lang === "ar" ? "المحصل هذا العام" : "Collected YTD", value: `${kpis.collectedYTD.toLocaleString()} SAR`, color: "text-emerald-600" },
-    { icon: DollarSign, label: lang === "ar" ? "المحصل هذا الشهر" : "Collected MTD", value: `${kpis.collectedMTD.toLocaleString()} SAR`, color: "text-emerald-600" },
-    { icon: TrendingUp, label: lang === "ar" ? "الإيجار السنوي الفعلي" : "EAR", value: `${kpis.effectiveAnnualRent.toLocaleString()} SAR`, color: "text-purple-600" },
-    { icon: BarChart3, label: lang === "ar" ? "معدل سنوي" : "Run-Rate", value: `${kpis.annualizedRunRate.toLocaleString()} SAR`, color: "text-blue-600" },
-    { icon: CreditCard, label: lang === "ar" ? "الرصيد المعلق" : "Outstanding", value: `${kpis.outstandingBalance.toLocaleString()} SAR`, color: "text-amber-600" },
-    { icon: AlertTriangle, label: lang === "ar" ? "متأخرات" : "Overdue", value: kpis.overdueCount, color: "text-red-600" },
-    { icon: TrendingUp, label: lang === "ar" ? "العائد لكل وحدة" : "RevPAU", value: `${kpis.revPAU.toLocaleString()} SAR`, color: "text-purple-600" },
+    { icon: Home, label: isRtl ? "إجمالي الوحدات" : "Total Units", value: `${kpis.totalUnits} (${kpis.availableUnits} ${isRtl ? "متاح" : "avail"})`, color: "text-blue-600" },
+    { icon: Percent, label: isRtl ? "نسبة الإشغال" : "Occupancy Rate", value: `${kpis.occupancyRate}%${kpis.unknownUnits > 0 ? ` (${kpis.unknownUnits} ?)` : ""}`, color: "text-primary" },
+    { icon: DollarSign, label: isRtl ? "المحصل هذا الشهر" : "Collected MTD", value: `${kpis.collectedMTD.toLocaleString()} SAR`, color: "text-emerald-600" },
+    { icon: AlertTriangle, label: isRtl ? "الرصيد المعلق" : "Outstanding", value: `${kpis.outstandingBalance.toLocaleString()} SAR`, color: "text-amber-600" },
+    { icon: DollarSign, label: isRtl ? "الإيجار السنوي المحتمل" : "PAR", value: `${kpis.potentialAnnualRent.toLocaleString()} SAR`, color: "text-blue-600" },
+    { icon: TrendingUp, label: isRtl ? "الإيجار السنوي الفعلي" : "EAR", value: `${kpis.effectiveAnnualRent.toLocaleString()} SAR`, color: "text-purple-600" },
+    { icon: BarChart3, label: isRtl ? "معدل سنوي" : "Run-Rate", value: `${kpis.annualizedRunRate.toLocaleString()} SAR`, color: "text-blue-600" },
+    { icon: TrendingUp, label: isRtl ? "العائد لكل وحدة" : "RevPAU", value: `${kpis.revPAU.toLocaleString()} SAR`, color: "text-purple-600" },
   ] : [];
 
   return (
     <div className="space-y-6">
-      {/* Building Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/admin/buildings">
-          <Button variant="outline" size="icon" className="rounded-xl h-10 w-10 border-border/50 hover:bg-primary/10">
-            <ArrowLeft className={`h-4 w-4 ${isRtl ? "rotate-180" : ""}`} />
-          </Button>
-        </Link>
-        <div>
-          <h2 className="text-xl font-heading font-bold">
-            {lang === "ar" ? building.buildingNameAr || building.buildingName : building.buildingName}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {lang === "ar" ? building.cityAr || building.city : building.city}
-            {building.district ? ` - ${lang === "ar" ? building.districtAr || building.district : building.district}` : ""}
-          </p>
+      {/* Header */}
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-4">
+          <Link href="/admin/buildings">
+            <Button variant="outline" size="icon" className="rounded-xl h-10 w-10 border-border/50 hover:bg-primary/10">
+              <ArrowLeft className={`h-4 w-4 ${isRtl ? "rotate-180" : ""}`} />
+            </Button>
+          </Link>
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <h2 className="text-xl font-heading font-bold">{isRtl ? building.buildingNameAr || building.buildingName : building.buildingName}</h2>
+              {building.isArchived && <Badge variant="secondary">{isRtl ? "مؤرشف" : "Archived"}</Badge>}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {isRtl ? building.cityAr || building.city : building.city}
+              {building.district ? ` - ${isRtl ? building.districtAr || building.district : building.district}` : ""}
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Dialog open={editOpen} onOpenChange={setEditOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm"><Pencil className="h-4 w-4 mr-1" />{isRtl ? "تعديل" : "Edit"}</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{isRtl ? "تعديل المبنى" : "Edit Building"}</DialogTitle>
+                <DialogDescription>{isRtl ? "عدّل بيانات المبنى" : "Update building details"}</DialogDescription>
+              </DialogHeader>
+              <BuildingForm building={building} lang={lang} onSuccess={handleUpdated} onCancel={() => setEditOpen(false)} />
+            </DialogContent>
+          </Dialog>
+          {building.isArchived ? (
+            <Button variant="outline" size="sm" onClick={handleRestore}>
+              <RotateCcw className="h-4 w-4 mr-1" />{isRtl ? "استعادة" : "Restore"}
+            </Button>
+          ) : (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                  <Archive className="h-4 w-4 mr-1" />{isRtl ? "أرشفة" : "Archive"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{isRtl ? "أرشفة المبنى؟" : "Archive Building?"}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {isRtl
+                      ? "سيتم أرشفة المبنى. يجب أرشفة جميع الوحدات أولاً. يمكن استعادته لاحقاً."
+                      : "The building will be archived. All units must be archived first. It can be restored later."}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{isRtl ? "إلغاء" : "Cancel"}</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleArchive} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    {isRtl ? "أرشفة" : "Archive"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {kpiCards.map((kpi, i) => (
-          <Card key={i} className="border-border/50">
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-center gap-2 mb-1">
-                <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
-                <span className="text-xs text-muted-foreground">{kpi.label}</span>
-              </div>
-              <p className="text-lg font-bold">{kpi.value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {kpiCards.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {kpiCards.map((kpi, i) => (
+            <Card key={i} className="border-border/50">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
+                  <span className="text-xs text-muted-foreground">{kpi.label}</span>
+                </div>
+                <p className="text-lg font-bold">{kpi.value}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Units Table */}
       <Card className="border-border/50">
-        <CardHeader>
-          <CardTitle className="text-lg">{lang === "ar" ? "الوحدات" : "Units"}</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle className="text-lg">{isRtl ? "الوحدات" : "Units"} ({units?.length || 0})</CardTitle>
+          <Link href={`/admin/units/new?buildingId=${buildingId}`}>
+            <Button size="sm"><Plus className="h-4 w-4 mr-1" />{isRtl ? "إضافة وحدة" : "Add Unit"}</Button>
+          </Link>
         </CardHeader>
         <CardContent className="p-0">
           {loadingUnits ? (
             <div className="p-6 space-y-3">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
           ) : !units?.length ? (
-            <div className="p-12 text-center text-muted-foreground">{lang === "ar" ? "لا توجد وحدات" : "No units"}</div>
+            <div className="p-12 text-center text-muted-foreground">
+              <Home className="h-8 w-8 mx-auto mb-2 opacity-30" />
+              <p>{isRtl ? "لا توجد وحدات" : "No units yet"}</p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-3 text-start font-medium">{lang === "ar" ? "الوحدة" : "Unit"}</th>
-                    <th className="px-4 py-3 text-start font-medium">{lang === "ar" ? "الطابق" : "Floor"}</th>
-                    <th className="px-4 py-3 text-center font-medium">{lang === "ar" ? "الحالة" : "Status"}</th>
-                    <th className="px-4 py-3 text-start font-medium">{lang === "ar" ? "المستأجر" : "Tenant"}</th>
-                    <th className="px-4 py-3 text-end font-medium">{lang === "ar" ? "الإيجار" : "Rent"}</th>
-                    <th className="px-4 py-3 text-end font-medium">{lang === "ar" ? "محصل MTD" : "Collected MTD"}</th>
-                    <th className="px-4 py-3 text-center font-medium">{lang === "ar" ? "متأخر" : "Overdue"}</th>
-                    <th className="px-4 py-3 text-center font-medium">{lang === "ar" ? "Beds24" : "Beds24"}</th>
-                    <th className="px-4 py-3 text-center font-medium">{lang === "ar" ? "تفاصيل" : "Details"}</th>
+                    <th className="px-4 py-3 text-start font-medium">{isRtl ? "الوحدة" : "Unit"}</th>
+                    <th className="px-4 py-3 text-start font-medium">{isRtl ? "الطابق" : "Floor"}</th>
+                    <th className="px-4 py-3 text-center font-medium">{isRtl ? "الحالة" : "Status"}</th>
+                    <th className="px-4 py-3 text-end font-medium">{isRtl ? "الإيجار" : "Rent"}</th>
+                    <th className="px-4 py-3 text-end font-medium">{isRtl ? "محصل MTD" : "Collected MTD"}</th>
+                    <th className="px-4 py-3 text-center font-medium">{isRtl ? "متأخر" : "Overdue"}</th>
+                    <th className="px-4 py-3 text-center font-medium">Beds24</th>
+                    <th className="px-4 py-3 text-center font-medium">{isRtl ? "تفاصيل" : "Details"}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {units.map((u: any) => (
-                    <tr key={u.id} className="border-b hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 font-mono font-medium">{u.unitNumber}</td>
+                    <tr key={u.id} className={`border-b hover:bg-muted/30 transition-colors ${u.isArchived ? "opacity-50" : ""}`}>
+                      <td className="px-4 py-3 font-mono font-medium">
+                        {u.unitNumber}
+                        {u.isArchived && <Badge variant="secondary" className="text-xs ml-2">{isRtl ? "مؤرشف" : "Archived"}</Badge>}
+                      </td>
                       <td className="px-4 py-3 text-muted-foreground">{u.floor || "—"}</td>
                       <td className="px-4 py-3 text-center">
                         <Badge variant={u.unitStatus === "AVAILABLE" ? "secondary" : u.unitStatus === "BLOCKED" ? "outline" : "destructive"} className="text-xs">
-                          {u.unitStatus === "AVAILABLE" ? (lang === "ar" ? "متاح" : "Available")
-                            : u.unitStatus === "BLOCKED" ? (lang === "ar" ? "محجوب" : "Blocked")
-                            : u.unitStatus === "MAINTENANCE" ? (lang === "ar" ? "صيانة" : "Maintenance")
+                          {u.unitStatus === "AVAILABLE" ? (isRtl ? "متاح" : "Available")
+                            : u.unitStatus === "BLOCKED" ? (isRtl ? "محجوب" : "Blocked")
+                            : u.unitStatus === "MAINTENANCE" ? (isRtl ? "صيانة" : "Maintenance")
                             : u.unitStatus}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3">{u.lastGuestName || "—"}</td>
                       <td className="px-4 py-3 text-end font-mono">{u.monthlyBaseRentSAR ? `${parseFloat(u.monthlyBaseRentSAR).toLocaleString()}` : "—"}</td>
                       <td className="px-4 py-3 text-end font-mono">{parseFloat(u.collectedMTD || "0").toLocaleString()}</td>
                       <td className="px-4 py-3 text-center">
                         {u.overdueCount > 0 ? (
                           <Badge variant="destructive" className="text-xs">{u.overdueCount}</Badge>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
+                        ) : "—"}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {u.beds24ConnectionType ? (
@@ -195,13 +435,13 @@ function BuildingDetail({ buildingId, lang }: { buildingId: number; lang: string
                             {u.beds24ConnectionType}
                           </Badge>
                         ) : (
-                          <span className="text-muted-foreground text-xs">{lang === "ar" ? "محلي" : "Local"}</span>
+                          <span className="text-muted-foreground text-xs">{isRtl ? "محلي" : "Local"}</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <Link href={`/admin/units/${u.id}`}>
                           <Button variant="ghost" size="sm" className="h-7 text-xs gap-1">
-                            <ChevronRight className={`h-3 w-3 ${isRtl ? "rotate-180" : ""}`} />
+                            <Eye className="h-3.5 w-3.5" />
                           </Button>
                         </Link>
                       </td>
@@ -231,8 +471,8 @@ export default function AdminBuildings() {
       <div className="min-h-screen flex flex-col">
         <Navbar />
         <div className="container py-20 text-center">
-          <p className="text-muted-foreground mb-4">{lang === "ar" ? "يجب تسجيل الدخول كمسؤول" : "Admin access required"}</p>
-          <a href={getLoginUrl()}><Button>{lang === "ar" ? "تسجيل الدخول" : "Login"}</Button></a>
+          <p className="text-muted-foreground mb-4">{isRtl ? "يجب تسجيل الدخول كمسؤول" : "Admin access required"}</p>
+          <a href={getLoginUrl()}><Button>{isRtl ? "تسجيل الدخول" : "Login"}</Button></a>
         </div>
       </div>
     );
@@ -256,7 +496,7 @@ export default function AdminBuildings() {
                   <div className="p-2 rounded-xl bg-primary/10">
                     <Building2 className="h-6 w-6 text-primary" />
                   </div>
-                  {lang === "ar" ? "نظرة عامة على المباني" : "Building Overview"}
+                  {isRtl ? "إدارة المباني" : "Buildings Management"}
                 </h1>
               </div>
             </div>

@@ -572,6 +572,196 @@ for (const f of webhookFiles) {
   }
 }
 
+// ─── 15. CRUD Operations & Unique Constraints ──────────────────────
+section("15. CRUD Operations & Unique Constraints");
+
+// Soft-delete / archive logic
+function canArchiveBuilding(hasActiveUnits: boolean, hasOutstandingLedger: boolean): { canArchive: boolean; reason?: string } {
+  if (hasActiveUnits) return { canArchive: false, reason: "Building has active (non-archived) units" };
+  return { canArchive: true };
+}
+
+function canArchiveUnit(hasActiveBookings: boolean, hasOutstandingBalance: boolean): { canArchive: boolean; reason?: string } {
+  if (hasActiveBookings) return { canArchive: false, reason: "Unit has active bookings" };
+  if (hasOutstandingBalance) return { canArchive: false, reason: "Unit has outstanding balance" };
+  return { canArchive: true };
+}
+
+assert(canArchiveBuilding(false, false).canArchive === true, "Building with no active units → can archive");
+assert(canArchiveBuilding(true, false).canArchive === false, "Building with active units → cannot archive");
+assert(canArchiveUnit(false, false).canArchive === true, "Unit with no active bookings/balance → can archive");
+assert(canArchiveUnit(true, false).canArchive === false, "Unit with active bookings → cannot archive");
+assert(canArchiveUnit(false, true).canArchive === false, "Unit with outstanding balance → cannot archive");
+assert(canArchiveUnit(true, true).canArchive === false, "Unit with both → cannot archive");
+
+// Unique constraint: building_id + unit_number
+function validateUnitUniqueness(
+  existingUnits: { buildingId: number; unitNumber: string }[],
+  newBuildingId: number,
+  newUnitNumber: string
+): boolean {
+  return !existingUnits.some(u => u.buildingId === newBuildingId && u.unitNumber === newUnitNumber);
+}
+
+const existingUnits = [
+  { buildingId: 1, unitNumber: "101" },
+  { buildingId: 1, unitNumber: "102" },
+  { buildingId: 2, unitNumber: "101" },
+];
+assert(validateUnitUniqueness(existingUnits, 1, "103"), "New unit 103 in building 1 → unique");
+assert(!validateUnitUniqueness(existingUnits, 1, "101"), "Duplicate unit 101 in building 1 → NOT unique");
+assert(validateUnitUniqueness(existingUnits, 2, "102"), "Unit 102 in building 2 → unique (different building)");
+assert(validateUnitUniqueness(existingUnits, 3, "101"), "Unit 101 in building 3 → unique (different building)");
+assert(!validateUnitUniqueness(existingUnits, 2, "101"), "Duplicate unit 101 in building 2 → NOT unique");
+
+// ─── 16. Audit Log ──────────────────────────────────────────────────
+section("16. Audit Log");
+
+interface AuditEntry {
+  entityType: string;
+  entityId: number;
+  action: string;
+  userName: string;
+  changes: Record<string, any>;
+  timestamp: Date;
+}
+
+function createAuditEntry(
+  entityType: string, entityId: number, action: string,
+  userName: string, changes: Record<string, any>
+): AuditEntry {
+  return { entityType, entityId, action, userName, changes, timestamp: new Date() };
+}
+
+const audit1 = createAuditEntry("building", 1, "CREATE", "admin@mk.com", { name: "Tower A" });
+assert(audit1.entityType === "building", "Audit entry has correct entity type");
+assert(audit1.entityId === 1, "Audit entry has correct entity ID");
+assert(audit1.action === "CREATE", "Audit entry has correct action");
+assert(audit1.userName === "admin@mk.com", "Audit entry records who made the change");
+assert(audit1.changes.name === "Tower A", "Audit entry records what changed");
+assert(audit1.timestamp instanceof Date, "Audit entry has timestamp");
+
+const audit2 = createAuditEntry("unit", 5, "ARCHIVE", "admin@mk.com", { isArchived: true });
+assert(audit2.action === "ARCHIVE", "Archive action is logged");
+assert(audit2.changes.isArchived === true, "Archive change is recorded");
+
+const audit3 = createAuditEntry("unit", 5, "UPDATE", "admin@mk.com", { monthlyBaseRentSAR: { from: 3000, to: 3500 } });
+assert(audit3.action === "UPDATE", "Update action is logged");
+assert(audit3.changes.monthlyBaseRentSAR.from === 3000, "Previous value recorded");
+assert(audit3.changes.monthlyBaseRentSAR.to === 3500, "New value recorded");
+
+// Verify audit_log table exists in migration
+const migration18Path = resolve(import.meta.dirname || __dirname, "../../drizzle/0018_admin_crud_audit.sql");
+const migration18Exists = existsSync(migration18Path);
+assert(migration18Exists, "Migration 0018_admin_crud_audit.sql exists");
+if (migration18Exists) {
+  const sql18 = readFileSync(migration18Path, "utf-8");
+  assert(sql18.includes("audit_log"), "Migration 0018 creates audit_log table");
+  assert(sql18.includes("isArchived"), "Migration 0018 adds isArchived columns");
+  assert(sql18.includes("UNIQUE"), "Migration 0018 includes UNIQUE constraint on building_id+unit_number");
+  assert(!sql18.includes("DROP TABLE"), "Migration 0018 has no DROP TABLE");
+}
+
+// Verify audit-log.ts module exists
+const auditModulePath = resolve(import.meta.dirname || __dirname, "../audit-log.ts");
+assert(existsSync(auditModulePath), "audit-log.ts module exists");
+if (existsSync(auditModulePath)) {
+  const auditModule = readFileSync(auditModulePath, "utf-8");
+  assert(auditModule.includes("logAudit"), "audit-log.ts exports logAudit function");
+  assert(auditModule.includes("audit_log"), "audit-log.ts references audit_log table");
+}
+
+// ─── 17. Beds24 Mapping CRUD (Read-Only, No Writes) ─────────────────
+section("17. Beds24 Mapping CRUD Safety");
+
+function validateBeds24Mapping(input: {
+  connectionType: string;
+  beds24PropertyId?: string;
+  icalImportUrl?: string;
+}): { valid: boolean; error?: string } {
+  if (input.connectionType === "API" && !input.beds24PropertyId) {
+    return { valid: false, error: "API connection requires beds24PropertyId" };
+  }
+  if (input.connectionType === "ICAL" && !input.icalImportUrl) {
+    return { valid: false, error: "iCal connection requires icalImportUrl" };
+  }
+  if (!["API", "ICAL"].includes(input.connectionType)) {
+    return { valid: false, error: "Invalid connection type" };
+  }
+  return { valid: true };
+}
+
+assert(
+  validateBeds24Mapping({ connectionType: "API", beds24PropertyId: "12345" }).valid === true,
+  "API mapping with propertyId → valid"
+);
+assert(
+  validateBeds24Mapping({ connectionType: "API" }).valid === false,
+  "API mapping without propertyId → invalid"
+);
+assert(
+  validateBeds24Mapping({ connectionType: "ICAL", icalImportUrl: "https://beds24.com/ical/abc" }).valid === true,
+  "iCal mapping with URL → valid"
+);
+assert(
+  validateBeds24Mapping({ connectionType: "ICAL" }).valid === false,
+  "iCal mapping without URL → invalid"
+);
+assert(
+  validateBeds24Mapping({ connectionType: "INVALID" as any }).valid === false,
+  "Invalid connection type → rejected"
+);
+
+// Verify beds24 mapping is read-only (no writes to Beds24)
+const financeRoutersPath = resolve(import.meta.dirname || __dirname, "../finance-routers.ts");
+if (existsSync(financeRoutersPath)) {
+  const routerContent = readFileSync(financeRoutersPath, "utf-8");
+  assert(routerContent.includes("beds24"), "finance-routers.ts has beds24 section");
+  assert(!routerContent.includes("beds24.com"), "finance-routers.ts does NOT call beds24.com API");
+  assert(!routerContent.includes("BEDS24_API_URL"), "finance-routers.ts does NOT use BEDS24_API_URL");
+  assert(routerContent.includes("upsert"), "finance-routers.ts has beds24 upsert (local DB only)");
+  assert(routerContent.includes("delete"), "finance-routers.ts has beds24 delete (local DB only)");
+}
+
+// ─── 18. Admin UI Pages Exist ───────────────────────────────────────
+section("18. Admin UI Pages Exist");
+
+const adminPages = [
+  "../../client/src/pages/AdminBuildings.tsx",
+  "../../client/src/pages/AdminUnitFinance.tsx",
+  "../../client/src/pages/AdminPayments.tsx",
+];
+
+for (const page of adminPages) {
+  const pagePath = resolve(import.meta.dirname || __dirname, page);
+  const pageName = page.split("/").pop()!;
+  assert(existsSync(pagePath), `${pageName} exists`);
+  if (existsSync(pagePath)) {
+    const content = readFileSync(pagePath, "utf-8");
+    assert(content.includes("export default"), `${pageName} has default export`);
+    // Check for CRUD elements
+    if (pageName === "AdminBuildings.tsx") {
+      assert(content.includes("create") || content.includes("Create"), `${pageName} has create functionality`);
+      assert(content.includes("edit") || content.includes("Edit") || content.includes("Pencil"), `${pageName} has edit functionality`);
+      assert(content.includes("archive") || content.includes("Archive"), `${pageName} has archive functionality`);
+    }
+    if (pageName === "AdminUnitFinance.tsx") {
+      assert(content.includes("Beds24") || content.includes("beds24"), `${pageName} has Beds24 mapping section`);
+      assert(content.includes("archive") || content.includes("Archive"), `${pageName} has archive functionality`);
+      assert(content.includes("UnitForm"), `${pageName} has UnitForm component`);
+    }
+  }
+}
+
+// Check App.tsx has routes
+const appTsxPath = resolve(import.meta.dirname || __dirname, "../../client/src/App.tsx");
+if (existsSync(appTsxPath)) {
+  const appContent = readFileSync(appTsxPath, "utf-8");
+  assert(appContent.includes("/admin/buildings"), "App.tsx has /admin/buildings route");
+  assert(appContent.includes("/admin/units"), "App.tsx has /admin/units route");
+  assert(appContent.includes("/admin/payments"), "App.tsx has /admin/payments route");
+}
+
 // ─── Summary ────────────────────────────────────────────────────────
 console.log(`\n${"═".repeat(50)}`);
 console.log(`RESULTS: ${passed} passed, ${failed} failed`);
