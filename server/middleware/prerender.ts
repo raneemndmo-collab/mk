@@ -371,35 +371,79 @@ function resolveImageUrl(imageUrl: string): string {
 function generateMetaTags(path: string, data?: any): string {
   const base = BASE_URL;
   
+  // ── Homepage meta tags ──
+  if (path === '/' || path === '') {
+    const title = 'المفتاح الشهري — منصة التأجير الشهري الرائدة في السعودية | Monthly Key';
+    const desc = 'اكتشف أفضل الشقق المفروشة، الاستوديوهات، والفلل للإيجار الشهري في الرياض، جدة، الدمام وجميع المدن السعودية. حجز سهل وعقود رقمية آمنة.';
+    const ogImage = `${base}/api/og/homepage.png`;
+    return `
+    <title>${escapeHtml(title)}</title>
+    <meta name="description" content="${escapeHtml(desc)}" />
+    <link rel="canonical" href="${base}/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta property="og:title" content="${escapeHtml(title)}" />
+    <meta property="og:description" content="${escapeHtml(desc)}" />
+    <meta property="og:url" content="${base}/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="المفتاح الشهري - Monthly Key" />
+    <meta property="og:locale" content="ar_SA" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:image" content="${ogImage}" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="المفتاح الشهري - منصة التأجير الشهري في السعودية" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${escapeHtml(title)}" />
+    <meta name="twitter:description" content="${escapeHtml(desc)}" />
+    <meta name="twitter:image" content="${ogImage}" />
+    <meta name="twitter:image:alt" content="المفتاح الشهري - Monthly Key" />`;
+  }
+
+  // ── Property page meta tags ──
   if (path.startsWith('/property/') && data) {
     const prop = data;
-    const title = `${prop.titleAr} - ${formatPrice(prop.monthlyRent)} ر.س/شهر | المفتاح الشهري`;
-    const desc = `${prop.titleAr} - ${propertyTypeAr[prop.propertyType] || prop.propertyType} للإيجار الشهري في ${prop.cityAr || ''}. ${prop.bedrooms || 0} غرف، ${prop.bathrooms || 0} حمامات، ${prop.sizeSqm || 0} م². السعر: ${formatPrice(prop.monthlyRent)} ر.س/شهر.`;
+    const typeAr = propertyTypeAr[prop.propertyType] || prop.propertyType;
+    const location = [prop.cityAr, prop.districtAr].filter(Boolean).join(' — ');
+    const title = `${prop.titleAr} — ${location || 'السعودية'} | المفتاح الشهري`;
+    
+    const highlights: string[] = [];
+    if (prop.bedrooms) highlights.push(`${prop.bedrooms} غرف`);
+    if (prop.bathrooms) highlights.push(`${prop.bathrooms} حمامات`);
+    if (prop.sizeSqm) highlights.push(`${prop.sizeSqm} م²`);
+    const highlightStr = highlights.length > 0 ? ` • ${highlights.join(' • ')}` : '';
+    const desc = `${typeAr} للإيجار الشهري | من ${formatPrice(prop.monthlyRent)} ر.س/شهر${highlightStr} | ${location || 'السعودية'}`;
+    
     const url = `${base}/property/${prop.id}`;
-    // Get first valid photo or fallback
+    const ogImage = `${base}/api/og/property/${prop.id}.png`;
+    
+    // Also keep the original photo as fallback
     const rawPhotos: string[] = Array.isArray(prop.photos) ? prop.photos : (typeof prop.photos === 'string' ? JSON.parse(prop.photos || '[]') : []);
     const validPhoto = rawPhotos.find((p: string) => p && !p.startsWith('/uploads/')) || '';
-    const image = resolveImageUrl(validPhoto);
-    const fallbackImage = `${base}/logo-mark.png`;
+    const photoUrl = validPhoto ? resolveImageUrl(validPhoto) : '';
     
     return `
     <title>${escapeHtml(title)}</title>
     <meta name="description" content="${escapeHtml(desc)}" />
     <link rel="canonical" href="${url}" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
     <meta property="og:title" content="${escapeHtml(title)}" />
     <meta property="og:description" content="${escapeHtml(desc)}" />
     <meta property="og:url" content="${url}" />
     <meta property="og:type" content="article" />
     <meta property="og:site_name" content="المفتاح الشهري - Monthly Key" />
     <meta property="og:locale" content="ar_SA" />
-    <meta property="og:image" content="${escapeHtml(image || fallbackImage)}" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:image" content="${ogImage}" />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="${escapeHtml(prop.titleAr || 'عقار للإيجار الشهري')}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeHtml(title)}" />
     <meta name="twitter:description" content="${escapeHtml(desc)}" />
-    <meta name="twitter:image" content="${escapeHtml(image || fallbackImage)}" />
+    <meta name="twitter:image" content="${ogImage}" />
+    <meta name="twitter:image:alt" content="${escapeHtml(prop.titleAr || 'عقار للإيجار الشهري')}" />
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -407,7 +451,7 @@ function generateMetaTags(path: string, data?: any): string {
       "name": "${escapeHtml(prop.titleAr)}",
       "description": "${escapeHtml((prop.descriptionAr || '').substring(0, 300))}",
       "url": "${url}",
-      "image": "${escapeHtml(image || fallbackImage)}",
+      "image": "${escapeHtml(photoUrl || ogImage)}",
       "address": {
         "@type": "PostalAddress",
         "addressLocality": "${escapeHtml(prop.cityAr || '')}",
@@ -430,22 +474,30 @@ function generateMetaTags(path: string, data?: any): string {
     </script>`;
   }
 
+  // ── Search page meta tags ──
   if (path === '/search') {
     const title = 'البحث عن عقارات للإيجار الشهري في السعودية | المفتاح الشهري';
     const desc = 'ابحث عن شقق مفروشة، استوديوهات، فلل، ودوبلكس للإيجار الشهري في الرياض، جدة، الدمام وجميع المدن السعودية.';
+    const ogImage = `${base}/api/og/homepage.png`;
     return `
     <title>${title}</title>
     <meta name="description" content="${desc}" />
     <link rel="canonical" href="${base}/search" />
+    <meta name="robots" content="index, follow" />
     <meta property="og:title" content="${title}" />
     <meta property="og:description" content="${desc}" />
     <meta property="og:url" content="${base}/search" />
+    <meta property="og:type" content="website" />
     <meta property="og:site_name" content="المفتاح الشهري - Monthly Key" />
     <meta property="og:locale" content="ar_SA" />
-    <meta property="og:image" content="${base}/logo-mark.png" />
+    <meta property="og:image" content="${ogImage}" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${title}" />
-    <meta name="twitter:description" content="${desc}" />`;
+    <meta name="twitter:description" content="${desc}" />
+    <meta name="twitter:image" content="${ogImage}" />`;
   }
 
   return ''; // Use default meta from index.html
@@ -473,7 +525,7 @@ export function prerenderMiddleware(htmlTemplate: string) {
       // Route matching
       if (path === '/' || path === '') {
         prerenderHTML = await getCachedOrGenerate('home', generateHomeHTML);
-        metaTags = generateMetaTags('/');
+        metaTags = generateMetaTags('/');  // Now generates dynamic OG image tags
       } else if (path === '/search') {
         const cacheKey = `search:${JSON.stringify(query)}`;
         prerenderHTML = await getCachedOrGenerate(cacheKey, () => generateSearchHTML(query));

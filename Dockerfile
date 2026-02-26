@@ -1,4 +1,10 @@
 FROM node:22-slim AS base
+# Install Arabic/Noto fonts for Sharp SVG text rendering (OG images)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    fonts-noto-core fonts-noto-extra \
+    fontconfig ca-certificates \
+    && fc-cache -fv \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 

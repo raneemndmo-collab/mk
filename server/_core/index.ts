@@ -15,6 +15,10 @@ import { seedDefaultSettings } from "../seed-settings";
 import { securityHeaders } from "../middleware/security-headers";
 import { compressionMiddleware } from "../middleware/compression";
 import { sitemapHandler } from "../middleware/sitemap";
+import { generateHomepageOG, generatePropertyOG, invalidateCache as invalidateOGCache } from "../og-image";
+import { getDb } from "../db";
+import { properties } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -82,6 +86,48 @@ async function startServer() {
     } catch (e: any) {
       res.json({ status: "error", error: e.message });
     }
+  });
+
+  // ─── Dynamic OG Image Generation ─────────────────────────────────
+  // Homepage OG image
+  app.get("/api/og/homepage.png", async (_req, res) => {
+    try {
+      const buffer = await generateHomepageOG();
+      res.setHeader("Content-Type", "image/png");
+      res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.send(buffer);
+    } catch (e: any) {
+      console.error("[OG] Homepage image error:", e);
+      res.status(500).json({ error: "Failed to generate OG image" });
+    }
+  });
+
+  // Property OG image
+  app.get("/api/og/property/:id.png", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
+      const db = await getDb();
+      if (!db) { res.status(503).json({ error: "DB unavailable" }); return; }
+      const [prop] = await db.select().from(properties).where(eq(properties.id, id)).limit(1);
+      if (!prop) { res.status(404).json({ error: "Property not found" }); return; }
+      const buffer = await generatePropertyOG(prop as any);
+      res.setHeader("Content-Type", "image/png");
+      res.setHeader("Cache-Control", "public, max-age=1800, s-maxage=43200, stale-while-revalidate=86400");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.send(buffer);
+    } catch (e: any) {
+      console.error("[OG] Property image error:", e);
+      res.status(500).json({ error: "Failed to generate OG image" });
+    }
+  });
+
+  // Admin: invalidate OG cache
+  app.post("/api/og/invalidate", (req, res) => {
+    const key = req.body?.key as string | undefined;
+    invalidateOGCache(key);
+    res.json({ success: true, message: key ? `Cache invalidated for: ${key}` : "All OG cache cleared" });
   });
 
   // Image proxy: serve external CDN images through our domain to avoid CORS/CSP issues
