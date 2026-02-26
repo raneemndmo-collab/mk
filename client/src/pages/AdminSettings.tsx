@@ -436,6 +436,19 @@ export default function AdminSettings() {
                     }}>
                       🎉 {lang === "ar" ? "موسم الرياض" : "Riyadh Season"}
                     </Button>
+                    <Button variant="outline" size="sm" onClick={() => {
+                      updateSetting("hero.titleAr", "عيد فطر مبارك — إقامتك الشهرية بأفضل العروض");
+                      updateSetting("hero.titleEn", "Eid Mubarak — Best Monthly Stay Deals");
+                      updateSetting("hero.subtitleAr", "احتفل بالعيد في أرقى العقارات | الرياض");
+                      updateSetting("hero.subtitleEn", "Celebrate Eid in premium properties | Riyadh");
+                      updateSetting("hero.bgType", "image");
+                      updateSetting("hero.bgImage", "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/aeNdQNHVFRpjJtlZ.jpg");
+                      updateSetting("hero.bgVideo", "");
+                      updateSetting("hero.overlayOpacity", "30");
+                      toast.info(lang === "ar" ? "تم تطبيق قالب عيد الفطر — اضغط حفظ" : "Eid al-Fitr preset applied — click Save");
+                    }}>
+                      ✨ {lang === "ar" ? "عيد الفطر" : "Eid al-Fitr"}
+                    </Button>
                   </div>
                 </div>
 
