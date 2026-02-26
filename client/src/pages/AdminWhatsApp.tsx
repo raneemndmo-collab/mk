@@ -16,7 +16,7 @@ import {
   CheckCheck, Clock, AlertCircle, Search, Filter, ChevronDown, ChevronUp,
   ExternalLink, Copy, Building2
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 // WhatsApp green color
 const WA_GREEN = "#25D366";
@@ -24,7 +24,7 @@ const WA_GREEN = "#25D366";
 export default function AdminWhatsApp() {
   const { t, lang } = useI18n();
   const { user, isAuthenticated, loading } = useAuth();
-  const { toast } = useToast();
+
   const isRtl = lang === "ar";
   const BackIcon = isRtl ? ArrowRight : ArrowLeft;
 
@@ -83,7 +83,7 @@ export default function AdminWhatsApp() {
 
   const handleSendClickToChat = () => {
     if (!recipientPhone || !messageBody) {
-      toast({ title: isRtl ? "خطأ" : "Error", description: isRtl ? "يرجى إدخال رقم الهاتف والرسالة" : "Please enter phone and message", variant: "destructive" });
+      toast.error(isRtl ? "يرجى إدخال رقم الهاتف والرسالة" : "Please enter phone and message");
       return;
     }
     // Format phone for WhatsApp
@@ -105,7 +105,7 @@ export default function AdminWhatsApp() {
       channel: "click_to_chat",
     }, {
       onSuccess: () => {
-        toast({ title: isRtl ? "تم" : "Done", description: isRtl ? "تم فتح واتساب وتسجيل الرسالة" : "WhatsApp opened and message logged" });
+        toast.success(isRtl ? "تم فتح واتساب وتسجيل الرسالة" : "WhatsApp opened and message logged");
         logs.refetch();
         stats.refetch();
       },
@@ -117,7 +117,7 @@ export default function AdminWhatsApp() {
 
   const handleCopyMessage = () => {
     navigator.clipboard.writeText(messageBody);
-    toast({ title: isRtl ? "تم النسخ" : "Copied", description: isRtl ? "تم نسخ الرسالة" : "Message copied to clipboard" });
+    toast.success(isRtl ? "تم نسخ الرسالة" : "Message copied to clipboard");
   };
 
   const statusBadge = (status: string) => {

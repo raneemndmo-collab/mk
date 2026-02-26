@@ -427,7 +427,7 @@ function generateMetaTags(path: string, data?: any): string {
         "unitCode": "MTK"
       }
     }
-    </script>;
+    </script>`;
   }
 
   if (path === '/search') {

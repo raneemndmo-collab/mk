@@ -422,7 +422,7 @@ export default function Register() {
                       onChange={(e) => { update("name", e.target.value); update("nameAr", e.target.value); }}
                       placeholder="Full name"
                       required
-                      className={`h-10 ${lang === "ar" ? "text-right" : "text-left"}`}
+                      className="h-10 text-left"
                     />
                   </div>
                 )}
