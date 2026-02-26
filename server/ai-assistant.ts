@@ -1,5 +1,6 @@
 import { invokeLLM } from "./_core/llm";
 import * as db from "./db";
+import { buildPublicKnowledge, KNOWLEDGE_VERSION } from "./ai/publicKnowledge";
 
 // Build dynamic system prompt from CMS settings + knowledge base + documents
 async function buildSystemPrompt(userRole: string): Promise<string> {
@@ -128,6 +129,9 @@ async function buildSystemPrompt(userRole: string): Promise<string> {
 - **أنواع العقارات**: شقة، فيلا، استوديو، دوبلكس، غرفة مفروشة، كمباوند، شقة فندقية
 - **اللغات**: عربي (افتراضي) وإنجليزي
 ${platformContext}${documentsContext}${knowledgeContext}${roleContext}
+
+## معرفة المنصة المحدّثة (${KNOWLEDGE_VERSION}):
+${buildPublicKnowledge()}
 
 ${aiCustomInstructions ? `## تعليمات إضافية من الإدارة:\n${aiCustomInstructions}\n` : ""}
 

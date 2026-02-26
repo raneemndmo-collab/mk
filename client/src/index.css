@@ -561,3 +561,20 @@
 .ripple-effect:active::after {
   animation: ripple 0.6s linear;
 }
+
+/* ═══ Mobile FAB Stacking Rules ═══ */
+/* AI FAB sits at bottom-right, WhatsApp FAB sits above it */
+/* Ensure no overlap on mobile: AI=bottom:1.5rem, WhatsApp=bottom:5.5rem */
+@media (max-width: 639px) {
+  /* Add bottom padding to main content to prevent FAB overlap with footer */
+  main, .min-h-screen > :last-child {
+    scroll-padding-bottom: 6rem;
+  }
+}
+
+/* ═══ Safe Area Insets for Notched Devices ═══ */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .min-h-screen {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}

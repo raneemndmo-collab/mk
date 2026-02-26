@@ -374,8 +374,64 @@ export default function AdminSettings() {
                     {settings["hero.bgVideo"] && (
                       <video src={settings["hero.bgVideo"]} className="h-32 w-56 object-cover rounded border" muted autoPlay loop />
                     )}
+                    {/* Poster / Fallback Image for Video */}
+                    <div className="mt-4 space-y-2">
+                      <Label>{lang === "ar" ? "صورة البوستر (تظهر أثناء تحميل الفيديو)" : "Poster Image (shown while video loads)"}</Label>
+                      <div className="flex items-center gap-4">
+                        {settings["hero.bgImage"] && (
+                          <img src={settings["hero.bgImage"]} alt="Poster" className="h-20 w-36 object-cover rounded border" />
+                        )}
+                        <Button variant="outline" size="sm" onClick={() => handleFileUpload("hero.bgImage")}>
+                          <Upload className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
+                          {lang === "ar" ? "رفع صورة بوستر" : "Upload Poster"}
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 )}
+
+                {/* Seasonal Theme Presets */}
+                <div className="space-y-3 p-4 rounded-lg border bg-muted/30">
+                  <Label className="flex items-center gap-2">
+                    <Video className="h-4 w-4" />
+                    {lang === "ar" ? "قوالب موسمية جاهزة" : "Seasonal Presets"}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    {lang === "ar" ? "اختر قالب موسمي لتطبيقه على الهيرو بضغطة واحدة" : "Choose a seasonal preset to apply to the hero section"}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" onClick={() => {
+                      updateSetting("hero.titleAr", "رمضان كريم — إيجارك الشهري بأفضل الأسعار");
+                      updateSetting("hero.titleEn", "Ramadan Kareem — Best Monthly Rental Deals");
+                      updateSetting("hero.subtitleAr", "عروض رمضان الحصرية | الرياض");
+                      updateSetting("hero.subtitleEn", "Exclusive Ramadan Offers | Riyadh");
+                      updateSetting("hero.overlayOpacity", "50");
+                      toast.info(lang === "ar" ? "تم تطبيق قالب رمضان — اضغط حفظ" : "Ramadan preset applied — click Save");
+                    }}>
+                      🌙 {lang === "ar" ? "رمضان" : "Ramadan"}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => {
+                      updateSetting("hero.titleAr", "خبير الإيجار الشهري — الآن في السعودية");
+                      updateSetting("hero.titleEn", "Monthly Rental Expert — Now in Saudi Arabia");
+                      updateSetting("hero.subtitleAr", "إدارة إيجارات شهرية متميزة | الرياض");
+                      updateSetting("hero.subtitleEn", "Premium monthly rental management | Riyadh");
+                      updateSetting("hero.overlayOpacity", "40");
+                      toast.info(lang === "ar" ? "تم تطبيق القالب الافتراضي — اضغط حفظ" : "Default preset applied — click Save");
+                    }}>
+                      🏙️ {lang === "ar" ? "الرياض (افتراضي)" : "Riyadh (Default)"}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => {
+                      updateSetting("hero.titleAr", "موسم الرياض — احجز إقامتك الشهرية");
+                      updateSetting("hero.titleEn", "Riyadh Season — Book Your Monthly Stay");
+                      updateSetting("hero.subtitleAr", "عروض حصرية لموسم الرياض | شقق وفلل مفروشة");
+                      updateSetting("hero.subtitleEn", "Exclusive Riyadh Season offers | Furnished apartments & villas");
+                      updateSetting("hero.overlayOpacity", "45");
+                      toast.info(lang === "ar" ? "تم تطبيق قالب موسم الرياض — اضغط حفظ" : "Riyadh Season preset applied — click Save");
+                    }}>
+                      🎉 {lang === "ar" ? "موسم الرياض" : "Riyadh Season"}
+                    </Button>
+                  </div>
+                </div>
 
                 {/* Hero Overlay Opacity */}
                 <div className="space-y-2">

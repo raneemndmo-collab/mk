@@ -30,7 +30,7 @@ import {
   Users, Building2, Calendar, CreditCard, BarChart3,
   Loader2, CheckCircle, XCircle, Shield, TrendingUp, BookOpen,
   Package, AlertTriangle, Star, Bot, Clock, Send, BanknoteIcon,
-  FileText, Eye
+  FileText, Eye, HelpCircle, MessageSquare
 } from "lucide-react";
 import { Link } from "wouter";
 import { getLoginUrl } from "@/const";
@@ -240,6 +240,18 @@ export default function AdminDashboard() {
             <Button variant="outline" className="gap-2 border-emerald-500 text-emerald-500 hover:bg-emerald-500/10">
               <Bot className="h-4 w-4" />
               {lang === "ar" ? "لوحة تحكم الذكاء الاصطناعي" : "AI Control Panel"}
+            </Button>
+          </Link>
+          <Link href="/admin/help-center">
+            <Button variant="outline" className="gap-2 border-blue-500 text-blue-500 hover:bg-blue-500/10">
+              <HelpCircle className="h-4 w-4" />
+              {lang === "ar" ? "مركز المساعدة" : "Help Center"}
+            </Button>
+          </Link>
+          <Link href="/admin/ai-copilot">
+            <Button variant="outline" className="gap-2 border-cyan-500 text-cyan-500 hover:bg-cyan-500/10">
+              <MessageSquare className="h-4 w-4" />
+              {lang === "ar" ? "مساعد الإدارة الذكي" : "Admin AI Copilot"}
             </Button>
           </Link>
         </div>

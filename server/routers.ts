@@ -13,6 +13,7 @@ import { withTransaction } from "./db";
 import { cache, cacheThrough, CACHE_TTL, CACHE_KEYS } from "./cache";
 import { rateLimiter, RATE_LIMITS, getClientIP } from "./rate-limiter";
 import { getAiResponse, seedDefaultKnowledgeBase } from "./ai-assistant";
+import { getKBSections, getAdminKBForCopilot } from "./ai/adminKnowledge";
 import { optimizeImage, optimizeAvatar } from "./image-optimizer";
 import { generateLeaseContractHTML } from "./lease-contract";
 import { createPayPalOrder, capturePayPalOrder, getPayPalSettings } from "./paypal";
@@ -1375,9 +1376,14 @@ export const appRouter = router({
       await seedDefaultKnowledgeBase();
       return { success: true };
     }),
+    // Admin KB sections from docs/kb/ markdown files
+    kbSections: protectedProcedure
+      .input(z.object({ lang: z.string().optional() }))
+      .query(({ input }) => {
+        return getKBSections(input.lang || "ar");
+      }),
   }),
-
-  // Lease Contract
+  // Lease Contractt
   lease: router({
     generate: protectedProcedure
       .input(z.object({ bookingId: z.number() }))

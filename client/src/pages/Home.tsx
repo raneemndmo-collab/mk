@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
+import { SERVICE_AREAS, getComingSoonCities } from "@shared/service_areas";
 import { useScrollAnimation, useParallax } from "@/hooks/useScrollAnimation";
 
 /* ─── Animated Counter ─── */
@@ -825,7 +826,6 @@ export default function Home() {
                 onClick={() => setLocation(`/search?city=${city.nameEn?.toLowerCase()}`)}
                 className="group cursor-pointer card-hover relative rounded-2xl overflow-hidden aspect-[4/3] shadow-md"
               >
-                {/* City Image or Placeholder */}
                 {city.imageUrl ? (
                   <img
                     src={city.imageUrl}
@@ -837,9 +837,7 @@ export default function Home() {
                     <MapPin className="h-16 w-16 text-[#3ECFC0]/30" />
                   </div>
                 )}
-                {/* Dark gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                {/* City info overlay */}
                 <div className="absolute bottom-0 start-0 end-0 p-5">
                   <h3 className="font-heading font-bold text-xl text-white mb-1 group-hover:text-[#3ECFC0] transition-colors duration-300">
                     {lang === "ar" ? city.nameAr : city.nameEn}
@@ -850,9 +848,33 @@ export default function Home() {
                     </p>
                   )}
                 </div>
-                {/* Hover arrow indicator */}
                 <div className="absolute top-4 end-4 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:bg-[#3ECFC0]">
                   <ArrowIcon className="h-5 w-5 text-white" />
+                </div>
+              </div>
+            ))}
+            {/* Coming Soon cities from SERVICE_AREAS */}
+            {getComingSoonCities().map((sc) => (
+              <div
+                key={sc.id}
+                className="relative rounded-2xl overflow-hidden aspect-[4/3] shadow-md opacity-75"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-[#0B1E2D] to-[#1a3a4f] flex items-center justify-center">
+                  <MapPin className="h-16 w-16 text-[#C9A96E]/20" />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                <div className="absolute top-4 start-4">
+                  <span className="inline-flex items-center gap-1 bg-[#C9A96E]/90 text-white text-xs font-bold px-3 py-1 rounded-full">
+                    {lang === "ar" ? "قريباً" : "Coming Soon"}
+                  </span>
+                </div>
+                <div className="absolute bottom-0 start-0 end-0 p-5">
+                  <h3 className="font-heading font-bold text-xl text-white/80 mb-1">
+                    {lang === "ar" ? sc.name_ar : sc.name_en}
+                  </h3>
+                  <p className="text-white/60 text-sm">
+                    {lang === "ar" ? `${sc.districts.length} حي` : `${sc.districts.length} districts`}
+                  </p>
                 </div>
               </div>
             ))}

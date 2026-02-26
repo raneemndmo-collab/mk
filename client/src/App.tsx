@@ -52,6 +52,8 @@ const AdminAIRatings = lazy(() => import("./pages/AdminAIRatings"));
 const AiControlPanel = lazy(() => import("./pages/AiControlPanel"));
 const MapViewPage = lazy(() => import("./pages/MapView"));
 const AdminHardeningKB = lazy(() => import("./pages/AdminHardeningKB"));
+const AdminHelpCenter = lazy(() => import("./pages/AdminHelpCenter"));
+const AdminAICopilot = lazy(() => import("./pages/AdminAICopilot"));
 
 function PageLoader() {
   return (
@@ -102,6 +104,8 @@ function Router() {
         <Route path="/admin/ai-ratings" component={AdminAIRatings} />
         <Route path="/admin/ai-control" component={AiControlPanel} />
         <Route path="/admin/hardening" component={AdminHardeningKB} />
+        <Route path="/admin/help-center" component={AdminHelpCenter} />
+        <Route path="/admin/ai-copilot" component={AdminAICopilot} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

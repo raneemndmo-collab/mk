@@ -14,6 +14,8 @@ import { Slider } from "@/components/ui/slider";
 import { Search as SearchIcon, SlidersHorizontal, Grid3X3, List, MapPin, X, Building2, Navigation } from "lucide-react";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
+import { SERVICE_AREAS, getComingSoonMessage } from "@shared/service_areas";
+import { toast } from "sonner";
 
 export default function Search() {
   const { t, lang } = useI18n();
@@ -56,20 +58,45 @@ export default function Search() {
     }
   }, [showFilters]);
 
-  // Load districts from DB
+  // Load districts from DB + merge with SERVICE_AREAS static data
   const districtsQuery = trpc.districts.all.useQuery();
   const cities = useMemo(() => {
-    if (!districtsQuery.data) return [];
-    const cityMap = new Map<string, { city: string; cityAr: string }>();
-    (districtsQuery.data as any[]).forEach((d: any) => {
-      if (!cityMap.has(d.city)) cityMap.set(d.city, { city: d.city, cityAr: d.cityAr });
+    const cityMap = new Map<string, { city: string; cityAr: string; status: string }>();
+    if (districtsQuery.data) {
+      (districtsQuery.data as any[]).forEach((d: any) => {
+        if (!cityMap.has(d.city)) {
+          const sa = SERVICE_AREAS.find(s => s.name_en.toLowerCase() === d.city.toLowerCase());
+          cityMap.set(d.city, { city: d.city, cityAr: d.cityAr, status: sa?.status || "active" });
+        }
+      });
+    }
+    // Add coming_soon cities from SERVICE_AREAS that aren't in DB
+    SERVICE_AREAS.filter(s => s.status === "coming_soon").forEach(s => {
+      if (!cityMap.has(s.name_en)) {
+        cityMap.set(s.name_en, { city: s.name_en, cityAr: s.name_ar, status: "coming_soon" });
+      }
     });
-    return Array.from(cityMap.values()).sort((a, b) => a.city.localeCompare(b.city));
+    return Array.from(cityMap.values()).sort((a, b) => {
+      if (a.status === "active" && b.status !== "active") return -1;
+      if (a.status !== "active" && b.status === "active") return 1;
+      return a.city.localeCompare(b.city);
+    });
   }, [districtsQuery.data]);
 
+  const selectedCityStatus = useMemo(() => {
+    if (!city) return null;
+    return cities.find(c => c.city.toLowerCase() === city.toLowerCase())?.status || null;
+  }, [city, cities]);
+
   const districtsForCity = useMemo(() => {
-    if (!districtsQuery.data || !city) return [];
-    return (districtsQuery.data as any[]).filter((d: any) => d.city.toLowerCase() === city.toLowerCase());
+    if (!city) return [];
+    // Try DB districts first
+    const dbDistricts = (districtsQuery.data as any[] || []).filter((d: any) => d.city.toLowerCase() === city.toLowerCase());
+    if (dbDistricts.length > 0) return dbDistricts;
+    // Fallback to SERVICE_AREAS static data
+    const sa = SERVICE_AREAS.find(s => s.name_en.toLowerCase() === city.toLowerCase());
+    if (sa) return sa.districts.map((d, i) => ({ id: i + 1, nameEn: d.en, nameAr: d.ar, city: sa.name_en, cityAr: sa.name_ar }));
+    return [];
   }, [districtsQuery.data, city]);
 
   // Debounce numeric inputs to reduce API calls during rapid changes
@@ -238,10 +265,17 @@ export default function Search() {
                         {cities.map(c => (
                           <SelectItem key={c.city} value={c.city.toLowerCase()}>
                             {lang === "ar" ? c.cityAr : c.city}
+                            {c.status === "coming_soon" ? ` (${lang === "ar" ? "قريباً" : "Soon"})` : ""}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    {/* Coming soon banner */}
+                    {selectedCityStatus === "coming_soon" && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5 leading-relaxed">
+                        {getComingSoonMessage(lang)}
+                      </p>
+                    )}
                   </div>
 
                   {/* District */}
@@ -390,10 +424,17 @@ export default function Search() {
                       {cities.map(c => (
                         <SelectItem key={c.city} value={c.city.toLowerCase()}>
                           {lang === "ar" ? c.cityAr : c.city}
+                          {c.status === "coming_soon" ? ` (${lang === "ar" ? "قريباً" : "Soon"})` : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {/* Coming soon banner */}
+                  {selectedCityStatus === "coming_soon" && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5 leading-relaxed">
+                      {getComingSoonMessage(lang)}
+                    </p>
+                  )}
                 </div>
 
                 {/* District */}
@@ -554,6 +595,11 @@ export default function Search() {
               <Card className="p-12 text-center">
                 <Building2 className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
                 <p className="text-muted-foreground">{t("search.noResults")}</p>
+                {selectedCityStatus === "coming_soon" && (
+                  <p className="text-sm text-amber-600 dark:text-amber-400 mt-3">
+                    {getComingSoonMessage(lang)}
+                  </p>
+                )}
               </Card>
             )}
           </div>
