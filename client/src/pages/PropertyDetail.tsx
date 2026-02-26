@@ -292,29 +292,28 @@ export default function PropertyDetail() {
                   </div>
                 </>
               )}
-              {/* Actions — compact pill, safe-area aware, RTL-aware end positioning */}
-              <div className="absolute top-[max(0.5rem,calc(0.5rem+env(safe-area-inset-top)))] sm:top-3 end-2.5 sm:end-3 z-30 pointer-events-auto" data-action="true">
-                <div className="flex items-center rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>
-                  <button
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (!isAuthenticated) { toast.error(lang === "ar" ? "يرجى تسجيل الدخول" : "Please sign in"); return; } toggleFav.mutate({ propertyId: id }); }}
-                    onTouchStart={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}
-                    onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); if (!isAuthenticated) { toast.error(lang === "ar" ? "يرجى تسجيل الدخول" : "Please sign in"); return; } toggleFav.mutate({ propertyId: id }); }}
-                    className="h-8 w-9 sm:h-9 sm:w-10 flex items-center justify-center active:scale-90 transition-all touch-manipulation"
-                    aria-label={lang === "ar" ? "المفضلة" : "Favorite"}
-                  >
-                    <Heart className={`h-4 w-4 sm:h-[18px] sm:w-[18px] ${favCheck.data?.isFavorite ? "fill-red-500 text-red-500" : ""}`} style={favCheck.data?.isFavorite ? undefined : { color: '#374151' }} />
-                  </button>
-                  <div className="w-px h-4" style={{ backgroundColor: 'rgba(0,0,0,0.12)' }} />
-                  <button
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (navigator.share) { navigator.share({ title: document.title, url: window.location.href }).catch(() => {}); } else { navigator.clipboard.writeText(window.location.href); toast.success(lang === "ar" ? "تم نسخ الرابط" : "Link copied"); } }}
-                    onTouchStart={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}
-                    onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); if (navigator.share) { navigator.share({ title: document.title, url: window.location.href }).catch(() => {}); } else { navigator.clipboard.writeText(window.location.href); toast.success(lang === "ar" ? "تم نسخ الرابط" : "Link copied"); } }}
-                    className="h-8 w-9 sm:h-9 sm:w-10 flex items-center justify-center active:scale-90 transition-all touch-manipulation"
-                    aria-label={lang === "ar" ? "مشاركة" : "Share"}
-                  >
-                    <Share2 className="h-4 w-4 sm:h-[18px] sm:w-[18px]" style={{ color: '#374151' }} />
-                  </button>
-                </div>
+              {/* Actions — two small circular buttons, top-end, consistent light/dark */}
+              <div className="absolute top-2 sm:top-3 end-2 sm:end-3 z-30 flex items-center gap-1.5 pointer-events-auto" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }} data-action="true">
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (!isAuthenticated) { toast.error(lang === "ar" ? "يرجى تسجيل الدخول" : "Please sign in"); return; } toggleFav.mutate({ propertyId: id }); }}
+                  onTouchStart={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}
+                  onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); if (!isAuthenticated) { toast.error(lang === "ar" ? "يرجى تسجيل الدخول" : "Please sign in"); return; } toggleFav.mutate({ propertyId: id }); }}
+                  className="h-8 w-8 rounded-full flex items-center justify-center active:scale-90 transition-all touch-manipulation"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}
+                  aria-label={lang === "ar" ? "المفضلة" : "Favorite"}
+                >
+                  <Heart className={`h-[15px] w-[15px] ${favCheck.data?.isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"}`} />
+                </button>
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (navigator.share) { navigator.share({ title: document.title, url: window.location.href }).catch(() => {}); } else { navigator.clipboard.writeText(window.location.href); toast.success(lang === "ar" ? "تم نسخ الرابط" : "Link copied"); } }}
+                  onTouchStart={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}
+                  onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); if (navigator.share) { navigator.share({ title: document.title, url: window.location.href }).catch(() => {}); } else { navigator.clipboard.writeText(window.location.href); toast.success(lang === "ar" ? "تم نسخ الرابط" : "Link copied"); } }}
+                  className="h-8 w-8 rounded-full flex items-center justify-center active:scale-90 transition-all touch-manipulation"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}
+                  aria-label={lang === "ar" ? "مشاركة" : "Share"}
+                >
+                  <Share2 className="h-[15px] w-[15px] text-gray-600" />
+                </button>
               </div>
               {/* Badges */}
               <div className="absolute top-[max(1rem,calc(1rem+env(safe-area-inset-top)))] sm:top-3 start-4 sm:start-3 flex gap-2">
