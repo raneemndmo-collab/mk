@@ -20,6 +20,35 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useScrollAnimation, useParallax } from "@/hooks/useScrollAnimation";
 
+/* ─── City Fallback Images (CDN) ─── */
+const CITY_FALLBACK_IMAGES: Record<string, string> = {
+  riyadh: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/cNWKttfpUDXIukWj.jpg",
+  jeddah: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/zNNXXZkpvfNlGAVT.jpg",
+  madinah: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/HPXiVNWxeZFtabAR.jpg",
+  makkah: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/agSmQNzmeMZvCivy.jpg",
+  dammam: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/aXzBxsHyXdIdhRwf.jpg",
+  khobar: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/mKrheONItCFemAyU.jpg",
+  tabuk: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/aXzBxsHyXdIdhRwf.jpg",
+  abha: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/XFLVvWhZgOmlNsip.jpg",
+  "الرياض": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/cNWKttfpUDXIukWj.jpg",
+  "جدة": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/zNNXXZkpvfNlGAVT.jpg",
+  "المدينة المنورة": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/HPXiVNWxeZFtabAR.jpg",
+  "مكة المكرمة": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/agSmQNzmeMZvCivy.jpg",
+  "الدمام": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/aXzBxsHyXdIdhRwf.jpg",
+  "الخبر": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/mKrheONItCFemAyU.jpg",
+  "تبوك": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/aXzBxsHyXdIdhRwf.jpg",
+  "أبها": "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/XFLVvWhZgOmlNsip.jpg",
+};
+
+/** Get city image: DB imageUrl > fallback by name > gradient placeholder */
+function getCityImage(city: { imageUrl?: string | null; nameEn?: string; nameAr?: string }): string | null {
+  if (city.imageUrl) return city.imageUrl;
+  const key = city.nameEn?.toLowerCase();
+  if (key && CITY_FALLBACK_IMAGES[key]) return CITY_FALLBACK_IMAGES[key];
+  if (city.nameAr && CITY_FALLBACK_IMAGES[city.nameAr]) return CITY_FALLBACK_IMAGES[city.nameAr];
+  return null;
+}
+
 /* ─── Animated Counter ─── */
 function AnimatedCounter({ target, suffix = "" }: { target: string; suffix?: string }) {
   const [count, setCount] = useState(0);
@@ -829,9 +858,9 @@ export default function Home() {
                 onClick={() => setLocation(`/search?city=${city.nameEn?.toLowerCase()}`)}
                 className="group cursor-pointer card-hover relative rounded-2xl overflow-hidden aspect-[4/3] shadow-md"
               >
-                {city.imageUrl ? (
+                {getCityImage(city) ? (
                   <img
-                    src={city.imageUrl}
+                    src={getCityImage(city)!}
                     alt={lang === "ar" ? city.nameAr : city.nameEn}
                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   />
@@ -862,9 +891,9 @@ export default function Home() {
                 key={city.id}
                 className="relative rounded-2xl overflow-hidden aspect-[4/3] shadow-md opacity-75"
               >
-                {city.imageUrl ? (
+                {getCityImage(city) ? (
                   <img
-                    src={city.imageUrl}
+                    src={getCityImage(city)!}
                     alt={lang === "ar" ? city.nameAr : city.nameEn}
                     className="absolute inset-0 w-full h-full object-cover opacity-60"
                   />
