@@ -555,8 +555,14 @@ export function prerenderMiddleware(htmlTemplate: string) {
         `<div id="root">${prerenderHTML}</div>`
       );
 
-      // Inject dynamic meta tags if available
+      // Inject dynamic meta tags: replace static OG/Twitter tags with dynamic ones
       if (metaTags) {
+        // Remove existing static OG and Twitter meta tags to prevent duplicates
+        html = html.replace(/<meta\s+property="og:[^"]*"\s+content="[^"]*"\s*\/?>\s*\n?/g, '');
+        html = html.replace(/<meta\s+name="twitter:[^"]*"\s+content="[^"]*"\s*\/?>\s*\n?/g, '');
+        // Remove the static title tag (dynamic one will be injected)
+        html = html.replace(/<title>[^<]*<\/title>\s*\n?/, '');
+        // Inject dynamic meta tags before </head>
         html = html.replace('</head>', `${metaTags}\n</head>`);
       }
 
