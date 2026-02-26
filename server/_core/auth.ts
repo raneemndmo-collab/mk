@@ -161,13 +161,16 @@ export function registerAuthRoutes(app: Express) {
         },
       });
     } catch (error) {
-      console.error("[Auth] Login failed:", error);
-      console.error("[Auth] Login error stack:", (error as any)?.stack);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const errStack = error instanceof Error ? error.stack : undefined;
+      console.error("[Auth] Login failed:", errMsg);
+      console.error("[Auth] Login error stack:", errStack);
       console.error("[Auth] Login error cause:", (error as any)?.cause);
-      logAuthEvent("LOGIN_ERROR", { ip, error: String(error) });
+      logAuthEvent("LOGIN_ERROR", { ip, error: errMsg });
       res.status(500).json({
         error: "Login failed",
         errorAr: "فشل تسجيل الدخول",
+        debug: errMsg,
       });
     }
   });
