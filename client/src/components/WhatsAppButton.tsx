@@ -2,6 +2,7 @@ import { useI18n } from "@/lib/i18n";
 import { useSiteSettings } from "@/contexts/SiteSettingsContext";
 import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
+import { trpc } from "@/lib/trpc";
 
 /**
  * WhatsApp floating action button — fully backend-controlled.
@@ -109,6 +110,21 @@ export default function WhatsAppButton({
   // ── Resolve context ────────────────────────────────────────────────
   const resolvedContext: WhatsAppContext = contextOverride || routeInfo?.context || "default";
 
+  // ── Auto-fetch property data when on /property/:id ─────────────────
+  const propertyIdFromUrl = resolvedContext === "property_detail" && !propertyId
+    ? location.match(/\/property\/(\d+)/)?.[1]
+    : null;
+  const autoProperty = trpc.property.getById.useQuery(
+    { id: Number(propertyIdFromUrl) },
+    { enabled: !!propertyIdFromUrl }
+  );
+
+  // Merge auto-fetched data with explicit props
+  const effectiveName = propertyName || (autoProperty.data ? (lang === "ar" ? autoProperty.data.titleAr : autoProperty.data.titleEn) : "");
+  const effectiveCity = city || (autoProperty.data ? (lang === "ar" ? autoProperty.data.cityAr : autoProperty.data.city) : "");
+  const effectiveId = propertyId || propertyIdFromUrl || "";
+  const effectiveUrl = propertyUrl || window.location.href;
+
   // ── Build message based on context ─────────────────────────────────
   const message = useMemo(() => {
     const suffix = lang === "ar" ? "Ar" : "En";
@@ -133,12 +149,12 @@ export default function WhatsAppButton({
             ? "مرحباً، أنا مهتم بالعقار: {{property_title}} (رقم: {{property_id}}) في {{city}}. الرابط: {{url}}"
             : "Hello, I'm interested in: {{property_title}} (ID: {{property_id}}) in {{city}}. Link: {{url}}"
         );
-        if (propertyName || propertyId) {
+        if (effectiveName || effectiveId) {
           return buildPropertyMessage(tmpl, {
-            title: propertyName || "",
-            id: propertyId || "",
-            city: city || "",
-            url: propertyUrl || window.location.href,
+            title: effectiveName,
+            id: effectiveId,
+            city: effectiveCity,
+            url: effectiveUrl,
           });
         }
         return fallback;
@@ -146,7 +162,7 @@ export default function WhatsAppButton({
       default:
         return fallback;
     }
-  }, [resolvedContext, lang, s, propertyName, propertyId, city, propertyUrl]);
+  }, [resolvedContext, lang, s, effectiveName, effectiveId, effectiveCity, effectiveUrl]);
 
   // ── Animations ─────────────────────────────────────────────────────
   useEffect(() => {
