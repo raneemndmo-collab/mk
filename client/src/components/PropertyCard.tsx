@@ -8,16 +8,16 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 import { useState, useEffect, useCallback } from "react";
 
-// Reliable fallback images by property type (S3 CDN, always available)
+// Reliable fallback images by property type (CDN, always available)
 const FALLBACK_IMAGES: Record<string, string> = {
-  apartment: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg",
-  villa: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ZIXqYWWteqDAXWxQ.jpg",
-  studio: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/hhJzSnpcYebLXuev.jpg",
-  duplex: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/RtkavXViypgMuShv.jpg",
-  furnished_room: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/HNWyrQUWyRWNGtaO.jpg",
-  compound: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/YVFDFNOrkJFOHnnK.jpg",
-  hotel_apartment: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/fWMwLCqNgiFXqzBU.jpg",
-  default: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg",
+  apartment: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg",
+  villa: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/aQahktKcFBRaoOks.jpg",
+  studio: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/mONAuqBKEeQxVXtD.jpg",
+  duplex: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg",
+  furnished_room: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/CmMNTcoDQOUOOgeL.jpg",
+  compound: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/bzChzmxFKBEOPglq.jpg",
+  hotel_apartment: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg",
+  default: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg",
 };
 
 interface PropertyCardProps {

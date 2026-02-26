@@ -188,12 +188,12 @@ export default function PropertyDetail() {
   const description = lang === "ar" ? prop.descriptionAr : prop.descriptionEn;
   const city = lang === "ar" ? prop.cityAr : prop.city;
   const district = lang === "ar" ? prop.districtAr : prop.district;
-  // Filter out broken /uploads/ URLs, then use S3 CDN fallbacks
+  // Filter out broken /uploads/ URLs, then use CDN fallbacks
   const validPhotos = (prop.photos || []).filter((url: string) => url && url.startsWith("http") && !url.includes("/uploads/"));
   const photos = validPhotos.length ? validPhotos : [
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg",
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/BNTKggvRWcPAuZox.jpg",
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/IKQGCZlxLaZhWzoo.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/aQahktKcFBRaoOks.jpg",
+    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/mONAuqBKEeQxVXtD.jpg",
   ];
 
   const lat = prop.latitude ? Number(prop.latitude) : 24.7136;
@@ -253,7 +253,7 @@ export default function PropertyDetail() {
                   const target = e.currentTarget;
                   if (!target.dataset.fallback) {
                     target.dataset.fallback = "1";
-                    target.src = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/WYIAhwahEMjJJckK.jpg";
+                    target.src = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/sKmnJUKXqXLRtgLT.jpg";
                   }
                 }}
               />
