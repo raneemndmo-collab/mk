@@ -405,7 +405,10 @@ export default function AdminSettings() {
                       updateSetting("hero.titleEn", "Ramadan Kareem — Best Monthly Rental Deals");
                       updateSetting("hero.subtitleAr", "عروض رمضان الحصرية | الرياض");
                       updateSetting("hero.subtitleEn", "Exclusive Ramadan Offers | Riyadh");
-                      updateSetting("hero.overlayOpacity", "50");
+                      updateSetting("hero.bgType", "image");
+                      updateSetting("hero.bgImage", "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ylzCxVKgCIkzWJQu.jpg");
+                      updateSetting("hero.bgVideo", "");
+                      updateSetting("hero.overlayOpacity", "35");
                       toast.info(lang === "ar" ? "تم تطبيق قالب رمضان — اضغط حفظ" : "Ramadan preset applied — click Save");
                     }}>
                       🌙 {lang === "ar" ? "رمضان" : "Ramadan"}
@@ -415,7 +418,10 @@ export default function AdminSettings() {
                       updateSetting("hero.titleEn", "Monthly Rental Expert — Now in Saudi Arabia");
                       updateSetting("hero.subtitleAr", "إدارة إيجارات شهرية متميزة | الرياض");
                       updateSetting("hero.subtitleEn", "Premium monthly rental management | Riyadh");
-                      updateSetting("hero.overlayOpacity", "40");
+                      updateSetting("hero.bgType", "image");
+                      updateSetting("hero.bgImage", "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/ylzCxVKgCIkzWJQu.jpg");
+                      updateSetting("hero.bgVideo", "");
+                      updateSetting("hero.overlayOpacity", "35");
                       toast.info(lang === "ar" ? "تم تطبيق القالب الافتراضي — اضغط حفظ" : "Default preset applied — click Save");
                     }}>
                       🏙️ {lang === "ar" ? "الرياض (افتراضي)" : "Riyadh (Default)"}
