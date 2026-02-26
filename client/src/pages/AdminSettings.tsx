@@ -431,7 +431,10 @@ export default function AdminSettings() {
                       updateSetting("hero.titleEn", "Riyadh Season — Book Your Monthly Stay");
                       updateSetting("hero.subtitleAr", "عروض حصرية لموسم الرياض | شقق وفلل مفروشة");
                       updateSetting("hero.subtitleEn", "Exclusive Riyadh Season offers | Furnished apartments & villas");
-                      updateSetting("hero.overlayOpacity", "45");
+                      updateSetting("hero.bgType", "image");
+                      updateSetting("hero.bgImage", "https://files.manuscdn.com/user_upload_by_module/session_file/310519663340926600/iqSTrQTiGFbvTtqW.jpg");
+                      updateSetting("hero.bgVideo", "");
+                      updateSetting("hero.overlayOpacity", "30");
                       toast.info(lang === "ar" ? "تم تطبيق قالب موسم الرياض — اضغط حفظ" : "Riyadh Season preset applied — click Save");
                     }}>
                       🎉 {lang === "ar" ? "موسم الرياض" : "Riyadh Season"}
