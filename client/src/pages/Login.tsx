@@ -98,7 +98,7 @@ export default function Login() {
                   onChange={(e) => setUserId(e.target.value)}
                   placeholder={lang === "ar" ? "أدخل معرف المستخدم" : "Enter your user ID"}
                   required
-                  className="h-11 text-right"
+                  className={`h-11 ${lang === "ar" ? "text-right" : "text-left"}`}
                   autoComplete="username"
                 />
               </div>
@@ -115,7 +115,7 @@ export default function Login() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={lang === "ar" ? "أدخل كلمة المرور" : "Enter your password"}
                     required
-                    className="h-11 pe-10 text-right"
+                    className={`h-11 pe-10 ${lang === "ar" ? "text-right" : "text-left"}`}
                     autoComplete="current-password"
                   />
                   <button
