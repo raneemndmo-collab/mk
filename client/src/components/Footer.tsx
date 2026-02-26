@@ -1,6 +1,7 @@
 import { useI18n } from "@/lib/i18n";
 import { useSiteSettings } from "@/contexts/SiteSettingsContext";
-import { Mail, Phone, MapPin, Shield, Building2, Receipt, FileCheck, ExternalLink } from "lucide-react";
+import { Mail, Phone, MapPin, Shield, Building2, Receipt, FileCheck, ExternalLink, Clock } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
 
 export default function Footer() {
@@ -113,20 +114,8 @@ export default function Footer() {
               </ul>
             </div>
 
-            {/* Cities */}
-            <div>
-              <h4 className="font-heading font-semibold text-sm mb-4 text-white/80 uppercase tracking-wider">
-                {lang === "ar" ? "المدن" : "Cities"}
-              </h4>
-              <ul className="space-y-2.5 text-xs text-white/75">
-                <li><Link href="/search?city=riyadh" className="hover:text-[#3ECFC0] transition-colors">{t("city.riyadh")}</Link></li>
-                <li><Link href="/search?city=jeddah" className="hover:text-[#3ECFC0] transition-colors">{t("city.jeddah")}</Link></li>
-                <li><Link href="/search?city=dammam" className="hover:text-[#3ECFC0] transition-colors">{t("city.dammam")}</Link></li>
-                <li><Link href="/search?city=makkah" className="hover:text-[#3ECFC0] transition-colors">{t("city.makkah")}</Link></li>
-                <li><Link href="/search?city=madinah" className="hover:text-[#3ECFC0] transition-colors">{t("city.madinah")}</Link></li>
-                <li><Link href="/search?city=khobar" className="hover:text-[#3ECFC0] transition-colors">{t("city.khobar")}</Link></li>
-              </ul>
-            </div>
+            {/* Cities — dynamic from DB */}
+            <FooterCities lang={lang} />
           </div>
         </div>
       </div>
@@ -181,5 +170,42 @@ export default function Footer() {
         </div>
       </div>
     </footer>
+  );
+}
+
+/* ─── Footer Cities (dynamic from DB) ─── */
+function FooterCities({ lang }: { lang: string }) {
+  const citiesQuery = trpc.cities.all.useQuery({ activeOnly: false });
+  const allCities = citiesQuery.data || [];
+  const activeCities = allCities.filter((c: any) => c.isActive !== false);
+  const comingSoonCities = allCities.filter((c: any) => c.isActive === false);
+
+  return (
+    <div>
+      <h4 className="font-heading font-semibold text-sm mb-4 text-white/80 uppercase tracking-wider">
+        {lang === "ar" ? "المدن" : "Cities"}
+      </h4>
+      <ul className="space-y-2.5 text-xs text-white/75">
+        {activeCities.map((city: any) => (
+          <li key={city.id}>
+            <Link
+              href={`/search?city=${city.nameEn?.toLowerCase()}`}
+              className="hover:text-[#3ECFC0] transition-colors"
+            >
+              {lang === "ar" ? city.nameAr : city.nameEn}
+            </Link>
+          </li>
+        ))}
+        {comingSoonCities.map((city: any) => (
+          <li key={city.id} className="flex items-center gap-1.5 text-white/40">
+            <span>{lang === "ar" ? city.nameAr : city.nameEn}</span>
+            <span className="inline-flex items-center gap-0.5 bg-[#C9A96E]/20 text-[#C9A96E] text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+              <Clock className="h-2.5 w-2.5" />
+              {lang === "ar" ? "قريباً" : "Soon"}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
-import { SERVICE_AREAS, getComingSoonCities } from "@shared/service_areas";
 import { useScrollAnimation, useParallax } from "@/hooks/useScrollAnimation";
 
 /* ─── Animated Counter ─── */
@@ -469,7 +468,10 @@ export default function Home() {
   const heroRef = useRef<HTMLDivElement>(null);
 
   const featured = trpc.property.featured.useQuery();
-  const citiesQuery = trpc.cities.all.useQuery({ activeOnly: true });
+  // Fetch ALL cities so we can show inactive ones as "coming soon" from DB
+  const citiesQuery = trpc.cities.all.useQuery({ activeOnly: false });
+  const activeCities = useMemo(() => (citiesQuery.data || []).filter((c: any) => c.isActive !== false), [citiesQuery.data]);
+  const comingSoonCitiesDB = useMemo(() => (citiesQuery.data || []).filter((c: any) => c.isActive === false), [citiesQuery.data]);
 
   // Parallax mouse tracking for hero
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -644,7 +646,7 @@ export default function Home() {
             </p>
 
             {/* Hero Search Bar */}
-            <HeroSearchBar lang={lang} cities={citiesQuery.data ?? []} onSearch={(q, c, t, mp) => {
+            <HeroSearchBar lang={lang} cities={activeCities} onSearch={(q, c, t, mp) => {
               const params = new URLSearchParams();
               if (q) params.set('q', q);
               if (c) params.set('city', c);
@@ -820,7 +822,8 @@ export default function Home() {
             </p>
           </ScrollSection>
           <StaggerGrid className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-            {(citiesQuery.data || []).slice(0, 6).map((city) => (
+            {/* Active cities — clickable, with images */}
+            {activeCities.slice(0, 6).map((city) => (
               <div
                 key={city.id}
                 onClick={() => setLocation(`/search?city=${city.nameEn?.toLowerCase()}`)}
@@ -853,15 +856,23 @@ export default function Home() {
                 </div>
               </div>
             ))}
-            {/* Coming Soon cities from SERVICE_AREAS */}
-            {getComingSoonCities().map((sc) => (
+            {/* Coming Soon cities — from DB (isActive=false), not clickable */}
+            {comingSoonCitiesDB.map((city) => (
               <div
-                key={sc.id}
+                key={city.id}
                 className="relative rounded-2xl overflow-hidden aspect-[4/3] shadow-md opacity-75"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-[#0B1E2D] to-[#1a3a4f] flex items-center justify-center">
-                  <MapPin className="h-16 w-16 text-[#C9A96E]/20" />
-                </div>
+                {city.imageUrl ? (
+                  <img
+                    src={city.imageUrl}
+                    alt={lang === "ar" ? city.nameAr : city.nameEn}
+                    className="absolute inset-0 w-full h-full object-cover opacity-60"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#0B1E2D] to-[#1a3a4f] flex items-center justify-center">
+                    <MapPin className="h-16 w-16 text-[#C9A96E]/20" />
+                  </div>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                 <div className="absolute top-4 start-4">
                   <span className="inline-flex items-center gap-1 bg-[#C9A96E]/90 text-white text-xs font-bold px-3 py-1 rounded-full">
@@ -870,11 +881,13 @@ export default function Home() {
                 </div>
                 <div className="absolute bottom-0 start-0 end-0 p-5">
                   <h3 className="font-heading font-bold text-xl text-white/80 mb-1">
-                    {lang === "ar" ? sc.name_ar : sc.name_en}
+                    {lang === "ar" ? city.nameAr : city.nameEn}
                   </h3>
-                  <p className="text-white/60 text-sm">
-                    {lang === "ar" ? `${sc.districts.length} حي` : `${sc.districts.length} districts`}
-                  </p>
+                  {(city.region || city.regionAr) && (
+                    <p className="text-white/60 text-sm">
+                      {lang === "ar" ? (city.regionAr || city.region || "") : (city.region || "")}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
