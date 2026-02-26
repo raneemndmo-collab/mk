@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import * as db from "./db";
 import { nanoid } from "nanoid";
+import crypto from "crypto";
 
 /**
  * Seeds the default admin user if not already present.
@@ -20,8 +21,14 @@ export async function seedAdminUser() {
       return;
     }
 
+    // Use ADMIN_INITIAL_PASSWORD env var or generate a random one-time password
+    const adminPassword = process.env.ADMIN_INITIAL_PASSWORD || crypto.randomBytes(16).toString('base64url');
+    if (!process.env.ADMIN_INITIAL_PASSWORD) {
+      console.log(`[Seed] Generated random admin password (change immediately): ${adminPassword}`);
+      console.log(`[Seed] Set ADMIN_INITIAL_PASSWORD env var to control this.`);
+    }
     const salt = await bcrypt.genSalt(12);
-    const passwordHash = await bcrypt.hash("15001500", salt);
+    const passwordHash = await bcrypt.hash(adminPassword, salt);
 
     const id = await db.createLocalUser({
       userId: "Hobart",

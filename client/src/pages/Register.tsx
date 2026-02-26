@@ -175,7 +175,7 @@ export default function Register() {
     e.preventDefault();
     setError("");
 
-    if (form.password.length < 6) {
+    if (form.password.length < 12) {
       setError(t("auth.passwordTooShort"));
       return;
     }

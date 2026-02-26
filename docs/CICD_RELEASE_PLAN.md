@@ -457,3 +457,267 @@ Add the following scripts to `package.json`:
 
 **No Beds24 changes.** The CI pipeline tests do not modify Beds24 integration.  
 **No Mansun dependency added.** GitHub Actions, ESLint, and Gitleaks are all open-source tools.
+
+---
+
+## Appendix A — GitHub Actions Workflows (Manual Add)
+
+> **Note:** These workflow files could not be pushed automatically because the GitHub App used for authentication does not have the `workflows` permission. The repository owner must add them manually via the GitHub web UI or a personal access token with `workflows` scope.
+
+### How to add manually
+
+1. Go to the repository on GitHub.
+2. Click **Add file → Create new file**.
+3. Set the path to `.github/workflows/ci.yml` and paste the YAML below.
+4. Repeat for `deploy-staging.yml` and `deploy-production.yml`.
+5. Commit directly to `main` (or a PR if branch protection is already enabled).
+6. After adding, enable branch protection on `main`: **Settings → Branches → Add rule → Require status checks → select `typecheck`, `test`, `secret-scan`, `build`**.
+
+---
+
+### File 1: `.github/workflows/ci.yml`
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main, staging]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  PNPM_VERSION: "9"
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/cache/save@v4
+        with:
+          path: node_modules
+          key: modules-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+  typecheck:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: modules-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm check
+
+  test:
+    needs: setup
+    runs-on: ubuntu-latest
+    env:
+      JWT_SECRET: ci-test-secret-not-for-production-use-32chars
+      OTP_PEPPER: ci-test-pepper-not-for-production-use
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: modules-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz | tar xz
+          sudo mv gitleaks /usr/local/bin/
+      - run: gitleaks detect --source . --verbose --no-git
+
+  migration-check:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify migration journal
+        run: |
+          python3 -c "
+          import json, sys, os
+          with open('drizzle/meta/_journal.json') as f:
+              j = json.load(f)
+          entries = j['entries']
+          for i, e in enumerate(entries):
+              if e['idx'] != i:
+                  print(f'ERROR: index mismatch at {i}'); sys.exit(1)
+              if not os.path.exists(f'drizzle/{e[\"tag\"]}.sql'):
+                  print(f'ERROR: missing {e[\"tag\"]}.sql'); sys.exit(1)
+          print(f'OK: {len(entries)} migrations verified')
+          "
+      - name: Check for destructive ops
+        run: |
+          CHANGED=$(git diff --name-only origin/main...HEAD -- 'drizzle/*.sql' 2>/dev/null || echo "")
+          [ -z "$CHANGED" ] && echo "No new migrations" && exit 0
+          for f in $CHANGED; do
+            grep -qiE "DROP TABLE|DROP COLUMN|TRUNCATE" "$f" && echo "WARNING: destructive op in $f" && grep -niE "DROP TABLE|DROP COLUMN|TRUNCATE" "$f"
+          done
+
+  build:
+    needs: [typecheck, test]
+    runs-on: ubuntu-latest
+    env:
+      JWT_SECRET: ci-build-secret-not-for-production-use-32chars
+      OTP_PEPPER: ci-build-pepper-not-for-production-use
+      NODE_ENV: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: modules-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm build
+      - run: test -d dist && echo "Build OK" || (echo "ERROR: dist/ missing" && exit 1)
+```
+
+---
+
+### File 2: `.github/workflows/deploy-staging.yml`
+
+```yaml
+name: Deploy Staging
+
+on:
+  push:
+    branches: [staging]
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  ci-gate:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: ci-gate
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Railway CLI
+        run: curl -fsSL https://railway.com/install.sh | sh
+      - name: Deploy
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
+        run: railway up --service ${{ vars.RAILWAY_SERVICE_ID || 'mk-staging' }} --detach
+      - name: Health check
+        run: |
+          sleep 30
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "${{ vars.STAGING_URL || 'https://mk-staging.up.railway.app' }}/api/health" || echo "000")
+          [ "$STATUS" = "200" ] && echo "OK" || echo "::warning::HTTP $STATUS"
+```
+
+---
+
+### File 3: `.github/workflows/deploy-production.yml`
+
+```yaml
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Deployment reason"
+        required: true
+        type: string
+  release:
+    types: [published]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  ci-gate:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: ci-gate
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log info
+        run: |
+          echo "Deploying by: ${{ github.actor }}"
+          echo "Reason: ${{ github.event.inputs.reason || 'Release tag' }}"
+          echo "SHA: ${{ github.sha }}"
+      - name: Install Railway CLI
+        run: curl -fsSL https://railway.com/install.sh | sh
+      - name: Deploy
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_PRODUCTION }}
+        run: railway up --service ${{ vars.RAILWAY_SERVICE_ID || 'mk-production' }} --detach
+      - name: Health check
+        run: |
+          sleep 45
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "${{ vars.PRODUCTION_URL || 'https://mk-production-7730.up.railway.app' }}/api/health" || echo "000")
+          [ "$STATUS" = "200" ] && echo "OK" || (echo "::error::HTTP $STATUS" && exit 1)
+```
+
+---
+
+### Required GitHub Secrets (set in Settings → Secrets and variables → Actions)
+
+| Secret | Description |
+|--------|-------------|
+| `RAILWAY_TOKEN_STAGING` | Railway API token for staging service |
+| `RAILWAY_TOKEN_PRODUCTION` | Railway API token for production service |
+
+### Required GitHub Variables (optional, set in Settings → Secrets and variables → Actions → Variables)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RAILWAY_SERVICE_ID` | `mk-staging` / `mk-production` | Railway service name |
+| `STAGING_URL` | `https://mk-staging.up.railway.app` | Staging health check URL |
+| `PRODUCTION_URL` | `https://mk-production-7730.up.railway.app` | Production health check URL |

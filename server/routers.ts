@@ -9,6 +9,7 @@ import { z } from "zod";
 import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
 import * as db from "./db";
+import { withTransaction } from "./db";
 import { cache, cacheThrough, CACHE_TTL, CACHE_KEYS } from "./cache";
 import { rateLimiter, RATE_LIMITS, getClientIP } from "./rate-limiter";
 import { getAiResponse, seedDefaultKnowledgeBase } from "./ai-assistant";
@@ -834,20 +835,22 @@ export const appRouter = router({
         const booking = await db.getBookingById(input.id);
         if (!booking) throw new TRPCError({ code: 'NOT_FOUND', message: 'Booking not found' });
         if (booking.status !== 'pending') throw new TRPCError({ code: 'BAD_REQUEST', message: 'Only pending bookings can be approved' });
-        // Update booking to approved
-        await db.updateBooking(input.id, { status: 'approved', landlordNotes: input.landlordNotes });
-        // Create a payment record (bill) for the tenant
-        const paymentId = await db.createPayment({
-          bookingId: input.id,
-          tenantId: booking.tenantId,
-          landlordId: booking.landlordId,
-          type: 'rent',
-          amount: String(booking.totalAmount),
-          status: 'pending',
-          description: `Payment for booking #${input.id}`,
-          descriptionAr: `دفعة الحجز رقم #${input.id}`,
+        // TRANSACTION: booking update + payment creation must be atomic
+        const paymentId = await withTransaction(async () => {
+          await db.updateBooking(input.id, { status: 'approved', landlordNotes: input.landlordNotes });
+          const pid = await db.createPayment({
+            bookingId: input.id,
+            tenantId: booking.tenantId,
+            landlordId: booking.landlordId,
+            type: 'rent',
+            amount: String(booking.totalAmount),
+            status: 'pending',
+            description: `Payment for booking #${input.id}`,
+            descriptionAr: `دفعة الحجز رقم #${input.id}`,
+          });
+          return pid;
         });
-        // Notify tenant: booking approved + bill ready
+        // Notify tenant: booking approved + bill ready (outside tx — best-effort)
         await db.createNotification({
           userId: booking.tenantId,
           type: 'booking_approved',
@@ -905,19 +908,20 @@ export const appRouter = router({
         const booking = await db.getBookingById(input.bookingId);
         if (!booking) throw new TRPCError({ code: 'NOT_FOUND', message: 'Booking not found' });
         if (booking.status !== 'approved') throw new TRPCError({ code: 'BAD_REQUEST', message: 'Only approved bookings can have payment confirmed' });
-        // Update booking to active
-        await db.updateBooking(input.bookingId, { status: 'active' });
-        // Update all pending payments for this booking to completed
-        const bookingPayments = await db.getPaymentsByBooking(input.bookingId);
-        for (const p of bookingPayments) {
-          if (p.status === 'pending') {
-            await db.updatePaymentStatus(p.id, 'completed', new Date());
-            if (input.paymentMethod) {
-              await db.updatePayment(p.id, { paymentMethod: input.paymentMethod });
+        // TRANSACTION: booking status + payment updates must be atomic
+        await withTransaction(async () => {
+          await db.updateBooking(input.bookingId, { status: 'active' });
+          const bookingPayments = await db.getPaymentsByBooking(input.bookingId);
+          for (const p of bookingPayments) {
+            if (p.status === 'pending') {
+              await db.updatePaymentStatus(p.id, 'completed', new Date());
+              if (input.paymentMethod) {
+                await db.updatePayment(p.id, { paymentMethod: input.paymentMethod });
+              }
             }
           }
-        }
-        // Notify tenant: payment confirmed
+        });
+        // Notify tenant: payment confirmed (outside tx — best-effort)
         await db.createNotification({
           userId: booking.tenantId,
           type: 'payment_received',

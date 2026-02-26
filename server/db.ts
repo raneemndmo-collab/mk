@@ -40,6 +40,20 @@ export async function getDb() {
   return _db;
 }
 
+// ─── Transaction Helper ──────────────────────────────────────────────
+/**
+ * Execute multiple DB operations atomically within a transaction.
+ * If any step throws, all changes are rolled back.
+ * Usage: await withTransaction(async (tx) => { ... });
+ */
+export async function withTransaction<T>(
+  fn: (tx: ReturnType<typeof drizzle>) => Promise<T>
+): Promise<T> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return (db as any).transaction(fn);
+}
+
 // ─── Users ───────────────────────────────────────────────────────────
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) throw new Error("User openId is required for upsert");

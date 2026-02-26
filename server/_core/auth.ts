@@ -5,14 +5,19 @@
  * No external OAuth provider is used.
  * Rate limiting is applied to login and register endpoints.
  * Authentication events are logged for auditing.
+ *
+ * Security hardening (2026-02-26):
+ * - Password policy: 12+ chars, uppercase, lowercase, digit, special char
+ * - Session TTL: 30 min in production (configurable via SESSION_TTL_MS)
+ * - JWT fail-fast: server refuses to start without strong JWT_SECRET in production
  */
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { COOKIE_NAME } from "@shared/const";
 import type { Express, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
-import { rateLimiter, RATE_LIMITS, getClientIP } from "../rate-limiter";
+import { rateLimiter, RATE_LIMITS, getClientIP, recordFailedLogin, resetLoginAttempts } from "../rate-limiter";
 import { sendOtp, verifyOtp } from "../otp";
 import { ENV } from "./env";
 
@@ -20,6 +25,52 @@ import { ENV } from "./env";
 function logAuthEvent(event: string, details: Record<string, unknown>) {
   const timestamp = new Date().toISOString();
   console.log(`[Auth Event] ${timestamp} | ${event} |`, JSON.stringify(details));
+}
+
+// ─── Password Validation ──────────────────────────────────────────
+export interface PasswordValidationResult {
+  valid: boolean;
+  error?: string;
+  errorAr?: string;
+}
+
+export function validatePassword(password: string): PasswordValidationResult {
+  if (password.length < 12) {
+    return {
+      valid: false,
+      error: "Password must be at least 12 characters",
+      errorAr: "كلمة المرور يجب أن تكون 12 حرفاً على الأقل",
+    };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return {
+      valid: false,
+      error: "Password must contain at least one uppercase letter",
+      errorAr: "كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل",
+    };
+  }
+  if (!/[a-z]/.test(password)) {
+    return {
+      valid: false,
+      error: "Password must contain at least one lowercase letter",
+      errorAr: "كلمة المرور يجب أن تحتوي على حرف صغير واحد على الأقل",
+    };
+  }
+  if (!/[0-9]/.test(password)) {
+    return {
+      valid: false,
+      error: "Password must contain at least one digit",
+      errorAr: "كلمة المرور يجب أن تحتوي على رقم واحد على الأقل",
+    };
+  }
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password)) {
+    return {
+      valid: false,
+      error: "Password must contain at least one special character",
+      errorAr: "كلمة المرور يجب أن تحتوي على رمز خاص واحد على الأقل",
+    };
+  }
+  return { valid: true };
 }
 
 export function registerAuthRoutes(app: Express) {
@@ -62,7 +113,18 @@ export function registerAuthRoutes(app: Express) {
 
       const valid = await bcrypt.compare(password, user.passwordHash);
       if (!valid) {
-        logAuthEvent("LOGIN_FAILED", { userId, ip, reason: "wrong_password" });
+        // Record failed attempt and check for account lockout
+        const lockout = recordFailedLogin(userId);
+        logAuthEvent("LOGIN_FAILED", { userId, ip, reason: "wrong_password", attemptsRemaining: lockout.attemptsRemaining, locked: lockout.locked });
+        if (lockout.locked) {
+          const lockoutMinutes = Math.ceil(lockout.resetIn / 60_000);
+          res.status(429).json({
+            error: `Account temporarily locked due to too many failed attempts. Try again in ${lockoutMinutes} minutes.`,
+            errorAr: `تم قفل الحساب مؤقتاً بسبب محاولات دخول كثيرة. حاول مرة أخرى بعد ${lockoutMinutes} دقيقة.`,
+            retryAfterMs: lockout.resetIn,
+          });
+          return;
+        }
         res.status(401).json({
           error: "Invalid credentials",
           errorAr: "بيانات الدخول غير صحيحة",
@@ -70,19 +132,22 @@ export function registerAuthRoutes(app: Express) {
         return;
       }
 
+      // Reset login attempts on successful login
+      resetLoginAttempts(userId);
+
       // Update last signed in
       await db.upsertUser({ openId: user.openId, lastSignedIn: new Date() });
 
-      // Create JWT session
+      // Create JWT session with configurable TTL (default: 30 min in production)
       const sessionToken = await sdk.createSessionToken(user.openId, {
         name: user.displayName || user.name || userId,
-        expiresInMs: ONE_YEAR_MS,
+        expiresInMs: ENV.sessionTtlMs,
       });
 
       const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ENV.sessionTtlMs });
 
-      logAuthEvent("LOGIN_SUCCESS", { userId, userDbId: user.id, ip, role: user.role });
+      logAuthEvent("LOGIN_SUCCESS", { userId, userDbId: user.id, ip, role: user.role, sessionTtlMs: ENV.sessionTtlMs });
 
       res.json({
         success: true,
@@ -134,11 +199,10 @@ export function registerAuthRoutes(app: Express) {
         return;
       }
 
-      if (password.length < 6) {
-        res.status(400).json({
-          error: "Password must be at least 6 characters",
-          errorAr: "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
-        });
+      // Enforce 12+ char password with complexity requirements
+      const pwCheck = validatePassword(password);
+      if (!pwCheck.valid) {
+        res.status(400).json({ error: pwCheck.error, errorAr: pwCheck.errorAr });
         return;
       }
 
@@ -176,15 +240,15 @@ export function registerAuthRoutes(app: Express) {
         return;
       }
 
-      // Auto-login after register
+      // Auto-login after register with configurable TTL
       const openId = `local_${userId}`;
       const sessionToken = await sdk.createSessionToken(openId, {
         name: displayName,
-        expiresInMs: ONE_YEAR_MS,
+        expiresInMs: ENV.sessionTtlMs,
       });
 
       const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ENV.sessionTtlMs });
 
       logAuthEvent("REGISTER_SUCCESS", { userId, newUserId, ip });
 
@@ -240,8 +304,10 @@ export function registerAuthRoutes(app: Express) {
         return;
       }
 
-      if (newPassword.length < 6) {
-        res.status(400).json({ error: "New password must be at least 6 characters" });
+      // Enforce 12+ char password with complexity requirements
+      const pwCheck = validatePassword(newPassword);
+      if (!pwCheck.valid) {
+        res.status(400).json({ error: pwCheck.error, errorAr: pwCheck.errorAr });
         return;
       }
 
@@ -367,16 +433,16 @@ export function registerAuthRoutes(app: Express) {
           // Mark user as verified after OTP confirmation
           await db.updateUserProfile(user.id, { isVerified: true } as any);
 
-          // Auto-login after verification
+          // Auto-login after verification with configurable TTL
           const updatedUser = await db.getUserById(user.id);
           if (updatedUser) {
             const openId = updatedUser.openId;
             const sessionToken = await sdk.createSessionToken(openId, {
               name: updatedUser.displayName || updatedUser.name || updatedUser.userId || "User",
-              expiresInMs: ONE_YEAR_MS,
+              expiresInMs: ENV.sessionTtlMs,
             });
             const cookieOptions = getSessionCookieOptions(req);
-            res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+            res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ENV.sessionTtlMs });
 
             logAuthEvent("OTP_VERIFY_FULL", { channel, destination, purpose, userId: user.id, ip });
             res.json({
@@ -431,11 +497,10 @@ export function registerAuthRoutes(app: Express) {
         return;
       }
 
-      if (password.length < 6) {
-        res.status(400).json({
-          error: "Password must be at least 6 characters",
-          errorAr: "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
-        });
+      // Enforce 12+ char password with complexity requirements
+      const pwCheck = validatePassword(password);
+      if (!pwCheck.valid) {
+        res.status(400).json({ error: pwCheck.error, errorAr: pwCheck.errorAr });
         return;
       }
 
