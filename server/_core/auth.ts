@@ -162,25 +162,12 @@ export function registerAuthRoutes(app: Express) {
       });
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      const errStack = error instanceof Error ? error.stack : undefined;
-      const errCause = (error as any)?.cause;
-      const causeMsg = errCause instanceof Error ? errCause.message : String(errCause ?? 'none');
-      const errCode = (error as any)?.code || (errCause as any)?.code || 'none';
-      const errErrno = (error as any)?.errno || (errCause as any)?.errno || 'none';
-      const errSqlState = (error as any)?.sqlState || (errCause as any)?.sqlState || 'none';
       console.error("[Auth] Login failed:", errMsg);
-      console.error("[Auth] Login error stack:", errStack);
-      console.error("[Auth] Login error cause:", causeMsg);
-      console.error("[Auth] Login error code:", errCode, "errno:", errErrno, "sqlState:", errSqlState);
-      logAuthEvent("LOGIN_ERROR", { ip, error: errMsg, cause: causeMsg, code: errCode });
+      console.error("[Auth] Login error stack:", (error as any)?.stack);
+      logAuthEvent("LOGIN_ERROR", { ip, error: errMsg });
       res.status(500).json({
         error: "Login failed",
         errorAr: "فشل تسجيل الدخول",
-        debug: errMsg,
-        cause: causeMsg,
-        code: errCode,
-        errno: errErrno,
-        sqlState: errSqlState,
       });
     }
   });
