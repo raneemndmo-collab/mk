@@ -929,6 +929,137 @@ export default function AdminSettings() {
                   <Save className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
                   {t("settings.save")}
                 </Button>
+
+                {/* ─── Moyasar Payment Section ─── */}
+                <div className="border-t border-border pt-6 mt-6" />
+                <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
+                  <h3 className="font-semibold text-emerald-800 dark:text-emerald-200 mb-2">
+                    {lang === "ar" ? "الدفع عبر Moyasar" : "Moyasar Payment"}
+                  </h3>
+                  <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                    {lang === "ar" 
+                      ? "بوابة الدفع الأساسية للسعودية: بطاقات مدى + Apple Pay + Google Pay. احصل على البيانات من dashboard.moyasar.com" 
+                      : "Primary payment gateway for KSA: mada cards + Apple Pay + Google Pay. Get credentials from dashboard.moyasar.com"}
+                  </p>
+                </div>
+                <SettingField 
+                  label={lang === "ar" ? "Moyasar Publishable Key" : "Moyasar Publishable Key"} 
+                  settingKey="moyasar.publishableKey" 
+                  placeholder="pk_test_..." 
+                />
+                <SettingField 
+                  label={lang === "ar" ? "Moyasar Secret Key" : "Moyasar Secret Key"} 
+                  settingKey="moyasar.secretKey" 
+                  placeholder="sk_test_..." 
+                />
+                <SettingField 
+                  label={lang === "ar" ? "Moyasar Webhook Secret" : "Moyasar Webhook Secret"} 
+                  settingKey="moyasar.webhookSecret" 
+                  placeholder="whsec_..." 
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label>{lang === "ar" ? "الوضع" : "Mode"}</Label>
+                    <Select 
+                      value={settings["moyasar.mode"] || "test"} 
+                      onValueChange={(v) => updateSetting("moyasar.mode", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="test">{lang === "ar" ? "تجريبي (Test)" : "Test (Sandbox)"}</SelectItem>
+                        <SelectItem value="live">{lang === "ar" ? "إنتاجي (Live)" : "Live (Production)"}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{lang === "ar" ? "العملة" : "Currency"}</Label>
+                    <div className="flex items-center h-10 px-3 rounded-md border border-input bg-muted text-muted-foreground">
+                      SAR
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label>{lang === "ar" ? "تفعيل Moyasar" : "Enable Moyasar"}</Label>
+                    <Select 
+                      value={settings["moyasar.enabled"] || "false"} 
+                      onValueChange={(v) => updateSetting("moyasar.enabled", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">{lang === "ar" ? "مفعل" : "Enabled"}</SelectItem>
+                        <SelectItem value="false">{lang === "ar" ? "معطل" : "Disabled"}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {/* Payment Method Toggles */}
+                <div className="bg-muted/50 rounded-lg p-4 space-y-4">
+                  <h4 className="font-medium text-sm">
+                    {lang === "ar" ? "طرق الدفع المتاحة" : "Available Payment Methods"}
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>{lang === "ar" ? "بطاقات مدى" : "mada Cards"}</Label>
+                      <Select 
+                        value={settings["moyasar.enableMadaCards"] || "true"} 
+                        onValueChange={(v) => updateSetting("moyasar.enableMadaCards", v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="true">{lang === "ar" ? "مفعل" : "Enabled"}</SelectItem>
+                          <SelectItem value="false">{lang === "ar" ? "معطل" : "Disabled"}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Apple Pay</Label>
+                      <Select 
+                        value={settings["moyasar.enableApplePay"] || "false"} 
+                        onValueChange={(v) => updateSetting("moyasar.enableApplePay", v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="true">{lang === "ar" ? "مفعل" : "Enabled"}</SelectItem>
+                          <SelectItem value="false">{lang === "ar" ? "معطل" : "Disabled"}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Google Pay</Label>
+                      <Select 
+                        value={settings["moyasar.enableGooglePay"] || "false"} 
+                        onValueChange={(v) => updateSetting("moyasar.enableGooglePay", v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="true">{lang === "ar" ? "مفعل" : "Enabled"}</SelectItem>
+                          <SelectItem value="false">{lang === "ar" ? "معطل" : "Disabled"}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {lang === "ar" 
+                      ? "طرق الدفع تظهر فقط إذا كانت مفعلة ومفاتيح Moyasar مُعدّة. Tabby و Tamara سيتم إضافتهما في المرحلة الثانية." 
+                      : "Payment methods appear only if enabled AND Moyasar keys are configured. Tabby & Tamara will be added in Phase 2."}
+                  </p>
+                </div>
+
+                <Button onClick={saveSettings} disabled={updateMutation.isPending} className="w-full md:w-auto">
+                  <Save className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
+                  {t("settings.save")}
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>

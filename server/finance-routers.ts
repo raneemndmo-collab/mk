@@ -523,4 +523,80 @@ export const financeRouter = router({
         return occupancy.generateDailySnapshot(input?.date ? new Date(input.date) : undefined);
       }),
   }),
+
+  // ─── Moyasar Payment ──────────────────────────────────────────────
+  moyasarPayment: router({
+    // Get available payment methods (public — used by checkout page)
+    getAvailableMethods: publicProcedure
+      .query(async () => {
+        const { getAvailablePaymentMethods } = await import("./moyasar");
+        return getAvailablePaymentMethods();
+      }),
+    // Get Moyasar settings (admin only)
+    getSettings: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .query(async () => {
+        const { getMoyasarSettings } = await import("./moyasar");
+        return getMoyasarSettings();
+      }),
+    // Save Moyasar settings (admin only)
+    saveSettings: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .input(z.object({
+        publishableKey: z.string(),
+        secretKey: z.string(),
+        webhookSecret: z.string(),
+        mode: z.enum(["test", "live"]),
+        enabled: z.boolean(),
+        enableMadaCards: z.boolean(),
+        enableApplePay: z.boolean(),
+        enableGooglePay: z.boolean(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const dbModule = await import("./db");
+        await dbModule.setSetting("moyasar.publishableKey", input.publishableKey);
+        await dbModule.setSetting("moyasar.secretKey", input.secretKey);
+        await dbModule.setSetting("moyasar.webhookSecret", input.webhookSecret);
+        await dbModule.setSetting("moyasar.mode", input.mode);
+        await dbModule.setSetting("moyasar.enabled", String(input.enabled));
+        await dbModule.setSetting("moyasar.enableMadaCards", String(input.enableMadaCards));
+        await dbModule.setSetting("moyasar.enableApplePay", String(input.enableApplePay));
+        await dbModule.setSetting("moyasar.enableGooglePay", String(input.enableGooglePay));
+        await logAudit({
+          userId: ctx.user?.id, userName: auditUserName(ctx),
+          action: "UPDATE", entityType: "PAYMENT_METHOD", entityId: 0,
+          entityLabel: "Moyasar Settings",
+          metadata: { enabled: input.enabled, mode: input.mode },
+        });
+        return { success: true };
+      }),
+    // Create a Moyasar payment (protected — tenant creates payment)
+    createPayment: protectedProcedure
+      .input(z.object({
+        bookingId: z.number(),
+        amount: z.number(),
+        description: z.string(),
+        callbackUrl: z.string(),
+        sourceType: z.enum(["creditcard", "applepay", "googlepay"]),
+        token: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { createMoyasarPayment } = await import("./moyasar");
+        return createMoyasarPayment({
+          bookingId: input.bookingId,
+          amount: input.amount,
+          description: input.description,
+          callbackUrl: input.callbackUrl,
+          source: {
+            type: input.sourceType,
+            token: input.token,
+          },
+        });
+      }),
+    // Fetch payment status from Moyasar (admin reconciliation)
+    fetchStatus: adminWithPermission(PERMISSIONS.VIEW_ANALYTICS)
+      .input(z.object({ paymentRef: z.string() }))
+      .query(async ({ input }) => {
+        const { fetchMoyasarPaymentStatus } = await import("./moyasar");
+        return fetchMoyasarPaymentStatus(input.paymentRef);
+      }),
+  }),
 });

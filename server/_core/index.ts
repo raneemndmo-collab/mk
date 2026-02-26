@@ -154,8 +154,9 @@ async function startServer() {
   });
 
   // ─── Payment Webhook Routes (PSP callbacks) ─────────────────────
-  const { handleMoyasarWebhook, handleTabbyWebhook, handleTamaraWebhook } = await import("../payment-webhooks");
-  app.post("/api/webhooks/moyasar", handleMoyasarWebhook);
+  const { handleMoyasarWebhookVerified } = await import("../moyasar");
+  const { handleTabbyWebhook, handleTamaraWebhook } = await import("../payment-webhooks");
+  app.post("/api/webhooks/moyasar", handleMoyasarWebhookVerified);
   app.post("/api/webhooks/tabby", handleTabbyWebhook);
   app.post("/api/webhooks/tamara", handleTamaraWebhook);
 

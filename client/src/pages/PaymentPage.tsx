@@ -9,8 +9,10 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
   CreditCard, CheckCircle, ArrowLeft, ArrowRight,
-  Loader2, Shield, Smartphone, Wallet, Clock
+  Loader2, Shield, Smartphone, Wallet, Clock, AlertCircle
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
@@ -20,50 +22,23 @@ import { format } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
 import SEOHead from "@/components/SEOHead";
 
-type PaymentMethod = "paypal" | "apple_pay" | "google_pay" | "cash";
+type MethodKey = string;
 
-const paymentMethods: { key: PaymentMethod; labelAr: string; labelEn: string; icon: any; color: string; bgColor: string; description: string; descriptionAr: string }[] = [
-  {
-    key: "paypal",
-    labelAr: "PayPal",
-    labelEn: "PayPal",
-    icon: Wallet,
-    color: "text-[#003087]",
-    bgColor: "bg-[#003087]/10 border-[#003087]/20 hover:border-[#003087]/50",
-    description: "Pay securely with your PayPal account",
-    descriptionAr: "ادفع بأمان عبر حسابك في PayPal",
-  },
-  {
-    key: "apple_pay",
-    labelAr: "Apple Pay",
-    labelEn: "Apple Pay",
-    icon: Smartphone,
-    color: "text-black dark:text-white",
-    bgColor: "bg-black/5 dark:bg-white/10 border-black/20 dark:border-white/20 hover:border-black/50 dark:hover:border-white/50",
-    description: "Quick and secure payment with Apple Pay",
-    descriptionAr: "دفع سريع وآمن عبر Apple Pay",
-  },
-  {
-    key: "google_pay",
-    labelAr: "Google Pay",
-    labelEn: "Google Pay",
-    icon: CreditCard,
-    color: "text-[#4285F4]",
-    bgColor: "bg-[#4285F4]/10 border-[#4285F4]/20 hover:border-[#4285F4]/50",
-    description: "Pay with Google Pay for a seamless experience",
-    descriptionAr: "ادفع عبر Google Pay لتجربة سلسة",
-  },
-  {
-    key: "cash",
-    labelAr: "الدفع عند الاستلام",
-    labelEn: "Cash on Delivery",
-    icon: Wallet,
-    color: "text-green-600",
-    bgColor: "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 hover:border-green-400",
-    description: "Pay in cash when you receive the keys",
-    descriptionAr: "ادفع نقداً عند استلام المفاتيح",
-  },
-];
+const methodIcons: Record<string, any> = {
+  mada_card: CreditCard,
+  apple_pay: Smartphone,
+  google_pay: Wallet,
+  paypal: Wallet,
+  cash: Wallet,
+};
+
+const methodColors: Record<string, { color: string; bgColor: string }> = {
+  mada_card: { color: "text-[#1A6B4E]", bgColor: "bg-[#1A6B4E]/10 border-[#1A6B4E]/20 hover:border-[#1A6B4E]/50" },
+  apple_pay: { color: "text-black dark:text-white", bgColor: "bg-black/5 dark:bg-white/10 border-black/20 dark:border-white/20 hover:border-black/50 dark:hover:border-white/50" },
+  google_pay: { color: "text-[#4285F4]", bgColor: "bg-[#4285F4]/10 border-[#4285F4]/20 hover:border-[#4285F4]/50" },
+  paypal: { color: "text-[#003087]", bgColor: "bg-[#003087]/10 border-[#003087]/20 hover:border-[#003087]/50" },
+  cash: { color: "text-green-600", bgColor: "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 hover:border-green-400" },
+};
 
 export default function PaymentPage() {
   const { t, lang, dir } = useI18n();
@@ -73,10 +48,20 @@ export default function PaymentPage() {
   const bookingId = Number(params?.id);
   const { get: setting } = useSiteSettings();
 
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<MethodKey | null>(null);
   const [processing, setProcessing] = useState(false);
 
+  // Card form state (for mada)
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardName, setCardName] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvc, setCardCvc] = useState("");
+
   const booking = trpc.booking.getById.useQuery({ id: bookingId }, { enabled: !!bookingId });
+
+  // Fetch available payment methods dynamically from server
+  const methodsQuery = trpc.finance.moyasarPayment.getAvailableMethods.useQuery();
+  const createPaymentMutation = trpc.finance.moyasarPayment.createPayment.useMutation();
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-8 w-8" /></div>;
   if (!isAuthenticated) { window.location.href = getLoginUrl(); return null; }
@@ -137,22 +122,79 @@ export default function PaymentPage() {
 
   const monthlyRent = Number(b.monthlyRent);
   const totalAmount = Number(b.totalAmount);
+  const methods = methodsQuery.data?.methods || [];
 
-  const handlePay = () => {
+  const handlePay = async () => {
     if (!selectedMethod) {
       toast.error(lang === "ar" ? "يرجى اختيار طريقة الدفع" : "Please select a payment method");
       return;
     }
-    setProcessing(true);
-    // Simulate payment processing - will be connected later
-    setTimeout(() => {
-      setProcessing(false);
+
+    const method = methods.find((m: any) => m.key === selectedMethod);
+    if (!method) return;
+
+    // Cash on delivery
+    if (method.provider === "manual") {
+      toast.success(
+        lang === "ar"
+          ? "تم تأكيد الدفع عند الاستلام. تواصل مع الإدارة لترتيب التسليم."
+          : "Cash on delivery confirmed. Contact admin to arrange handover."
+      );
+      setLocation("/dashboard");
+      return;
+    }
+
+    // PayPal — existing flow
+    if (method.provider === "paypal") {
       toast.info(
         lang === "ar"
-          ? "سيتم ربط بوابة الدفع قريباً. تواصل مع الإدارة لإتمام الدفع."
-          : "Payment gateway will be connected soon. Contact admin to complete payment."
+          ? "سيتم توجيهك إلى PayPal لإتمام الدفع."
+          : "You will be redirected to PayPal to complete payment."
       );
-    }, 1500);
+      return;
+    }
+
+    // Moyasar payment
+    if (method.provider === "moyasar") {
+      setProcessing(true);
+      try {
+        let sourceType: "creditcard" | "applepay" | "googlepay" = "creditcard";
+        if (selectedMethod === "apple_pay") sourceType = "applepay";
+        else if (selectedMethod === "google_pay") sourceType = "googlepay";
+
+        if (sourceType === "creditcard") {
+          if (!cardNumber || !cardName || !cardExpiry || !cardCvc) {
+            toast.error(lang === "ar" ? "يرجى إدخال بيانات البطاقة كاملة" : "Please fill in all card details");
+            setProcessing(false);
+            return;
+          }
+        }
+
+        const callbackUrl = `${window.location.origin}/payment-callback/${bookingId}`;
+
+        const result = await createPaymentMutation.mutateAsync({
+          bookingId,
+          amount: totalAmount,
+          description: lang === "ar" ? `دفع حجز #${bookingId}` : `Booking #${bookingId} payment`,
+          callbackUrl,
+          sourceType,
+        });
+
+        // Moyasar returns transactionUrl for 3DS redirect (mada cards)
+        if (result.transactionUrl) {
+          window.location.href = result.transactionUrl;
+        } else if (result.status === "paid" || result.status === "initiated") {
+          // For Apple Pay / Google Pay that complete instantly
+          setLocation(`/payment-callback/${bookingId}?id=${result.paymentId}&status=${result.status}`);
+        } else {
+          toast.error(lang === "ar" ? "فشل إنشاء عملية الدفع" : "Failed to create payment");
+        }
+      } catch (err: any) {
+        toast.error(err.message || (lang === "ar" ? "حدث خطأ أثناء الدفع" : "Payment error occurred"));
+      } finally {
+        setProcessing(false);
+      }
+    }
   };
 
   return (
@@ -243,36 +285,123 @@ export default function PaymentPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {paymentMethods.map(method => (
-              <button
-                key={method.key}
-                onClick={() => setSelectedMethod(method.key)}
-                className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-200 text-start ${
-                  selectedMethod === method.key
-                    ? "border-primary bg-primary/5 shadow-md shadow-primary/15 ring-1 ring-primary/20"
-                    : method.bgColor
-                }`}
-              >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                  selectedMethod === method.key ? "bg-primary/10" : "bg-muted/50"
-                }`}>
-                  <method.icon className={`h-6 w-6 ${selectedMethod === method.key ? "text-primary" : method.color}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-base">
-                    {lang === "ar" ? method.labelAr : method.labelEn}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {lang === "ar" ? method.descriptionAr : method.description}
-                  </div>
-                </div>
-                {selectedMethod === method.key && (
-                  <CheckCircle className="h-5 w-5 text-primary shrink-0" />
-                )}
-              </button>
-            ))}
+            {methodsQuery.isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : methods.length === 0 ? (
+              <div className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  {lang === "ar"
+                    ? "لا توجد طرق دفع متاحة حالياً. تواصل مع الإدارة."
+                    : "No payment methods available. Contact admin."}
+                </p>
+              </div>
+            ) : (
+              methods.map(method => {
+                const Icon = methodIcons[method.key] || CreditCard;
+                const colors = methodColors[method.key] || { color: "text-primary", bgColor: "bg-primary/10 border-primary/20 hover:border-primary/50" };
+                return (
+                  <button
+                    key={method.key}
+                    onClick={() => setSelectedMethod(method.key)}
+                    className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-200 text-start ${
+                      selectedMethod === method.key
+                        ? "border-primary bg-primary/5 shadow-md shadow-primary/15 ring-1 ring-primary/20"
+                        : colors.bgColor
+                    }`}
+                  >
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                      selectedMethod === method.key ? "bg-primary/10" : "bg-muted/50"
+                    }`}>
+                      <Icon className={`h-6 w-6 ${selectedMethod === method.key ? "text-primary" : colors.color}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-base">
+                        {lang === "ar" ? method.labelAr : method.label}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {method.provider === "moyasar" && (lang === "ar" ? "عبر Moyasar — آمن ومشفر" : "via Moyasar — secure & encrypted")}
+                        {method.provider === "paypal" && (lang === "ar" ? "ادفع بأمان عبر حسابك في PayPal" : "Pay securely with your PayPal account")}
+                        {method.provider === "manual" && (lang === "ar" ? "ادفع نقداً عند استلام المفاتيح" : "Pay in cash when you receive the keys")}
+                      </div>
+                    </div>
+                    {selectedMethod === method.key && (
+                      <CheckCircle className="h-5 w-5 text-primary shrink-0" />
+                    )}
+                  </button>
+                );
+              })
+            )}
           </CardContent>
         </Card>
+
+        {/* Card Form — only for mada_card */}
+        {selectedMethod === "mada_card" && (
+          <Card className="mb-6 border-0 shadow-md">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-[#1A6B4E]" />
+                {lang === "ar" ? "بيانات البطاقة" : "Card Details"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>{lang === "ar" ? "رقم البطاقة" : "Card Number"}</Label>
+                <Input
+                  placeholder="5123 4567 8901 2346"
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(e.target.value.replace(/[^\d\s]/g, "").slice(0, 19))}
+                  dir="ltr"
+                  className="font-mono text-lg tracking-wider"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{lang === "ar" ? "اسم حامل البطاقة" : "Cardholder Name"}</Label>
+                <Input
+                  placeholder="AHMED MOHAMMED"
+                  value={cardName}
+                  onChange={(e) => setCardName(e.target.value.toUpperCase())}
+                  dir="ltr"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{lang === "ar" ? "تاريخ الانتهاء" : "Expiry Date"}</Label>
+                  <Input
+                    placeholder="MM/YY"
+                    value={cardExpiry}
+                    onChange={(e) => {
+                      let v = e.target.value.replace(/[^\d]/g, "").slice(0, 4);
+                      if (v.length > 2) v = v.slice(0, 2) + "/" + v.slice(2);
+                      setCardExpiry(v);
+                    }}
+                    dir="ltr"
+                    className="font-mono"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>CVC</Label>
+                  <Input
+                    placeholder="123"
+                    value={cardCvc}
+                    onChange={(e) => setCardCvc(e.target.value.replace(/[^\d]/g, "").slice(0, 4))}
+                    dir="ltr"
+                    className="font-mono"
+                    type="password"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Shield className="h-3.5 w-3.5" />
+                {lang === "ar"
+                  ? "بياناتك مشفرة ومحمية عبر Moyasar. لا يتم تخزين بيانات البطاقة على خوادمنا."
+                  : "Your data is encrypted via Moyasar. Card details are never stored on our servers."}
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Security notice */}
         <Card className="mb-6 border-0 shadow-sm bg-muted/30">
