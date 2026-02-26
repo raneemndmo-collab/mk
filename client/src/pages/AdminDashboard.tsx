@@ -30,7 +30,7 @@ import {
   Users, Building2, Calendar, CreditCard, BarChart3,
   Loader2, CheckCircle, XCircle, Shield, TrendingUp, BookOpen,
   Package, AlertTriangle, Star, Bot, Clock, Send, BanknoteIcon,
-  FileText, Eye, HelpCircle, MessageSquare
+  FileText, Eye, HelpCircle, MessageSquare, Search, UserCog
 } from "lucide-react";
 import { Link } from "wouter";
 import { getLoginUrl } from "@/const";
@@ -68,9 +68,43 @@ export default function AdminDashboard() {
   const [approveNotes, setApproveNotes] = useState("");
   const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; bookingId: number | null }>({ open: false, bookingId: null });
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
+  // User management state
+  const [userSearch, setUserSearch] = useState("");
+  const [userSearchDebounced, setUserSearchDebounced] = useState("");
+  const [userRoleFilter, setUserRoleFilter] = useState("all");
+  const [roleChangeUser, setRoleChangeUser] = useState<{ id: number; name: string; currentRole: string } | null>(null);
+  const [newRole, setNewRole] = useState("");
+  const searchTimeoutRef = useState<ReturnType<typeof setTimeout> | null>(null);
+  const handleUserSearch = (val: string) => {
+    setUserSearch(val);
+    if (searchTimeoutRef[0]) clearTimeout(searchTimeoutRef[0]);
+    searchTimeoutRef[1](setTimeout(() => setUserSearchDebounced(val), 400));
+  };
 
   const stats = trpc.admin.stats.useQuery(undefined, { enabled: isAuthenticated && user?.role === "admin" });
-  const users = trpc.admin.users.useQuery({ limit: 50 }, { enabled: isAuthenticated && user?.role === "admin" });
+  const users = trpc.admin.users.useQuery(
+    { limit: 100, search: userSearchDebounced || undefined, role: userRoleFilter !== "all" ? userRoleFilter : undefined },
+    { enabled: isAuthenticated && user?.role === "admin" }
+  );
+  const rolesQuery = trpc.roles.list.useQuery(undefined, { enabled: isAuthenticated && user?.role === "admin" });
+  const updateUserRole = trpc.admin.updateUserRole.useMutation({
+    onSuccess: () => {
+      toast.success(lang === "ar" ? "تم تحديث دور المستخدم بنجاح" : "User role updated successfully");
+      utils.admin.users.invalidate();
+      setRoleChangeUser(null);
+      setNewRole("");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const assignRole = trpc.roles.assignToUser.useMutation({
+    onSuccess: () => {
+      toast.success(lang === "ar" ? "تم تعيين الدور والصلاحيات بنجاح" : "Role and permissions assigned successfully");
+      utils.admin.users.invalidate();
+      setRoleChangeUser(null);
+      setNewRole("");
+    },
+    onError: (e) => toast.error(e.message),
+  });
   const properties = trpc.admin.properties.useQuery({ limit: 50 }, { enabled: isAuthenticated && user?.role === "admin" });
   const bookings = trpc.admin.bookings.useQuery({ limit: 50 }, { enabled: isAuthenticated && user?.role === "admin" });
 
@@ -479,31 +513,104 @@ export default function AdminDashboard() {
 
           {/* Users */}
           <TabsContent value="users">
+            {/* Search & Filter Bar */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={lang === "ar" ? "ابحث بالاسم أو الإيميل أو الهاتف..." : "Search by name, email, or phone..."}
+                  value={userSearch}
+                  onChange={(e) => handleUserSearch(e.target.value)}
+                  className="ps-9"
+                />
+              </div>
+              <Select value={userRoleFilter} onValueChange={setUserRoleFilter}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder={lang === "ar" ? "كل الأدوار" : "All Roles"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{lang === "ar" ? "كل الأدوار" : "All Roles"}</SelectItem>
+                  <SelectItem value="admin">{lang === "ar" ? "مدير" : "Admin"}</SelectItem>
+                  <SelectItem value="landlord">{lang === "ar" ? "مالك" : "Landlord"}</SelectItem>
+                  <SelectItem value="tenant">{lang === "ar" ? "مستأجر" : "Tenant"}</SelectItem>
+                  <SelectItem value="user">{lang === "ar" ? "مستخدم" : "User"}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Results count */}
+            {users.data && (
+              <p className="text-sm text-muted-foreground mb-3">
+                {lang === "ar" ? `${users.data.length} مستخدم` : `${users.data.length} user(s) found`}
+              </p>
+            )}
             {users.isLoading ? (
-              <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
+              <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full" />)}</div>
             ) : users.data && users.data.length > 0 ? (
               <div className="space-y-2">
-                {users.data.map((u: any) => (
-                  <Card key={u.id}>
-                    <CardContent className="p-4 flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold">{u.name || "—"}</span>
-                          <Badge variant={u.role === "admin" ? "default" : "secondary"}>{u.role}</Badge>
+                {users.data.map((u: any) => {
+                  const roleColors: Record<string, string> = {
+                    admin: "bg-red-500/10 text-red-600 border-red-200 dark:text-red-400",
+                    landlord: "bg-blue-500/10 text-blue-600 border-blue-200 dark:text-blue-400",
+                    tenant: "bg-green-500/10 text-green-600 border-green-200 dark:text-green-400",
+                    user: "bg-gray-500/10 text-gray-600 border-gray-200 dark:text-gray-400",
+                  };
+                  const roleLabels: Record<string, { ar: string; en: string }> = {
+                    admin: { ar: "مدير", en: "Admin" },
+                    landlord: { ar: "مالك", en: "Landlord" },
+                    tenant: { ar: "مستأجر", en: "Tenant" },
+                    user: { ar: "مستخدم", en: "User" },
+                  };
+                  return (
+                    <Card key={u.id} className="hover:border-primary/30 transition-colors">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                              <span className="text-sm font-bold text-primary">
+                                {(u.nameAr || u.name || u.displayName || "?").charAt(0)}
+                              </span>
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-semibold truncate">{u.nameAr || u.name || u.displayName || "—"}</span>
+                                <Badge className={`text-xs ${roleColors[u.role] || roleColors.user}`}>
+                                  {roleLabels[u.role]?.[lang === "ar" ? "ar" : "en"] || u.role}
+                                </Badge>
+                                {u.isVerified && <Badge variant="outline" className="text-xs text-green-600 border-green-300">{lang === "ar" ? "موثق" : "Verified"}</Badge>}
+                              </div>
+                              <div className="text-sm text-muted-foreground truncate">{u.email || "—"}</div>
+                              {u.phone && <div className="text-xs text-muted-foreground">{u.phone}</div>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div className="text-xs text-muted-foreground text-end hidden sm:block">
+                              <div>{lang === "ar" ? "انضم" : "Joined"}</div>
+                              <div>{new Date(u.createdAt).toLocaleDateString(lang === "ar" ? "ar-SA" : "en-US")}</div>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => { setRoleChangeUser({ id: u.id, name: u.nameAr || u.name || u.displayName || u.email || "—", currentRole: u.role }); setNewRole(u.role); }}
+                              className="gap-1.5"
+                            >
+                              <UserCog className="h-3.5 w-3.5" />
+                              <span className="hidden sm:inline">{lang === "ar" ? "تغيير الدور" : "Change Role"}</span>
+                            </Button>
+                          </div>
                         </div>
-                        <div className="text-sm text-muted-foreground">{u.email || "—"}</div>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {new Date(u.createdAt).toLocaleDateString()}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             ) : (
               <Card className="p-12 text-center">
                 <Users className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                <p className="text-muted-foreground">{lang === "ar" ? "لا يوجد مستخدمون" : "No users"}</p>
+                <p className="text-muted-foreground">
+                  {userSearch
+                    ? (lang === "ar" ? `لا توجد نتائج لـ "${userSearch}"` : `No results for "${userSearch}"`)
+                    : (lang === "ar" ? "لا يوجد مستخدمون" : "No users")}
+                </p>
               </Card>
             )}
           </TabsContent>
@@ -643,6 +750,96 @@ export default function AdminDashboard() {
               {confirmPayment.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               <CreditCard className="h-4 w-4" />
               {lang === "ar" ? "تأكيد الدفع" : "Confirm Payment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Role Change Dialog */}
+      <Dialog open={!!roleChangeUser} onOpenChange={(open) => { if (!open) { setRoleChangeUser(null); setNewRole(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{lang === "ar" ? "تغيير دور المستخدم" : "Change User Role"}</DialogTitle>
+            <DialogDescription>
+              {roleChangeUser && (
+                <span>{lang === "ar" ? `تغيير دور: ${roleChangeUser.name}` : `Changing role for: ${roleChangeUser.name}`}</span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* System Role (user/admin/landlord/tenant) */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                {lang === "ar" ? "الدور الأساسي" : "Base Role"}
+              </label>
+              <Select value={newRole} onValueChange={setNewRole}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">{lang === "ar" ? "مستخدم عادي" : "User"}</SelectItem>
+                  <SelectItem value="tenant">{lang === "ar" ? "مستأجر" : "Tenant"}</SelectItem>
+                  <SelectItem value="landlord">{lang === "ar" ? "مالك عقار" : "Landlord"}</SelectItem>
+                  <SelectItem value="admin">{lang === "ar" ? "مدير نظام" : "System Admin"}</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {lang === "ar" ? "يحدد نوع الحساب والواجهة التي يراها المستخدم" : "Determines account type and which interface the user sees"}
+              </p>
+            </div>
+            {/* Permission Role (from roles table) */}
+            {newRole === "admin" && rolesQuery.data && rolesQuery.data.length > 0 && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  {lang === "ar" ? "دور الصلاحيات (اختياري)" : "Permission Role (optional)"}
+                </label>
+                <div className="space-y-2">
+                  {rolesQuery.data.map((r: any) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => {
+                        if (roleChangeUser) {
+                          assignRole.mutate({ userId: roleChangeUser.id, roleId: r.id });
+                        }
+                      }}
+                      disabled={assignRole.isPending}
+                      className="w-full text-start p-3 rounded-lg border hover:border-primary/50 hover:bg-primary/5 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium text-sm">{lang === "ar" ? r.nameAr : r.name}</div>
+                          <div className="text-xs text-muted-foreground">{lang === "ar" ? r.descriptionAr : r.description}</div>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {(r.permissions as string[])?.length || 0} {lang === "ar" ? "صلاحية" : "permissions"}
+                        </Badge>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {lang === "ar" ? "اضغط على دور لتعيين صلاحياته للمستخدم (مثل: محاسب، مدير عقارات، موظف دعم)" : "Click a role to assign its permissions to the user (e.g., Accountant, Property Manager, Support Agent)"}
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setRoleChangeUser(null); setNewRole(""); }}>
+              {lang === "ar" ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              onClick={() => {
+                if (roleChangeUser && newRole) {
+                  updateUserRole.mutate({ userId: roleChangeUser.id, role: newRole as any });
+                }
+              }}
+              disabled={updateUserRole.isPending || !newRole || newRole === roleChangeUser?.currentRole}
+              className="gap-1.5"
+            >
+              {updateUserRole.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              <UserCog className="h-4 w-4" />
+              {lang === "ar" ? "حفظ الدور" : "Save Role"}
             </Button>
           </DialogFooter>
         </DialogContent>

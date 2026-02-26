@@ -799,9 +799,9 @@ export const appRouter = router({
     }),
 
     users: adminWithPermission(PERMISSIONS.MANAGE_USERS)
-      .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }))
+      .input(z.object({ limit: z.number().optional(), offset: z.number().optional(), search: z.string().max(200).optional(), role: z.string().optional() }))
       .query(async ({ input }) => {
-        return db.getAllUsers(input.limit, input.offset);
+        return db.getAllUsers(input.limit, input.offset, input.search, input.role);
       }),
 
     updateUserRole: adminWithPermission(PERMISSIONS.MANAGE_USERS)

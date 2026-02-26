@@ -106,9 +106,26 @@ export async function updateUserProfile(userId: number, data: Partial<InsertUser
   await db.update(users).set(updateData).where(eq(users.id, userId));
 }
 
-export async function getAllUsers(limit = 50, offset = 0) {
+export async function getAllUsers(limit = 50, offset = 0, search?: string, role?: string) {
   const db = await getDb();
   if (!db) return [];
+  const conditions = [];
+  if (search && search.trim()) {
+    const term = `%${search.trim()}%`;
+    conditions.push(or(
+      like(users.name, term),
+      like(users.nameAr, term),
+      like(users.displayName, term),
+      like(users.email, term),
+      like(users.phone, term),
+    ));
+  }
+  if (role && role !== 'all') {
+    conditions.push(eq(users.role, role as any));
+  }
+  if (conditions.length > 0) {
+    return db.select().from(users).where(and(...conditions)).orderBy(desc(users.createdAt)).limit(limit).offset(offset);
+  }
   return db.select().from(users).orderBy(desc(users.createdAt)).limit(limit).offset(offset);
 }
 
