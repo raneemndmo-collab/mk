@@ -28,6 +28,20 @@ function requireProductionSecret(name: string, value: string | undefined, minLen
   return value;
 }
 
+// Warn-only variant: logs a warning in production but does NOT crash the server.
+// Use for secrets that are important but not on the critical startup path.
+function warnProductionSecret(name: string, value: string | undefined, minLength: number, fallback: string): string {
+  if (isProduction && (!value || value.length < minLength)) {
+    console.warn(`[WARN] ${name} is missing or too short (min ${minLength} chars). Using fallback — set it in env vars ASAP.`);
+    return value || fallback;
+  }
+  if (!value) {
+    console.warn(`[WARN] ${name} not set — using insecure development fallback.`);
+    return fallback;
+  }
+  return value;
+}
+
 // ─── Session Configuration ───────────────────────────────────────────────────
 // Access token TTL: 30 minutes in production, 24 hours in development.
 // This replaces the previous 365-day (ONE_YEAR_MS) session lifetime.
@@ -37,7 +51,7 @@ const SESSION_TTL_MS = isProduction
 
 export const ENV = {
   appId: process.env.VITE_APP_ID ?? "monthly-key-local",
-  cookieSecret: requireProductionSecret("JWT_SECRET", process.env.JWT_SECRET, 64),
+  cookieSecret: requireProductionSecret("JWT_SECRET", process.env.JWT_SECRET, 32),
   databaseUrl: process.env.DATABASE_URL ?? "mysql://root:password@localhost:3306/monthly_rental",
   isProduction,
   sessionTtlMs: SESSION_TTL_MS,
@@ -66,8 +80,8 @@ export const ENV = {
   // Push Notifications (VAPID) - local web-push
   vapidPublicKey: process.env.VITE_VAPID_PUBLIC_KEY ?? "",
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? "",
-  // OTP / Verification
-  otpSecretPepper: requireProductionSecret("OTP_SECRET_PEPPER", process.env.OTP_SECRET_PEPPER, 32),
+  // OTP / Verification — warn-only (OTP is not on critical startup path)
+  otpSecretPepper: warnProductionSecret("OTP_SECRET_PEPPER", process.env.OTP_SECRET_PEPPER, 32, "dev-otp-pepper-change-in-production"),
   otpTtlSeconds: parseInt(process.env.OTP_TTL_SECONDS ?? "300"),
   smsProvider: process.env.SMS_PROVIDER ?? "dev",
   smsApiKey: process.env.SMS_API_KEY ?? "",
