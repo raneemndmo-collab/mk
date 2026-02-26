@@ -1,6 +1,7 @@
 import { useI18n } from "@/lib/i18n";
 import { useSiteSettings } from "@/contexts/SiteSettingsContext";
 import { Mail, Phone, MapPin, Shield, Building2, Receipt, FileCheck, ExternalLink, Clock } from "lucide-react";
+import PaymentMethodsBadges from "@/components/PaymentMethodsBadges";
 import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
 
@@ -157,6 +158,11 @@ export default function Footer() {
           </div>
         </div>
       )}
+
+      {/* Payment Method Badges */}
+      <div className="container pb-4">
+        <PaymentMethodsBadges variant="footer" />
+      </div>
 
       {/* Copyright Bar */}
       <div className="border-t border-white/5 bg-[#071520]">

@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 // Slider removed — calculator now uses button chips
 import CostCalculator from "@/components/CostCalculator";
+import PaymentMethodsBadges from "@/components/PaymentMethodsBadges";
 import {
   Heart, Share2, MapPin, BedDouble, Bath, Maximize2, Building, Calendar,
   CheckCircle, Star, MessageSquare, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight,
@@ -754,6 +755,9 @@ export default function PropertyDetail() {
                   bookLabel={prop.instantBook ? t("property.bookNow") : t("property.requestBooking")}
                 />
               )}
+
+              {/* Secure Payment Methods Badges */}
+              <PaymentMethodsBadges variant="property" />
 
               {/* Property Manager Card */}
               {(prop as any).manager && (

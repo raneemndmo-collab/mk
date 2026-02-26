@@ -52,33 +52,43 @@ export async function getMoyasarSettings(): Promise<MoyasarSettings> {
  * Returns the list of available payment methods based on admin toggles and key configuration.
  * Methods appear only if enabled AND keys are configured.
  */
+export interface PaymentMethodInfo {
+  key: string;
+  provider: string;
+  label: string;
+  labelAr: string;
+  logoPath: string;
+  displayOrder: number;
+  isOnline: boolean; // true for digital payments, false for cash
+}
+
 export async function getAvailablePaymentMethods(): Promise<{
-  methods: { key: string; provider: string; label: string; labelAr: string }[];
+  methods: PaymentMethodInfo[];
   moyasarPublishableKey: string | null;
   mode: string;
 }> {
   const s = await getMoyasarSettings();
-  const methods: { key: string; provider: string; label: string; labelAr: string }[] = [];
+  const methods: PaymentMethodInfo[] = [];
   
   const moyasarConfigured = s.enabled && s.publishableKey && s.secretKey;
   
   if (moyasarConfigured && s.enableMadaCards) {
-    methods.push({ key: "mada_card", provider: "moyasar", label: "mada Card", labelAr: "بطاقة مدى" });
+    methods.push({ key: "mada_card", provider: "moyasar", label: "mada Card", labelAr: "بطاقة مدى", logoPath: "/payment-logos/mada.svg", displayOrder: 1, isOnline: true });
   }
   if (moyasarConfigured && s.enableApplePay) {
-    methods.push({ key: "apple_pay", provider: "moyasar", label: "Apple Pay", labelAr: "Apple Pay" });
+    methods.push({ key: "apple_pay", provider: "moyasar", label: "Apple Pay", labelAr: "Apple Pay", logoPath: "/payment-logos/apple-pay.svg", displayOrder: 2, isOnline: true });
   }
   if (moyasarConfigured && s.enableGooglePay) {
-    methods.push({ key: "google_pay", provider: "moyasar", label: "Google Pay", labelAr: "Google Pay" });
+    methods.push({ key: "google_pay", provider: "moyasar", label: "Google Pay", labelAr: "Google Pay", logoPath: "/payment-logos/google-pay.svg", displayOrder: 3, isOnline: true });
   }
   if (s.paypalEnabled) {
     const paypalClientId = (await db.getAllSettings())["payment.paypalClientId"];
     if (paypalClientId) {
-      methods.push({ key: "paypal", provider: "paypal", label: "PayPal", labelAr: "PayPal" });
+      methods.push({ key: "paypal", provider: "paypal", label: "PayPal", labelAr: "PayPal", logoPath: "/payment-logos/paypal.svg", displayOrder: 4, isOnline: true });
     }
   }
   if (s.cashEnabled) {
-    methods.push({ key: "cash", provider: "manual", label: "Cash on Delivery", labelAr: "الدفع عند الاستلام" });
+    methods.push({ key: "cash", provider: "manual", label: "Cash on Delivery", labelAr: "الدفع عند الاستلام", logoPath: "", displayOrder: 10, isOnline: false });
   }
   
   return {
@@ -86,6 +96,17 @@ export async function getAvailablePaymentMethods(): Promise<{
     moyasarPublishableKey: moyasarConfigured ? s.publishableKey : null,
     mode: s.mode,
   };
+}
+
+/**
+ * Returns ONLY online payment methods that have logos — used by PaymentMethodsBadges component.
+ * Single source of truth: same getAvailablePaymentMethods() function.
+ */
+export async function getEnabledPaymentMethodsForBadges(): Promise<PaymentMethodInfo[]> {
+  const { methods } = await getAvailablePaymentMethods();
+  return methods
+    .filter(m => m.isOnline && m.logoPath)
+    .sort((a, b) => a.displayOrder - b.displayOrder);
 }
 
 // ─── Create Payment ──────────────────────────────────────────────────

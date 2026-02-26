@@ -532,6 +532,12 @@ export const financeRouter = router({
         const { getAvailablePaymentMethods } = await import("./moyasar");
         return getAvailablePaymentMethods();
       }),
+    // Get enabled payment method badges (public — used by footer + property page)
+    getEnabledBadges: publicProcedure
+      .query(async () => {
+        const { getEnabledPaymentMethodsForBadges } = await import("./moyasar");
+        return getEnabledPaymentMethodsForBadges();
+      }),
     // Get Moyasar settings (admin only)
     getSettings: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
       .query(async () => {
