@@ -1,5 +1,5 @@
--- Add googleMapsUrl to properties table
+-- Fix: Migration 0021 was missing --> statement-breakpoint separators
+-- Re-add googleMapsUrl columns using plain ALTER TABLE
 ALTER TABLE `properties` ADD COLUMN `googleMapsUrl` text;
 --> statement-breakpoint
--- Add googleMapsUrl to property_submissions table
 ALTER TABLE `property_submissions` ADD COLUMN `googleMapsUrl` text;
