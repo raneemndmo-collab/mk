@@ -647,7 +647,7 @@ export default function Home() {
             {/* Brand Logo in Hero — locale-aware, light variant on dark hero */}
             <div className="hero-logo mb-3 animate-slide-right">
               <img 
-                src={lang === "ar" ? "/logo-ar-light.png" : "/logo-horizontal-light.png"}
+                src="/assets/brand/mk-logo-dark.svg"
                 alt={lang === "ar" ? "المفتاح الشهري" : "Monthly Key"}
                 className="h-[48px] sm:h-[64px] md:h-[80px] w-auto object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
                 style={{ maxWidth: '360px' }}
@@ -977,7 +977,7 @@ export default function Home() {
         <ScrollSection className="container relative text-center">
           {/* Brand watermark */}
           <img 
-            src="/logo-mark.png" 
+            src="/assets/brand/mk-logo-transparent.svg" 
             alt="" 
             className="h-20 sm:h-24 w-auto object-contain mx-auto mb-6 opacity-10" 
           />

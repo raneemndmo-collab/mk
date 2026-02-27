@@ -57,14 +57,9 @@ export default function Login() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
             <img 
-              src="/logo-mark.png" 
+              src="/assets/brand/mk-logo-transparent.svg" 
               alt="Monthly Key - المفتاح الشهري" 
-              className="h-28 sm:h-32 w-auto object-contain mx-auto drop-shadow-lg dark:hidden" 
-            />
-            <img 
-              src="/logo-mark-light.png" 
-              alt="Monthly Key - المفتاح الشهري" 
-              className="h-28 sm:h-32 w-auto object-contain mx-auto drop-shadow-lg hidden dark:block" 
+              className="h-28 sm:h-32 w-auto object-contain mx-auto drop-shadow-lg" 
             />
           </Link>
           <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-[#C5A55A] to-transparent mx-auto mt-4" />

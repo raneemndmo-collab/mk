@@ -258,7 +258,7 @@ export default function Navbar() {
           {/* Logo — light variant on dark navbar, fixed height, no stretch */}
           <Link href="/" className="flex items-center shrink-0 me-3 transition-transform duration-300 hover:scale-105">
             <img 
-              src={lang === "ar" ? "/logo-ar-light.png" : "/logo-horizontal-light.png"}
+              src="/assets/brand/mk-logo-dark.svg"
               alt={lang === "ar" ? "المفتاح الشهري" : "Monthly Key"}
               className="h-10 sm:h-12 md:h-14 w-auto object-contain"
               style={{ maxWidth: '280px' }}
