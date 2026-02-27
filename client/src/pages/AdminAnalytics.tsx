@@ -35,11 +35,9 @@ const STATUS_COLORS: Record<string, string> = {
 // Animated counter component
 function AnimatedNumber({ value, suffix = "" }: { value: number; suffix?: string }) {
   return (
-    <DashboardLayout>
     <span className="tabular-nums font-bold">
       {value.toLocaleString()}{suffix}
     </span>
-      </DashboardLayout>
   );
 }
 
@@ -208,6 +206,7 @@ export default function AdminAnalytics() {
   ];
 
   return (
+    <DashboardLayout>
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background via-muted/20 to-background">
       <SEOHead title="Analytics" titleAr="التحليلات" path="/admin/analytics" noindex />
 <div className="container py-8 flex-1 max-w-7xl">
@@ -753,5 +752,6 @@ export default function AdminAnalytics() {
         )}
       </div>
 </div>
+    </DashboardLayout>
   );
 }

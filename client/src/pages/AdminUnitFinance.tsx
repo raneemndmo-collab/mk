@@ -101,7 +101,6 @@ function UnitForm({ unit, buildingId, onSuccess, onCancel, lang }: {
   const set = (key: string, val: string) => setForm(prev => ({ ...prev, [key]: val }));
 
   return (
-    <DashboardLayout>
     <form onSubmit={handleSubmit} className="space-y-4" dir={isRtl ? "rtl" : "ltr"}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
@@ -153,7 +152,6 @@ function UnitForm({ unit, buildingId, onSuccess, onCancel, lang }: {
         </Button>
       </div>
     </form>
-      </DashboardLayout>
   );
 }
 
@@ -719,6 +717,7 @@ export default function AdminUnitFinance() {
   }
 
   return (
+    <DashboardLayout>
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background via-muted/20 to-background">
       <SEOHead title={isNew ? "New Unit" : "Unit Finance"} titleAr={isNew ? "وحدة جديدة" : "مالية الوحدة"} path="/admin/units" noindex />
 <div className="container py-8 flex-1 max-w-6xl">
@@ -737,5 +736,6 @@ export default function AdminUnitFinance() {
         )}
       </div>
 </div>
+    </DashboardLayout>
   );
 }

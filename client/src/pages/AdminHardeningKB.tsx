@@ -1,3 +1,4 @@
+import DashboardLayout from "@/components/DashboardLayout";
 /**
  * Admin Hardening Knowledge Base
  * Accessible only to Root Admin (isRootAdmin) users
@@ -5,8 +6,6 @@
  */
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -416,14 +415,12 @@ export default function AdminHardeningKB() {
   if (user.role !== "admin") {
     return (
       <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <div className="container py-20 text-center">
+<div className="container py-20 text-center">
           <Shield className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
           <h2 className="text-xl font-bold mb-2">غير مصرح</h2>
           <p className="text-muted-foreground">هذه الصفحة متاحة للمسؤولين فقط</p>
         </div>
-        <Footer />
-      </div>
+</div>
     );
   }
 
@@ -431,8 +428,7 @@ export default function AdminHardeningKB() {
   if (!isRootAdmin && !permsQuery.isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <div className="container py-20 text-center">
+<div className="container py-20 text-center">
           <KeyRound className="h-16 w-16 mx-auto text-red-400/50 mb-4" />
           <h2 className="text-xl font-bold mb-2">صلاحية المسؤول الرئيسي مطلوبة</h2>
           <p className="text-muted-foreground mb-4">هذه الصفحة متاحة فقط للمسؤول الرئيسي (Root Admin)</p>
@@ -440,18 +436,16 @@ export default function AdminHardeningKB() {
             العودة للوحة التحكم
           </Button>
         </div>
-        <Footer />
-      </div>
+</div>
     );
   }
 
   const currentSection = sections.find(s => s.id === activeSection);
 
   return (
-    <div className="min-h-screen flex flex-col" dir="rtl">
-      <Navbar />
-
-      {/* Top Stats Bar */}
+    <DashboardLayout>
+    <div className="flex flex-col" dir="rtl">
+{/* Top Stats Bar */}
       <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-20">
         <div className="container py-3">
           <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -557,10 +551,7 @@ export default function AdminHardeningKB() {
           />
         ) : null}
       </main>
-
-      <Footer />
-
-      {/* Search Overlay */}
+{/* Search Overlay */}
       {searchOpen && (
         <SearchOverlay
           query={searchQuery}
@@ -578,5 +569,6 @@ export default function AdminHardeningKB() {
         />
       )}
     </div>
+    </DashboardLayout>
   );
 }

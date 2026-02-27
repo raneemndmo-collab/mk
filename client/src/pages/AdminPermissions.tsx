@@ -79,7 +79,6 @@ function PermissionMatrix({ selected, onChange }: { selected: string[]; onChange
   };
 
   return (
-    <DashboardLayout>
     <div className="space-y-2">
       {ALL_PERMISSIONS.map(group => {
         const isExpanded = expandedGroups.includes(group.group);
@@ -131,7 +130,6 @@ function PermissionMatrix({ selected, onChange }: { selected: string[]; onChange
         );
       })}
     </div>
-      </DashboardLayout>
   );
 }
 
@@ -174,6 +172,7 @@ export default function AdminPermissions() {
   }
 
   return (
+    <DashboardLayout>
     <>
 <div className="container py-8 space-y-8" dir="rtl">
         {/* Header */}
@@ -374,5 +373,6 @@ export default function AdminPermissions() {
         </Card>
       </div>
 </>
+    </DashboardLayout>
   );
 }

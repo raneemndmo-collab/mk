@@ -48,12 +48,10 @@ function BookingStatusBadge({ status, lang }: { status: string; lang: string }) 
   };
   const s = map[status] || { variant: "outline" as const, label: status, labelAr: status, icon: null };
   return (
-    <DashboardLayout>
     <Badge variant={s.variant} className="gap-1">
       {s.icon}
       {lang === "ar" ? s.labelAr : s.label}
     </Badge>
-      </DashboardLayout>
   );
 }
 
@@ -176,7 +174,8 @@ export default function AdminDashboard() {
   const approvedBookings = bookings.data?.filter((b: any) => b.status === "approved") ?? [];
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <DashboardLayout>
+    <div className="flex flex-col">
       <SEOHead title="Admin Dashboard" titleAr="لوحة الإدارة" path="/admin" noindex={true} />
 <div className="container py-6">
         <div className="mb-6">
@@ -262,30 +261,7 @@ export default function AdminDashboard() {
               {lang === "ar" ? "الأدوار والصلاحيات" : "Roles & Permissions"}
             </Button>
           </Link>
-          <Link href="/admin/ai-ratings">
-            <Button variant="outline" className="gap-2 border-purple-500 text-purple-500 hover:bg-purple-500/10">
-              <Star className="h-4 w-4" />
-              {lang === "ar" ? "تقييمات المساعد الذكي" : "AI Ratings"}
-            </Button>
-          </Link>
-          <Link href="/admin/ai-control">
-            <Button variant="outline" className="gap-2 border-emerald-500 text-emerald-500 hover:bg-emerald-500/10">
-              <Bot className="h-4 w-4" />
-              {lang === "ar" ? "لوحة تحكم الذكاء الاصطناعي" : "AI Control Panel"}
-            </Button>
-          </Link>
-          <Link href="/admin/help-center">
-            <Button variant="outline" className="gap-2 border-blue-500 text-blue-500 hover:bg-blue-500/10">
-              <HelpCircle className="h-4 w-4" />
-              {lang === "ar" ? "مركز المساعدة" : "Help Center"}
-            </Button>
-          </Link>
-          <Link href="/admin/ai-copilot">
-            <Button variant="outline" className="gap-2 border-cyan-500 text-cyan-500 hover:bg-cyan-500/10">
-              <MessageSquare className="h-4 w-4" />
-              {lang === "ar" ? "مساعد الإدارة الذكي" : "Admin AI Copilot"}
-            </Button>
-          </Link>
+
           <Link href="/admin/my-account">
             <Button variant="outline" className="gap-2 border-amber-500 text-amber-500 hover:bg-amber-500/10">
               <UserCog className="h-4 w-4" />
@@ -868,5 +844,6 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 </div>
+    </DashboardLayout>
   );
 }

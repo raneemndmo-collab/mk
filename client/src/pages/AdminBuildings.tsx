@@ -139,7 +139,6 @@ function BuildingForm({ building, onSuccess, onCancel, lang }: {
   const set = (key: string, val: string) => setForm(prev => ({ ...prev, [key]: val }));
 
   return (
-    <DashboardLayout>
     <form onSubmit={handleSubmit} className="space-y-4" dir={isRtl ? "rtl" : "ltr"}>
       {/* Google Maps URL - Auto-fill */}
       <div className="space-y-2 p-3 rounded-lg border border-primary/30 bg-primary/5">
@@ -233,7 +232,6 @@ function BuildingForm({ building, onSuccess, onCancel, lang }: {
         </Button>
       </div>
     </form>
-      </DashboardLayout>
   );
 }
 
@@ -580,6 +578,7 @@ export default function AdminBuildings() {
   }
 
   return (
+    <DashboardLayout>
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background via-muted/20 to-background">
       <SEOHead title="Buildings" titleAr="المباني" path="/admin/buildings" noindex />
 <div className="container py-8 flex-1 max-w-7xl">
@@ -605,5 +604,6 @@ export default function AdminBuildings() {
         {buildingId ? <BuildingDetail buildingId={buildingId} lang={lang} /> : <BuildingList lang={lang} />}
       </div>
 </div>
+    </DashboardLayout>
   );
 }
