@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   ArrowRight, Save, Eye, EyeOff, Upload, X, Star, GripVertical,
-  CheckCircle2, XCircle, AlertTriangle, Loader2, Globe, Archive
+  CheckCircle2, XCircle, AlertTriangle, Loader2, Globe, Archive, MapPin
 } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -48,6 +48,7 @@ export default function AdminPropertyEdit() {
     propertyType: "apartment" as string,
     city: "", cityAr: "", district: "", districtAr: "",
     address: "", addressAr: "",
+    googleMapsUrl: "",
     bedrooms: 1, bathrooms: 1, sizeSqm: 0,
     monthlyRent: "", securityDeposit: "",
     pricingSource: "PROPERTY" as string,
@@ -139,6 +140,7 @@ export default function AdminPropertyEdit() {
         districtAr: property.districtAr || "",
         address: property.address || "",
         addressAr: property.addressAr || "",
+        googleMapsUrl: (property as any).googleMapsUrl || "",
         bedrooms: property.bedrooms || 1,
         bathrooms: property.bathrooms || 1,
         sizeSqm: property.sizeSqm || 0,
@@ -351,6 +353,21 @@ export default function AdminPropertyEdit() {
                     <Label>District (English)</Label>
                     <Input value={form.district} onChange={e => setForm(p => ({ ...p, district: e.target.value }))} />
                   </div>
+                </div>
+                <div>
+                  <Label className="flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 text-[#3ECFC0]" />
+                    رابط Google Maps
+                  </Label>
+                  <Input
+                    value={form.googleMapsUrl}
+                    onChange={e => setForm(p => ({ ...p, googleMapsUrl: e.target.value }))}
+                    placeholder="الصق رابط الموقع من Google Maps"
+                    dir="ltr"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    افتح Google Maps → اضغط مشاركة → انسخ الرابط
+                  </p>
                 </div>
               </CardContent>
             </Card>

@@ -148,6 +148,13 @@
       "when": 1772310000000,
       "tag": "0020_property_publish_integrations",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "5",
+      "when": 1740700000000,
+      "tag": "0021_google_maps_url",
+      "breakpoints": true
     }
   ]
 }

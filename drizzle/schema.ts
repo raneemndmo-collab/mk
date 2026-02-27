@@ -71,6 +71,7 @@ export const properties = mysqlTable("properties", {
   addressAr: text("addressAr"),
   latitude: decimal("latitude", { precision: 10, scale: 7 }),
   longitude: decimal("longitude", { precision: 10, scale: 7 }),
+  googleMapsUrl: text("googleMapsUrl"),
   // Details
   bedrooms: int("bedrooms").default(1),
   bathrooms: int("bathrooms").default(1),
@@ -838,6 +839,7 @@ export const propertySubmissions = mysqlTable("property_submissions", {
   districtAr: varchar("districtAr", { length: 100 }),
   address: text("address"),
   addressAr: text("addressAr"),
+  googleMapsUrl: text("googleMapsUrl"),
   // Property details
   propertyType: mysqlEnum("propertyType", [
     "apartment", "villa", "studio", "duplex", "furnished_room", "compound", "hotel_apartment"

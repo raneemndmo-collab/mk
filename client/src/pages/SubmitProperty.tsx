@@ -46,6 +46,7 @@ export default function SubmitProperty() {
     city: "", cityAr: "",
     district: "", districtAr: "",
     address: "", addressAr: "",
+    googleMapsUrl: "",
     propertyType: "" as string,
     bedrooms: "", bathrooms: "", sizeSqm: "",
     furnishedLevel: "" as string,
@@ -112,6 +113,7 @@ export default function SubmitProperty() {
         districtAr: form.districtAr || undefined,
         address: form.address || undefined,
         addressAr: form.addressAr || undefined,
+        googleMapsUrl: form.googleMapsUrl || undefined,
         propertyType: form.propertyType ? form.propertyType as any : undefined,
         bedrooms: form.bedrooms ? +form.bedrooms : undefined,
         bathrooms: form.bathrooms ? +form.bathrooms : undefined,
@@ -258,6 +260,21 @@ export default function SubmitProperty() {
                     onChange={e => setForm(p => isAr ? { ...p, addressAr: e.target.value } : { ...p, address: e.target.value })}
                     placeholder={isAr ? "شارع الملك فهد، بجوار..." : "King Fahd Road, near..."}
                   />
+                </div>
+                <div>
+                  <Label className="flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 text-[#3ECFC0]" />
+                    {isAr ? "رابط Google Maps" : "Google Maps Link"}
+                  </Label>
+                  <Input
+                    value={form.googleMapsUrl}
+                    onChange={e => setForm(p => ({ ...p, googleMapsUrl: e.target.value }))}
+                    placeholder={isAr ? "الصق رابط الموقع من Google Maps" : "Paste Google Maps link here"}
+                    dir="ltr"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {isAr ? "افتح Google Maps → اضغط مشاركة → انسخ الرابط" : "Open Google Maps → Click Share → Copy link"}
+                  </p>
                 </div>
               </div>
 
