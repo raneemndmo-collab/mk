@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { trpc } from "@/lib/trpc";
+import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -130,9 +131,11 @@ export default function AdminProperties() {
                         <Button size="sm" variant="outline" onClick={() => window.open(`/property/${prop.id}`, "_blank")}>
                           <Eye className="h-3.5 w-3.5 me-1" /> عرض
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => { setEditId(prop.id); setShowCreate(true); }}>
-                          <Pencil className="h-3.5 w-3.5 me-1" /> تعديل
-                        </Button>
+                        <Link href={`/admin/properties/${prop.id}/edit`}>
+                          <Button size="sm" variant="outline">
+                            <Pencil className="h-3.5 w-3.5 me-1" /> تعديل
+                          </Button>
+                        </Link>
                       </div>
                     </div>
                   </div>
