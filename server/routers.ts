@@ -1100,7 +1100,15 @@ export const appRouter = router({
         const { id, ...data } = input;
         const prop = await db.getPropertyById(id);
         if (!prop) throw new TRPCError({ code: 'NOT_FOUND' });
-        await db.updateProperty(id, data as any);
+        // Clean empty strings → null for decimal/numeric columns to avoid MySQL errors
+        const numericFields = ['monthlyRent', 'securityDeposit', 'latitude', 'longitude', 'sizeSqm'];
+        const cleaned: any = { ...data };
+        for (const key of Object.keys(cleaned)) {
+          if (cleaned[key] === '' && numericFields.includes(key)) {
+            cleaned[key] = null;
+          }
+        }
+        await db.updateProperty(id, cleaned as any);
         cache.invalidatePrefix('property:'); cache.invalidatePrefix('search:');
         return { success: true };
       }),
