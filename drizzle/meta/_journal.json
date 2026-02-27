@@ -141,6 +141,13 @@
       "when": 1772220116603,
       "tag": "0019_property_submissions",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "5",
+      "when": 1772310000000,
+      "tag": "0020_property_publish_integrations",
+      "breakpoints": true
     }
   ]
 }

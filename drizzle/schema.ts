@@ -59,7 +59,9 @@ export const properties = mysqlTable("properties", {
   propertyType: mysqlEnum("propertyType", [
     "apartment", "villa", "studio", "duplex", "furnished_room", "compound", "hotel_apartment"
   ]).notNull(),
-  status: mysqlEnum("status", ["draft", "pending", "active", "inactive", "rejected"]).default("draft").notNull(),
+  status: mysqlEnum("status", ["draft", "pending", "active", "inactive", "rejected", "published", "archived"]).default("draft").notNull(),
+  pricingSource: mysqlEnum("pricingSource", ["PROPERTY", "UNIT"]).default("PROPERTY").notNull(),
+  submissionId: int("submissionId"),
   // Location
   city: varchar("city", { length: 100 }),
   cityAr: varchar("cityAr", { length: 100 }),
@@ -140,6 +142,8 @@ export const bookings = mysqlTable("bookings", {
   monthlyRent: decimal("monthlyRent", { precision: 10, scale: 2 }).notNull(),
   securityDeposit: decimal("securityDeposit", { precision: 10, scale: 2 }),
   totalAmount: decimal("totalAmount", { precision: 10, scale: 2 }),
+  fees: decimal("fees", { precision: 10, scale: 2 }).default("0"),
+  vatAmount: decimal("vatAmount", { precision: 10, scale: 2 }).default("0"),
   // Lease
   leaseTerms: text("leaseTerms"),
   leaseTermsAr: text("leaseTermsAr"),
@@ -806,8 +810,8 @@ export const auditLog = mysqlTable("audit_log", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId"),
   userName: varchar("userName", { length: 255 }),
-  action: mysqlEnum("action", ["CREATE", "UPDATE", "ARCHIVE", "RESTORE", "DELETE", "LINK_BEDS24", "UNLINK_BEDS24"]).notNull(),
-  entityType: mysqlEnum("entityType", ["BUILDING", "UNIT", "BEDS24_MAP", "LEDGER", "EXTENSION", "PAYMENT_METHOD"]).notNull(),
+  action: mysqlEnum("action", ["CREATE", "UPDATE", "ARCHIVE", "RESTORE", "DELETE", "LINK_BEDS24", "UNLINK_BEDS24", "PUBLISH", "UNPUBLISH", "CONVERT", "TEST", "ENABLE", "DISABLE"]).notNull(),
+  entityType: mysqlEnum("entityType", ["BUILDING", "UNIT", "BEDS24_MAP", "LEDGER", "EXTENSION", "PAYMENT_METHOD", "PROPERTY", "SUBMISSION", "INTEGRATION"]).notNull(),
   entityId: int("entityId").notNull(),
   entityLabel: varchar("entityLabel", { length: 255 }),
   changes: json("changes").$type<Record<string, { old: unknown; new: unknown }>>(),
@@ -873,3 +877,20 @@ export const submissionPhotos = mysqlTable("submission_photos", {
 });
 export type SubmissionPhoto = typeof submissionPhotos.$inferSelect;
 export type InsertSubmissionPhoto = typeof submissionPhotos.$inferInsert;
+
+// ─── Integration Configs ────────────────────────────────────────────
+export const integrationConfigs = mysqlTable("integration_configs", {
+  id: int("id").autoincrement().primaryKey(),
+  integrationKey: varchar("integrationKey", { length: 50 }).notNull().unique(),
+  displayName: varchar("displayName", { length: 100 }).notNull(),
+  displayNameAr: varchar("displayNameAr", { length: 100 }),
+  isEnabled: boolean("isEnabled").default(false).notNull(),
+  configJson: text("configJson"), // encrypted/masked JSON of config fields
+  status: mysqlEnum("status", ["not_configured", "configured", "healthy", "failing"]).default("not_configured").notNull(),
+  lastTestedAt: timestamp("lastTestedAt"),
+  lastError: text("lastError"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type IntegrationConfig = typeof integrationConfigs.$inferSelect;
+export type InsertIntegrationConfig = typeof integrationConfigs.$inferInsert;

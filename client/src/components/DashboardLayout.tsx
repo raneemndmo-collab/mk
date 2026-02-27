@@ -25,7 +25,7 @@ import {
   LayoutDashboard, LogOut, PanelLeft, Wrench,
   AlertTriangle, BarChart3, Settings, MapPin, KeyRound,
   BookOpen, UserCog, Shield, MessageCircle, Database,
-  Building2, Inbox
+  Building2, Inbox, Plug
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -45,6 +45,7 @@ const menuItems = [
   { icon: Shield, label: "تقوية الإنتاج", path: "/admin/hardening" },
   { icon: MessageCircle, label: "رسائل واتساب", path: "/admin/whatsapp" },
   { icon: Database, label: "حالة قاعدة البيانات", path: "/admin/db-status" },
+  { icon: Plug, label: "التكاملات", path: "/admin/integrations" },
   { icon: Settings, label: "الإعدادات", path: "/admin/settings" },
 ];
 

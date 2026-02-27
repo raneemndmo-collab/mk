@@ -63,7 +63,9 @@ const AdminBuildings = lazy(() => import("./pages/AdminBuildings"));
 const AdminUnitFinance = lazy(() => import("./pages/AdminUnitFinance"));
 const AdminDbStatus = lazy(() => import("./pages/AdminDbStatus"));
 const AdminProperties = lazy(() => import("./pages/AdminProperties"));
+const AdminPropertyEdit = lazy(() => import("./pages/AdminPropertyEdit"));
 const AdminSubmissions = lazy(() => import("./pages/AdminSubmissions"));
+const AdminIntegrations = lazy(() => import("./pages/AdminIntegrations"));
 const SubmitProperty = lazy(() => import("./pages/SubmitProperty"));
 
 function PageLoader() {
@@ -127,7 +129,9 @@ function Router() {
         <Route path="/admin/units/:id" component={AdminUnitFinance} />
         <Route path="/admin/db-status" component={AdminDbStatus} />
         <Route path="/admin/properties" component={AdminProperties} />
+        <Route path="/admin/properties/:id/edit" component={AdminPropertyEdit} />
         <Route path="/admin/submissions" component={AdminSubmissions} />
+        <Route path="/admin/integrations" component={AdminIntegrations} />
         <Route path="/submit-property" component={SubmitProperty} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />

@@ -197,7 +197,7 @@ export async function searchProperties(filters: {
 }) {
   const db = await getDb();
   if (!db) return { items: [], total: 0 };
-  const conditions = [eq(properties.status, "active")];
+  const conditions = [eq(properties.status, "published")];
   if (filters.query) {
     const q = `%${filters.query}%`;
     conditions.push(or(
@@ -252,7 +252,7 @@ export async function getMapProperties(filters?: {
 }) {
   const db = await getDb();
   if (!db) return [];
-  const conditions = [eq(properties.status, "active")];
+  const conditions = [eq(properties.status, "published")];
   if (filters?.city) conditions.push(like(properties.city, `%${filters.city}%`));
   if (filters?.propertyType) conditions.push(eq(properties.propertyType, filters.propertyType as any));
   if (filters?.minPrice) conditions.push(gte(properties.monthlyRent, String(filters.minPrice)));
@@ -1296,7 +1296,7 @@ export async function getManagerWithProperties(managerId: number) {
   let assignedProperties: any[] = [];
   if (propertyIds.length > 0) {
     assignedProperties = await db.select().from(properties)
-      .where(and(inArray(properties.id, propertyIds), eq(properties.status, 'active')));
+      .where(and(inArray(properties.id, propertyIds), eq(properties.status, 'published')));
   }
   return { ...manager, properties: assignedProperties, propertyCount: assignedProperties.length };
 }
@@ -1588,7 +1588,7 @@ export async function getPropertiesByType() {
   const result = await db.execute(sql`
     SELECT propertyType, COUNT(*) AS count
     FROM properties
-    WHERE status = 'active'
+    WHERE status = 'published'
     GROUP BY propertyType
     ORDER BY count DESC
   `);
@@ -1602,7 +1602,7 @@ export async function getPropertiesByCity() {
   const result = await db.execute(sql`
     SELECT city, cityAr, COUNT(*) AS count
     FROM properties
-    WHERE status = 'active'
+    WHERE status = 'published'
     GROUP BY city, cityAr
     ORDER BY count DESC
   `);
@@ -1648,7 +1648,7 @@ export async function getTopProperties(limit = 10) {
       p.viewCount
     FROM properties p
     LEFT JOIN bookings b ON b.propertyId = p.id AND b.status IN ('active', 'completed')
-    WHERE p.status = 'active'
+    WHERE p.status = 'published'
     GROUP BY p.id
     ORDER BY totalRevenue DESC
     LIMIT ${limit}
@@ -1693,7 +1693,7 @@ export async function getOccupancyRate() {
   const [bookingResult] = await db.select({ count: sql<number>`count(*)` }).from(bookings)
     .where(eq(bookings.status, "active"));
   const [propertyResult] = await db.select({ count: sql<number>`count(*)` }).from(properties)
-    .where(eq(properties.status, "active"));
+    .where(eq(properties.status, "published"));
   const activeBookingsCount = bookingResult?.count ?? 0;
   const activePropertiesCount = propertyResult?.count ?? 0;
   const rate = activePropertiesCount > 0 ? Math.round((activeBookingsCount / activePropertiesCount) * 100) : 0;

@@ -20,13 +20,14 @@ import { createPayPalOrder, capturePayPalOrder, getPayPalSettings } from "./payp
 import { notifyOwner } from "./_core/notification";
 import { sendBookingConfirmation, sendPaymentReceipt, sendMaintenanceUpdate, sendNewMaintenanceAlert, verifySmtpConnection, isSmtpConfigured } from "./email";
 import { savePushSubscription, removePushSubscription, sendPushToUser, sendPushBroadcast, isPushConfigured, getUserSubscriptionCount } from "./push";
-import { roles as rolesTable, aiMessages as aiMessagesTable, whatsappMessages } from "../drizzle/schema";
+import { roles as rolesTable, aiMessages as aiMessagesTable, whatsappMessages, units, auditLog, integrationConfigs } from "../drizzle/schema";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import { eq as eqDrizzle } from "drizzle-orm";
+import { eq as eqDrizzle, and as andDrizzle, ne as neDrizzle } from "drizzle-orm";
 import { sanitizeText, sanitizeObject, validateContentType, validateFileExtension, MAX_BASE64_SIZE, MAX_AVATAR_BASE64_SIZE, ALLOWED_IMAGE_TYPES, ALLOWED_UPLOAD_TYPES, capLimit, capOffset, isOwnerOrAdmin, isBookingParticipant } from "./security";
 import { financeRouter } from "./finance-routers";
 import { submissionRouter } from "./submission-routers";
+import { integrationRouter } from "./integration-routers";
 import { dbIdentity } from "./_core/env";
 
 // Shared drizzle instance for roles/aiStats (avoid creating new connections per request)
@@ -905,9 +906,183 @@ export const appRouter = router({
       }),
 
     approveProperty: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
-      .input(z.object({ id: z.number(), status: z.enum(["active", "rejected"]), reason: z.string().optional() }))
+      .input(z.object({ id: z.number(), status: z.enum(["active", "rejected", "published", "draft", "archived"]), reason: z.string().optional() }))
       .mutation(async ({ input }) => {
         await db.updateProperty(input.id, { status: input.status });
+        return { success: true };
+      }),
+
+    // Publish with guard validation
+    publishProperty: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const prop = await db.getPropertyById(input.id);
+        if (!prop) throw new TRPCError({ code: 'NOT_FOUND', message: 'Property not found' });
+        const errors: string[] = [];
+        if ((prop as any).pricingSource === 'PROPERTY' || !(prop as any).pricingSource) {
+          if (!prop.monthlyRent || Number(prop.monthlyRent) <= 0) errors.push('monthlyRent must be > 0 for PROPERTY pricing');
+        } else if ((prop as any).pricingSource === 'UNIT') {
+          const linkedUnits = await sharedDb.select().from(units).where(eqDrizzle(units.propertyId, input.id));
+          const validUnits = linkedUnits.filter(u => u.unitStatus !== 'BLOCKED' && u.unitStatus !== 'MAINTENANCE');
+          if (validUnits.length !== 1) errors.push('UNIT pricing requires exactly one linked unit (not BLOCKED/MAINTENANCE)');
+          else if (!validUnits[0].monthlyBaseRentSAR || Number(validUnits[0].monthlyBaseRentSAR) <= 0) errors.push('Linked unit must have monthlyBaseRentSAR > 0');
+        }
+        if (!prop.titleEn && !prop.titleAr) errors.push('Property must have at least one title');
+        if (errors.length > 0) throw new TRPCError({ code: 'BAD_REQUEST', message: `Publish guard failed: ${errors.join('; ')}` });
+        await db.updateProperty(input.id, { status: 'published' });
+        await sharedDb.insert(auditLog).values({
+          userId: ctx.user?.id ?? null,
+          userName: ctx.user?.displayName ?? 'system',
+          action: 'PUBLISH',
+          entityType: 'PROPERTY',
+          entityId: input.id,
+          entityLabel: prop.titleEn || prop.titleAr,
+        });
+        cache.invalidatePrefix('property:'); cache.invalidatePrefix('search:');
+        return { success: true };
+      }),
+
+    unpublishProperty: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await db.updateProperty(input.id, { status: 'draft' });
+        const prop = await db.getPropertyById(input.id);
+        await sharedDb.insert(auditLog).values({
+          userId: ctx.user?.id ?? null,
+          userName: ctx.user?.displayName ?? 'system',
+          action: 'UNPUBLISH',
+          entityType: 'PROPERTY',
+          entityId: input.id,
+          entityLabel: prop?.titleEn || prop?.titleAr || `Property #${input.id}`,
+        });
+        cache.invalidatePrefix('property:'); cache.invalidatePrefix('search:');
+        return { success: true };
+      }),
+
+    archiveProperty: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await db.updateProperty(input.id, { status: 'archived' });
+        await sharedDb.insert(auditLog).values({
+          userId: ctx.user?.id ?? null,
+          userName: ctx.user?.displayName ?? 'system',
+          action: 'ARCHIVE',
+          entityType: 'PROPERTY',
+          entityId: input.id,
+          entityLabel: `Property #${input.id}`,
+        });
+        cache.invalidatePrefix('property:'); cache.invalidatePrefix('search:');
+        return { success: true };
+      }),
+
+    publishReadiness: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const prop = await db.getPropertyById(input.id);
+        if (!prop) throw new TRPCError({ code: 'NOT_FOUND' });
+        const checks: { label: string; labelAr: string; passed: boolean; detail?: string }[] = [];
+        checks.push({ label: 'Has title', labelAr: 'يوجد عنوان', passed: !!(prop.titleEn || prop.titleAr) });
+        if ((prop as any).pricingSource === 'PROPERTY' || !(prop as any).pricingSource) {
+          checks.push({ label: 'Monthly rent > 0', labelAr: 'الإيجار الشهري > 0', passed: Number(prop.monthlyRent) > 0, detail: `SAR ${prop.monthlyRent}` });
+        } else {
+          const linkedUnits = await sharedDb.select().from(units).where(eqDrizzle(units.propertyId, input.id));
+          const validUnits = linkedUnits.filter(u => u.unitStatus !== 'BLOCKED' && u.unitStatus !== 'MAINTENANCE');
+          let unitCheck = { passed: false, detail: 'No linked unit' };
+          if (validUnits.length === 1 && Number(validUnits[0].monthlyBaseRentSAR) > 0) {
+            unitCheck = { passed: true, detail: `Unit #${validUnits[0].unitNumber}: SAR ${validUnits[0].monthlyBaseRentSAR}` };
+          } else if (validUnits.length !== 1) {
+            unitCheck = { passed: false, detail: `Found ${validUnits.length} valid units (need exactly 1)` };
+          } else {
+            unitCheck = { passed: false, detail: 'Unit rent is 0 or null' };
+          }
+          checks.push({ label: 'Linked unit with valid rent', labelAr: 'وحدة مرتبطة بإيجار صالح', ...unitCheck });
+        }
+        const hasPhotos = prop.photos && (prop.photos as string[]).length > 0;
+        checks.push({ label: 'Has photos', labelAr: 'يوجد صور', passed: !!hasPhotos, detail: hasPhotos ? `${(prop.photos as string[]).length} photos` : 'No photos' });
+        checks.push({ label: 'Has location', labelAr: 'يوجد موقع', passed: !!(prop.city || prop.cityAr) });
+        const allPassed = checks.every(c => c.passed);
+        return { ready: allPassed, checks, pricingSource: (prop as any).pricingSource || 'PROPERTY', status: prop.status };
+      }),
+
+    // Admin create property (creates as DRAFT)
+    adminCreate: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
+      .input(z.object({
+        titleEn: z.string().min(1),
+        titleAr: z.string().min(1),
+        descriptionEn: z.string().optional(),
+        descriptionAr: z.string().optional(),
+        propertyType: z.enum(["apartment", "villa", "studio", "duplex", "furnished_room", "compound", "hotel_apartment"]),
+        city: z.string().optional(),
+        cityAr: z.string().optional(),
+        district: z.string().optional(),
+        districtAr: z.string().optional(),
+        address: z.string().optional(),
+        addressAr: z.string().optional(),
+        bedrooms: z.number().optional(),
+        bathrooms: z.number().optional(),
+        sizeSqm: z.number().optional(),
+        monthlyRent: z.string(),
+        securityDeposit: z.string().optional(),
+        pricingSource: z.enum(["PROPERTY", "UNIT"]).optional(),
+        amenities: z.array(z.string()).optional(),
+        utilitiesIncluded: z.array(z.string()).optional(),
+        minStayMonths: z.number().optional(),
+        maxStayMonths: z.number().optional(),
+        photos: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const id = await db.createProperty({
+          ...input,
+          landlordId: ctx.user.id,
+          status: 'draft',
+          pricingSource: input.pricingSource || 'PROPERTY',
+        } as any);
+        await sharedDb.insert(auditLog).values({
+          userId: ctx.user.id,
+          userName: ctx.user.displayName ?? 'admin',
+          action: 'CREATE',
+          entityType: 'PROPERTY',
+          entityId: id,
+          entityLabel: input.titleEn || input.titleAr,
+        });
+        cache.invalidatePrefix('property:'); cache.invalidatePrefix('search:');
+        return { id };
+      }),
+
+    // Admin update property
+    adminUpdate: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
+      .input(z.object({
+        id: z.number(),
+        titleEn: z.string().optional(),
+        titleAr: z.string().optional(),
+        descriptionEn: z.string().optional(),
+        descriptionAr: z.string().optional(),
+        propertyType: z.enum(["apartment", "villa", "studio", "duplex", "furnished_room", "compound", "hotel_apartment"]).optional(),
+        city: z.string().optional(),
+        cityAr: z.string().optional(),
+        district: z.string().optional(),
+        districtAr: z.string().optional(),
+        address: z.string().optional(),
+        addressAr: z.string().optional(),
+        bedrooms: z.number().optional(),
+        bathrooms: z.number().optional(),
+        sizeSqm: z.number().optional(),
+        monthlyRent: z.string().optional(),
+        securityDeposit: z.string().optional(),
+        pricingSource: z.enum(["PROPERTY", "UNIT"]).optional(),
+        amenities: z.array(z.string()).optional(),
+        utilitiesIncluded: z.array(z.string()).optional(),
+        minStayMonths: z.number().optional(),
+        maxStayMonths: z.number().optional(),
+        photos: z.array(z.string()).optional(),
+        status: z.enum(["draft", "pending"]).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { id, ...data } = input;
+        const prop = await db.getPropertyById(id);
+        if (!prop) throw new TRPCError({ code: 'NOT_FOUND' });
+        await db.updateProperty(id, data as any);
+        cache.invalidatePrefix('property:'); cache.invalidatePrefix('search:');
         return { success: true };
       }),
 
@@ -2697,5 +2872,7 @@ export const appRouter = router({
   submission: submissionRouter,
   // ─── Finance Registry (Buildings, Units, Ledger, KPIs, Renewals) ──
   finance: financeRouter,
+  // ─── Integration Configs (Admin Settings Panel) ──
+  integration: integrationRouter,
 });
 export type AppRouter = typeof appRouter;
