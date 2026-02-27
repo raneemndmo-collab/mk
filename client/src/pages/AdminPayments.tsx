@@ -1,8 +1,7 @@
+import DashboardLayout from "@/components/DashboardLayout";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -96,14 +95,15 @@ export default function AdminPayments() {
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-8 w-8" /></div>;
   if (!isAuthenticated || user?.role !== "admin") {
     return (
+    <DashboardLayout>
       <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <div className="container py-20 text-center">
+<div className="container py-20 text-center">
           <p className="text-muted-foreground mb-4">{lang === "ar" ? "يجب تسجيل الدخول كمسؤول" : "Admin access required"}</p>
           <a href={getLoginUrl()}><Button>{lang === "ar" ? "تسجيل الدخول" : "Login"}</Button></a>
         </div>
       </div>
-    );
+        </DashboardLayout>
+  );
   }
 
   const totalPages = data ? Math.ceil(data.total / limit) : 0;
@@ -111,8 +111,7 @@ export default function AdminPayments() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background via-muted/20 to-background">
       <SEOHead title="Payments Registry" titleAr="سجل المدفوعات" path="/admin/payments" noindex />
-      <Navbar />
-      <div className="container py-8 flex-1 max-w-7xl">
+<div className="container py-8 flex-1 max-w-7xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
           <div className="flex items-center gap-4">
@@ -292,9 +291,7 @@ export default function AdminPayments() {
           </div>
         )}
       </div>
-      <Footer />
-
-      {/* Detail Dialog */}
+{/* Detail Dialog */}
       <Dialog open={!!detailId} onOpenChange={() => setDetailId(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>

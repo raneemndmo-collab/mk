@@ -1,3 +1,4 @@
+import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
@@ -209,7 +210,8 @@ export default function AdminSettings() {
   );
 
   return (
-    <div className="min-h-screen bg-background" dir={dir}>
+    <DashboardLayout>
+    <div className="bg-background" dir={dir}>
       {/* Header */}
       <div className="bg-card border-b sticky top-0 z-40">
         <div className="container py-4">
@@ -1839,6 +1841,7 @@ export default function AdminSettings() {
         </Tabs>
       </div>
     </div>
+    </DashboardLayout>
   );
 }
 

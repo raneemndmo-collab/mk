@@ -40,6 +40,10 @@ if [ "$RAILWAY_IS_PREVIEW_DEPLOY" = "true" ]; then
   fi
 fi
 
+# ─── Fix Missing Columns (safety net) ────────────────────────────
+echo "[FixColumns] Running column safety checks..."
+node fix-columns.mjs || echo "[FixColumns] Script exited with error (non-fatal)"
+
 # ─── Run Database Migrations ─────────────────────────────────────
 echo ""
 echo "[Migrate] ════════════════════════════════════════════════"

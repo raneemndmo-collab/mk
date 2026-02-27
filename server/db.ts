@@ -46,6 +46,23 @@ export async function getDb() {
           console.warn("[Database] recoveryEmail migration note:", e?.message);
         }
       }
+      // Auto-migrate: ensure googleMapsUrl columns exist (migrations 0021/0022 failed to add them)
+      const googleMapsUrlFixes = [
+        { table: 'properties', sql: "ALTER TABLE `properties` ADD COLUMN `googleMapsUrl` text DEFAULT NULL" },
+        { table: 'property_submissions', sql: "ALTER TABLE `property_submissions` ADD COLUMN `googleMapsUrl` text DEFAULT NULL" },
+      ];
+      for (const fix of googleMapsUrlFixes) {
+        try {
+          await _pool.execute(fix.sql);
+          console.log(`[Database] Added missing googleMapsUrl column to ${fix.table}`);
+        } catch (e: any) {
+          if (e?.code === 'ER_DUP_FIELDNAME' || e?.errno === 1060) {
+            // Column already exists, that's fine
+          } else {
+            console.warn(`[Database] googleMapsUrl migration note (${fix.table}):`, e?.message);
+          }
+        }
+      }
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;

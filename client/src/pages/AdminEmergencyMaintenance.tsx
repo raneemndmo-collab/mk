@@ -1,8 +1,7 @@
+import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -89,9 +88,9 @@ export default function AdminEmergencyMaintenance() {
   const criticalCount = tickets.data?.filter(t => t.urgency === "critical" && t.status !== "closed" && t.status !== "resolved").length || 0;
 
   return (
+    <DashboardLayout>
     <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <SEOHead title={lang === "ar" ? "طوارئ الصيانة" : "Emergency Maintenance"} />
+<SEOHead title={lang === "ar" ? "طوارئ الصيانة" : "Emergency Maintenance"} />
       <div className="container py-6 flex-1">
         <div className="flex items-center gap-3 mb-6">
           <Link href="/admin">
@@ -297,7 +296,7 @@ export default function AdminEmergencyMaintenance() {
       </Dialog>
       </div>
       <MediaLightbox items={lightboxItems} initialIndex={lightboxIndex} open={lightboxOpen} onClose={() => setLightboxOpen(false)} />
-      <Footer />
-    </div>
+</div>
+      </DashboardLayout>
   );
 }

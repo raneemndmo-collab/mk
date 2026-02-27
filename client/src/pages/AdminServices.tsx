@@ -1,8 +1,7 @@
+import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { Link } from "wouter";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -86,9 +85,9 @@ export default function AdminServices() {
   if (!user || user.role !== "admin") return null;
 
   return (
+    <DashboardLayout>
     <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <SEOHead title={lang === "ar" ? "إدارة الخدمات" : "Services Management"} />
+<SEOHead title={lang === "ar" ? "إدارة الخدمات" : "Services Management"} />
       <div className="container py-6 flex-1">
         <div className="flex items-center gap-3 mb-6">
           <Link href="/admin">
@@ -244,7 +243,7 @@ export default function AdminServices() {
         </Tabs>
         </div>
       </div>
-      <Footer />
-    </div>
+</div>
+      </DashboardLayout>
   );
 }

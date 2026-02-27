@@ -1,8 +1,7 @@
+import DashboardLayout from "@/components/DashboardLayout";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -160,15 +159,15 @@ export default function AdminManagers() {
   if (!isAuthenticated) { window.location.href = getLoginUrl(); return null; }
   if (user?.role !== "admin") {
     return (
+    <DashboardLayout>
       <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <div className="container py-20 text-center">
+<div className="container py-20 text-center">
           <Shield className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
           <h2 className="text-xl font-heading font-bold mb-2">{lang === "ar" ? "غير مصرح" : "Unauthorized"}</h2>
         </div>
-        <Footer />
-      </div>
-    );
+</div>
+        </DashboardLayout>
+  );
   }
 
   const ManagerForm = ({ isEdit = false }: { isEdit?: boolean }) => (
@@ -236,8 +235,7 @@ export default function AdminManagers() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <div className="container py-6">
+<div className="container py-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <Link href="/admin">
@@ -466,7 +464,6 @@ export default function AdminManagers() {
           </DialogContent>
         </Dialog>
       </div>
-      <Footer />
-    </div>
+</div>
   );
 }

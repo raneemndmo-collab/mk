@@ -1,8 +1,7 @@
+import DashboardLayout from "@/components/DashboardLayout";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -102,6 +101,7 @@ function UnitForm({ unit, buildingId, onSuccess, onCancel, lang }: {
   const set = (key: string, val: string) => setForm(prev => ({ ...prev, [key]: val }));
 
   return (
+    <DashboardLayout>
     <form onSubmit={handleSubmit} className="space-y-4" dir={isRtl ? "rtl" : "ltr"}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
@@ -153,6 +153,7 @@ function UnitForm({ unit, buildingId, onSuccess, onCancel, lang }: {
         </Button>
       </div>
     </form>
+      </DashboardLayout>
   );
 }
 
@@ -709,8 +710,7 @@ export default function AdminUnitFinance() {
   if (!isAuthenticated || user?.role !== "admin") {
     return (
       <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <div className="container py-20 text-center">
+<div className="container py-20 text-center">
           <p className="text-muted-foreground mb-4">{isRtl ? "يجب تسجيل الدخول كمسؤول" : "Admin access required"}</p>
           <a href={getLoginUrl()}><Button>{isRtl ? "تسجيل الدخول" : "Login"}</Button></a>
         </div>
@@ -721,8 +721,7 @@ export default function AdminUnitFinance() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background via-muted/20 to-background">
       <SEOHead title={isNew ? "New Unit" : "Unit Finance"} titleAr={isNew ? "وحدة جديدة" : "مالية الوحدة"} path="/admin/units" noindex />
-      <Navbar />
-      <div className="container py-8 flex-1 max-w-6xl">
+<div className="container py-8 flex-1 max-w-6xl">
         {isNew && buildingIdParam ? (
           <NewUnit buildingId={buildingIdParam} lang={lang} />
         ) : unitId ? (
@@ -737,7 +736,6 @@ export default function AdminUnitFinance() {
           </div>
         )}
       </div>
-      <Footer />
-    </div>
+</div>
   );
 }

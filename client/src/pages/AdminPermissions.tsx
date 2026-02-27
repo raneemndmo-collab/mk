@@ -1,8 +1,7 @@
+import DashboardLayout from "@/components/DashboardLayout";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -80,6 +79,7 @@ function PermissionMatrix({ selected, onChange }: { selected: string[]; onChange
   };
 
   return (
+    <DashboardLayout>
     <div className="space-y-2">
       {ALL_PERMISSIONS.map(group => {
         const isExpanded = expandedGroups.includes(group.group);
@@ -131,6 +131,7 @@ function PermissionMatrix({ selected, onChange }: { selected: string[]; onChange
         );
       })}
     </div>
+      </DashboardLayout>
   );
 }
 
@@ -163,21 +164,18 @@ export default function AdminPermissions() {
   if (!user || user.role !== "admin") {
     return (
       <>
-        <Navbar />
-        <div className="container py-20 text-center">
+<div className="container py-20 text-center">
           <Shield className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
           <h1 className="text-2xl font-bold mb-2">غير مصرح</h1>
           <p className="text-muted-foreground">هذه الصفحة متاحة للمسؤولين فقط</p>
         </div>
-        <Footer />
-      </>
+</>
     );
   }
 
   return (
     <>
-      <Navbar />
-      <div className="container py-8 space-y-8" dir="rtl">
+<div className="container py-8 space-y-8" dir="rtl">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -375,7 +373,6 @@ export default function AdminPermissions() {
           </CardContent>
         </Card>
       </div>
-      <Footer />
-    </>
+</>
   );
 }

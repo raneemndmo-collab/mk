@@ -40,6 +40,7 @@ export default function AdminSubmissions() {
   const [page, setPage] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [showConvert, setShowConvert] = useState(false);
+  const [convertId, setConvertId] = useState<number | null>(null);
 
   const { data, isLoading, refetch } = trpc.submission.list.useQuery({
     limit: 20, offset: page * 20,
@@ -170,16 +171,16 @@ export default function AdminSubmissions() {
           open={selectedId !== null}
           onClose={() => setSelectedId(null)}
           onRefresh={refetch}
-          onConvert={(id) => { setSelectedId(null); setShowConvert(true); }}
+          onConvert={(id) => { setConvertId(id); setSelectedId(null); setShowConvert(true); }}
         />
 
         {/* Convert Dialog */}
-        {showConvert && selectedId && (
+        {showConvert && convertId && (
           <ConvertDialog
-            submissionId={selectedId}
+            submissionId={convertId}
             open={showConvert}
-            onClose={() => { setShowConvert(false); setSelectedId(null); }}
-            onSuccess={() => { refetch(); setShowConvert(false); setSelectedId(null); }}
+            onClose={() => { setShowConvert(false); setConvertId(null); }}
+            onSuccess={() => { refetch(); setShowConvert(false); setConvertId(null); }}
           />
         )}
       </div>

@@ -263,7 +263,7 @@ export const submissionRouter = router({
       descriptionEn: z.string().optional(),
       descriptionAr: z.string().optional(),
       propertyType: z.enum(["apartment", "villa", "studio", "duplex", "furnished_room", "compound", "hotel_apartment"]),
-      status: z.enum(["draft", "pending", "active", "inactive", "rejected"]).optional(),
+      status: z.enum(["draft", "pending", "active", "inactive", "rejected", "published", "archived"]).optional(),
       city: z.string().optional(),
       cityAr: z.string().optional(),
       district: z.string().optional(),
@@ -311,7 +311,7 @@ export const submissionRouter = router({
       descriptionEn: z.string().optional(),
       descriptionAr: z.string().optional(),
       propertyType: z.enum(["apartment", "villa", "studio", "duplex", "furnished_room", "compound", "hotel_apartment"]).optional(),
-      status: z.enum(["draft", "pending", "active", "inactive", "rejected"]).optional(),
+      status: z.enum(["draft", "pending", "active", "inactive", "rejected", "published", "archived"]).optional(),
       city: z.string().optional(),
       cityAr: z.string().optional(),
       district: z.string().optional(),
@@ -344,7 +344,21 @@ export const submissionRouter = router({
       const { id, ...data } = input;
       const prop = await db.getPropertyById(id);
       if (!prop) throw new TRPCError({ code: "NOT_FOUND", message: "Property not found" });
-      await db.updateProperty(id, data as any);
+      try {
+        // Clean empty strings for decimal/numeric fields to avoid MySQL errors
+        const cleaned: any = { ...data };
+        if (cleaned.latitude === "") cleaned.latitude = null;
+        if (cleaned.longitude === "") cleaned.longitude = null;
+        if (cleaned.monthlyRent === "") delete cleaned.monthlyRent;
+        if (cleaned.securityDeposit === "") cleaned.securityDeposit = null;
+        if (cleaned.videoUrl === "") cleaned.videoUrl = null;
+        if (cleaned.googleMapsUrl === "") cleaned.googleMapsUrl = null;
+        console.log(`[AdminUpdate] Updating property ${id} with keys:`, Object.keys(cleaned));
+        await db.updateProperty(id, cleaned as any);
+      } catch (err: any) {
+        console.error(`[AdminUpdate] Failed to update property ${id}:`, err?.message, err?.code, err?.sqlMessage);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `فشل تحديث العقار: ${err?.sqlMessage || err?.message || 'Unknown error'}` });
+      }
       cache.invalidatePrefix("property:");
       cache.invalidatePrefix("search:");
       return { success: true };

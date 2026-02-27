@@ -33,8 +33,9 @@ COPY --from=build /app/drizzle.config.ts ./
 RUN mkdir -p /app/uploads && chmod 777 /app/uploads
 ENV UPLOAD_DIR=/app/uploads
 
-# Copy start script
+# Copy start script and column fix utility
 COPY --from=build /app/start.sh ./
+COPY --from=build /app/fix-columns.mjs ./
 RUN chmod +x start.sh
 
 EXPOSE ${PORT:-3000}

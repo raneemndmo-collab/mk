@@ -1,8 +1,7 @@
+import DashboardLayout from "@/components/DashboardLayout";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -140,6 +139,7 @@ function BuildingForm({ building, onSuccess, onCancel, lang }: {
   const set = (key: string, val: string) => setForm(prev => ({ ...prev, [key]: val }));
 
   return (
+    <DashboardLayout>
     <form onSubmit={handleSubmit} className="space-y-4" dir={isRtl ? "rtl" : "ltr"}>
       {/* Google Maps URL - Auto-fill */}
       <div className="space-y-2 p-3 rounded-lg border border-primary/30 bg-primary/5">
@@ -233,6 +233,7 @@ function BuildingForm({ building, onSuccess, onCancel, lang }: {
         </Button>
       </div>
     </form>
+      </DashboardLayout>
   );
 }
 
@@ -570,8 +571,7 @@ export default function AdminBuildings() {
   if (!isAuthenticated || user?.role !== "admin") {
     return (
       <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <div className="container py-20 text-center">
+<div className="container py-20 text-center">
           <p className="text-muted-foreground mb-4">{isRtl ? "يجب تسجيل الدخول كمسؤول" : "Admin access required"}</p>
           <a href={getLoginUrl()}><Button>{isRtl ? "تسجيل الدخول" : "Login"}</Button></a>
         </div>
@@ -582,8 +582,7 @@ export default function AdminBuildings() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background via-muted/20 to-background">
       <SEOHead title="Buildings" titleAr="المباني" path="/admin/buildings" noindex />
-      <Navbar />
-      <div className="container py-8 flex-1 max-w-7xl">
+<div className="container py-8 flex-1 max-w-7xl">
         {!buildingId && (
           <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
             <div className="flex items-center gap-4">
@@ -605,7 +604,6 @@ export default function AdminBuildings() {
         )}
         {buildingId ? <BuildingDetail buildingId={buildingId} lang={lang} /> : <BuildingList lang={lang} />}
       </div>
-      <Footer />
-    </div>
+</div>
   );
 }

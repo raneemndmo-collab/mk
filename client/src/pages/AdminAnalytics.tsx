@@ -1,8 +1,7 @@
+import DashboardLayout from "@/components/DashboardLayout";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,9 +35,11 @@ const STATUS_COLORS: Record<string, string> = {
 // Animated counter component
 function AnimatedNumber({ value, suffix = "" }: { value: number; suffix?: string }) {
   return (
+    <DashboardLayout>
     <span className="tabular-nums font-bold">
       {value.toLocaleString()}{suffix}
     </span>
+      </DashboardLayout>
   );
 }
 
@@ -74,13 +75,11 @@ export default function AdminAnalytics() {
   if (user?.role !== "admin") {
     return (
       <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <div className="container py-20 text-center">
+<div className="container py-20 text-center">
           <Shield className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
           <h2 className="text-xl font-heading font-bold mb-2">{lang === "ar" ? "غير مصرح" : "Unauthorized"}</h2>
         </div>
-        <Footer />
-      </div>
+</div>
     );
   }
 
@@ -211,8 +210,7 @@ export default function AdminAnalytics() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background via-muted/20 to-background">
       <SEOHead title="Analytics" titleAr="التحليلات" path="/admin/analytics" noindex />
-      <Navbar />
-      <div className="container py-8 flex-1 max-w-7xl">
+<div className="container py-8 flex-1 max-w-7xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
           <div className="flex items-center gap-4">
@@ -754,7 +752,6 @@ export default function AdminAnalytics() {
           </>
         )}
       </div>
-      <Footer />
-    </div>
+</div>
   );
 }

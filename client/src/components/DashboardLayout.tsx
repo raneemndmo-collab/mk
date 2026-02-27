@@ -25,7 +25,7 @@ import {
   LayoutDashboard, LogOut, PanelLeft, Wrench,
   AlertTriangle, BarChart3, Settings, MapPin, KeyRound,
   BookOpen, UserCog, Shield, MessageCircle, Database,
-  Building2, Inbox, Plug
+  Building2, Inbox, Plug, CalendarCheck, CreditCard, Hotel
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -36,16 +36,18 @@ const menuItems = [
   { icon: LayoutDashboard, label: "لوحة التحكم", path: "/admin" },
   { icon: Building2, label: "إدارة العقارات", path: "/admin/properties" },
   { icon: Inbox, label: "طلبات إضافة عقار", path: "/admin/submissions" },
+  { icon: Hotel, label: "المباني والوحدات", path: "/admin/buildings" },
+  { icon: CalendarCheck, label: "الحجوزات", path: "/admin/bookings" },
+  { icon: CreditCard, label: "المدفوعات والسجل المالي", path: "/admin/payments" },
   { icon: UserCog, label: "مديرو العقارات", path: "/admin/managers" },
   { icon: Wrench, label: "إدارة الخدمات", path: "/admin/services" },
   { icon: AlertTriangle, label: "طوارئ الصيانة", path: "/admin/emergency-maintenance" },
   { icon: BarChart3, label: "التحليلات", path: "/admin/analytics" },
   { icon: MapPin, label: "المدن والأحياء", path: "/admin/cities" },
-  { icon: BookOpen, label: "قاعدة المعرفة", path: "/admin/knowledge-base" },
-  { icon: Shield, label: "تقوية الإنتاج", path: "/admin/hardening" },
-  { icon: MessageCircle, label: "رسائل واتساب", path: "/admin/whatsapp" },
-  { icon: Database, label: "حالة قاعدة البيانات", path: "/admin/db-status" },
+  { icon: KeyRound, label: "الصلاحيات والأدوار", path: "/admin/permissions" },
   { icon: Plug, label: "التكاملات", path: "/admin/integrations" },
+  { icon: Shield, label: "تقوية الإنتاج", path: "/admin/hardening" },
+  { icon: Database, label: "حالة قاعدة البيانات", path: "/admin/db-status" },
   { icon: Settings, label: "الإعدادات", path: "/admin/settings" },
 ];
 

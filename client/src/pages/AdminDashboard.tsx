@@ -1,9 +1,8 @@
+import DashboardLayout from "@/components/DashboardLayout";
 import SEOHead from "@/components/SEOHead";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,10 +48,12 @@ function BookingStatusBadge({ status, lang }: { status: string; lang: string }) 
   };
   const s = map[status] || { variant: "outline" as const, label: status, labelAr: status, icon: null };
   return (
+    <DashboardLayout>
     <Badge variant={s.variant} className="gap-1">
       {s.icon}
       {lang === "ar" ? s.labelAr : s.label}
     </Badge>
+      </DashboardLayout>
   );
 }
 
@@ -162,14 +163,12 @@ export default function AdminDashboard() {
   if (user?.role !== "admin") {
     return (
       <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <div className="container py-20 text-center">
+<div className="container py-20 text-center">
           <Shield className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
           <h2 className="text-xl font-heading font-bold mb-2">{lang === "ar" ? "غير مصرح" : "Unauthorized"}</h2>
           <p className="text-muted-foreground">{lang === "ar" ? "ليس لديك صلاحية الوصول لهذه الصفحة" : "You don't have access to this page"}</p>
         </div>
-        <Footer />
-      </div>
+</div>
     );
   }
 
@@ -179,8 +178,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen flex flex-col">
       <SEOHead title="Admin Dashboard" titleAr="لوحة الإدارة" path="/admin" noindex={true} />
-      <Navbar />
-      <div className="container py-6">
+<div className="container py-6">
         <div className="mb-6">
           <h1 className="text-2xl font-heading font-bold">{t("dashboard.admin")}</h1>
           <p className="text-muted-foreground mt-1">{lang === "ar" ? "إدارة المنصة" : "Platform Management"}</p>
@@ -869,8 +867,6 @@ export default function AdminDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Footer />
-    </div>
+</div>
   );
 }

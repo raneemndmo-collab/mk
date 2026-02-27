@@ -1,8 +1,7 @@
+import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -207,17 +206,18 @@ export default function KnowledgeBase() {
   // Auth guard
   if (authLoading) {
     return (
+    <DashboardLayout>
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-[#3ECFC0] border-t-transparent rounded-full" />
       </div>
-    );
+        </DashboardLayout>
+  );
   }
 
   if (!user || user.role !== "admin") {
     return (
       <div className="min-h-screen flex flex-col" dir={dir}>
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center">
+<main className="flex-1 flex items-center justify-center">
           <Card className="max-w-md mx-auto text-center p-8">
             <ShieldCheck className="w-16 h-16 mx-auto text-red-500 mb-4" />
             <h2 className="text-xl font-bold mb-2">
@@ -243,9 +243,7 @@ export default function KnowledgeBase() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background" dir={dir}>
-      <Navbar />
-
-      <main className="flex-1 py-8">
+<main className="flex-1 py-8">
         <div className="container max-w-7xl">
           {/* Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
@@ -433,10 +431,7 @@ export default function KnowledgeBase() {
           )}
         </div>
       </main>
-
-      <Footer />
-
-      {/* Create/Edit Dialog */}
+{/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir={dir}>
           <DialogHeader>

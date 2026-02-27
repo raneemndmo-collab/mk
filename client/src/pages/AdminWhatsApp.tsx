@@ -1,9 +1,9 @@
+import DashboardLayout from "@/components/DashboardLayout";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import SEOHead from "@/components/SEOHead";
-import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -59,13 +59,15 @@ export default function AdminWhatsApp() {
   if (!isAuthenticated) { window.location.href = getLoginUrl(); return null; }
   if (user?.role !== "admin") {
     return (
+    <DashboardLayout>
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="max-w-md w-full"><CardContent className="pt-6 text-center">
           <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
           <h2 className="text-xl font-bold mb-2">{isRtl ? "غير مصرح" : "Unauthorized"}</h2>
         </CardContent></Card>
       </div>
-    );
+        </DashboardLayout>
+  );
   }
 
   const handleSelectUser = (u: any) => {
@@ -156,8 +158,7 @@ export default function AdminWhatsApp() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background via-muted/20 to-background">
       <SEOHead title="WhatsApp Messages" titleAr="رسائل واتساب" path="/admin/whatsapp" noindex />
-      <Navbar />
-      <div className="container py-8 flex-1 max-w-7xl">
+<div className="container py-8 flex-1 max-w-7xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
           <div className="flex items-center gap-4">

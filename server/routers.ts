@@ -863,6 +863,23 @@ export const appRouter = router({
         })),
         serverUptimeSeconds: uptime,
         checkedAt: new Date().toISOString(),
+        // Debug: check actual table columns
+        tableColumns: await (async () => {
+          try {
+            const [cols] = await pool!.execute(
+              "SELECT COLUMN_NAME, DATA_TYPE FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'property_submissions' ORDER BY ORDINAL_POSITION"
+            ) as any;
+            return cols.map((c: any) => `${c.COLUMN_NAME}:${c.DATA_TYPE}`);
+          } catch { return []; }
+        })(),
+        drizzleMigrations: await (async () => {
+          try {
+            const [rows] = await pool!.execute(
+              "SELECT hash, created_at FROM __drizzle_migrations ORDER BY created_at ASC"
+            ) as any;
+            return rows.map((r: any) => r.hash);
+          } catch { return []; }
+        })(),
       };
     }),
 
@@ -1077,7 +1094,7 @@ export const appRouter = router({
         minStayMonths: z.number().optional(),
         maxStayMonths: z.number().optional(),
         photos: z.array(z.string()).optional(),
-        status: z.enum(["draft", "pending"]).optional(),
+        status: z.enum(["draft", "pending", "active", "inactive", "rejected", "published", "archived"]).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const { id, ...data } = input;

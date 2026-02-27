@@ -66,6 +66,7 @@ const AdminProperties = lazy(() => import("./pages/AdminProperties"));
 const AdminPropertyEdit = lazy(() => import("./pages/AdminPropertyEdit"));
 const AdminSubmissions = lazy(() => import("./pages/AdminSubmissions"));
 const AdminIntegrations = lazy(() => import("./pages/AdminIntegrations"));
+const AdminBookings = lazy(() => import("./pages/AdminBookings"));
 const SubmitProperty = lazy(() => import("./pages/SubmitProperty"));
 
 function PageLoader() {
@@ -116,12 +117,9 @@ function Router() {
         <Route path="/admin/emergency-maintenance" component={AdminEmergencyMaintenance} />
         <Route path="/admin/analytics" component={AdminAnalytics} />
         <Route path="/admin/permissions" component={AdminPermissions} />
-        <Route path="/admin/ai-ratings" component={AdminAIRatings} />
-        <Route path="/admin/ai-control" component={AiControlPanel} />
         <Route path="/admin/hardening" component={AdminHardeningKB} />
-        <Route path="/admin/help-center" component={AdminHelpCenter} />
-        <Route path="/admin/ai-copilot" component={AdminAICopilot} />
         <Route path="/admin/my-account" component={AdminMyAccount} />
+        <Route path="/admin/bookings" component={AdminBookings} />
         <Route path="/admin/whatsapp" component={AdminWhatsApp} />
         <Route path="/admin/payments" component={AdminPayments} />
         <Route path="/admin/buildings" component={AdminBuildings} />
@@ -132,6 +130,7 @@ function Router() {
         <Route path="/admin/properties/:id/edit" component={AdminPropertyEdit} />
         <Route path="/admin/submissions" component={AdminSubmissions} />
         <Route path="/admin/integrations" component={AdminIntegrations} />
+        {/* Removed routes: /admin/ai-ratings, /admin/ai-control, /admin/help-center, /admin/ai-copilot — not in Admin Map */}
         <Route path="/submit-property" component={SubmitProperty} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />

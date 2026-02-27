@@ -1,9 +1,8 @@
+import DashboardLayout from "@/components/DashboardLayout";
 import SEOHead from "@/components/SEOHead";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -66,16 +65,16 @@ export default function AdminMyAccount() {
   if (!isAuthenticated) { window.location.href = getLoginUrl(); return null; }
   if (user?.role !== "admin") {
     return (
+    <DashboardLayout>
       <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <div className="container py-20 text-center">
+<div className="container py-20 text-center">
           <Shield className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
           <h2 className="text-xl font-heading font-bold mb-2">{lang === "ar" ? "غير مصرح" : "Unauthorized"}</h2>
           <p className="text-muted-foreground">{lang === "ar" ? "ليس لديك صلاحية الوصول لهذه الصفحة" : "You don't have access to this page"}</p>
         </div>
-        <Footer />
-      </div>
-    );
+</div>
+        </DashboardLayout>
+  );
   }
 
   const handleProfileSave = () => {
@@ -142,8 +141,7 @@ export default function AdminMyAccount() {
   return (
     <div className="min-h-screen flex flex-col">
       <SEOHead title="My Account" titleAr="حسابي" path="/admin/my-account" noindex={true} />
-      <Navbar />
-      <div className="container py-6 max-w-3xl">
+<div className="container py-6 max-w-3xl">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg">
@@ -444,7 +442,6 @@ export default function AdminMyAccount() {
           </Link>
         </div>
       </div>
-      <Footer />
-    </div>
+</div>
   );
 }

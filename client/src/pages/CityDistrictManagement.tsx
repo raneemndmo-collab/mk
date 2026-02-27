@@ -1,3 +1,4 @@
+import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -277,10 +278,12 @@ export default function CityDistrictManagement() {
 
   if (!user || user.role !== "admin") {
     return (
+    <DashboardLayout>
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">{isAr ? "غير مصرح" : "Unauthorized"}</p>
       </div>
-    );
+        </DashboardLayout>
+  );
   }
 
   return (
