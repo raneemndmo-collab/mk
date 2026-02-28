@@ -234,6 +234,7 @@ export default function AdminManagers() {
   );
 
   return (
+    <DashboardLayout>
     <div className="min-h-screen flex flex-col">
 <div className="container py-6">
         {/* Header */}
@@ -437,7 +438,7 @@ export default function AdminManagers() {
                   <SelectValue placeholder={lang === "ar" ? "اختر عقاراً..." : "Choose a property..."} />
                 </SelectTrigger>
                 <SelectContent>
-                  {properties.data?.map((p: any) => (
+                  {(properties.data?.items ?? properties.data ?? []).map((p: any) => (
                     <SelectItem key={p.id} value={String(p.id)}>
                       #{p.id} - {lang === "ar" ? (p.titleAr || p.title) : p.title}
                     </SelectItem>
@@ -450,7 +451,8 @@ export default function AdminManagers() {
               <Button
                 onClick={() => {
                   if (assigningId && selectedPropId) {
-                    const currentIds = (managers.data?.find((m: any) => m.id === assigningId)?.assignedProperties || []).map((x: any) => x.propertyId);
+                    const mgrList = Array.isArray(managers.data) ? managers.data : (managers.data as any)?.items ?? [];
+                    const currentIds = (mgrList.find((m: any) => m.id === assigningId)?.assignedProperties || []).map((x: any) => x.propertyId);
                     assignProp.mutate({ managerId: assigningId, propertyIds: [...currentIds, Number(selectedPropId)] });
                     setAssigningId(null);
                   }
@@ -465,5 +467,6 @@ export default function AdminManagers() {
         </Dialog>
       </div>
 </div>
+    </DashboardLayout>
   );
 }
