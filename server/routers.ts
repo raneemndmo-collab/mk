@@ -194,7 +194,20 @@ export const appRouter = router({
         if (!prop) return null;
         await db.incrementPropertyViews(input.id);
         const manager = await db.getPropertyManagerByProperty(input.id);
-        return { ...prop, manager: manager ?? null };
+        // When pricingSource=UNIT, override monthlyRent with the linked unit's rent
+        let effectiveRent = prop.monthlyRent;
+        if (prop.pricingSource === "UNIT" && prop.unitId) {
+          try {
+            const { getUnitById } = await import("./finance-registry.js");
+            const unit = await getUnitById(prop.unitId);
+            if (unit?.monthlyBaseRentSAR) {
+              effectiveRent = unit.monthlyBaseRentSAR;
+            }
+          } catch (e) {
+            // fallback to property rent
+          }
+        }
+        return { ...prop, monthlyRent: effectiveRent, manager: manager ?? null };
       }),
 
     getByLandlord: protectedProcedure
