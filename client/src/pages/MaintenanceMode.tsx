@@ -278,6 +278,11 @@ export default function MaintenanceMode() {
             : "Working hard to deliver the best monthly rental experience in Saudi Arabia"
           }
         </p>
+
+        {/* Subtle admin login link */}
+        <a href="/login" className="mt-6 text-xs text-white/20 hover:text-white/50 transition-colors">
+          {lang === "ar" ? "دخول الإدارة" : "Admin Login"}
+        </a>
       </div>
 
       {/* CSS animations */}

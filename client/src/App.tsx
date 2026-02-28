@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { I18nProvider } from "./lib/i18n";
@@ -146,14 +146,22 @@ function Router() {
 function MaintenanceGate({ children }: { children: React.ReactNode }) {
   const { get, isLoading } = useSiteSettings();
   const { user } = useAuth();
+  const [location] = useLocation();
   const maintenanceEnabled = get("maintenance.enabled") === "true";
   const isAdmin = user?.role === "admin";
+
+  // Always allow access to login, register, forgot-password, and admin routes
+  // so admins can authenticate even when maintenance mode is on
+  const bypassPaths = ["/login", "/register", "/forgot-password"];
+  const isAdminRoute = location.startsWith("/admin");
+  const isBypassRoute = bypassPaths.some(p => location === p || location.startsWith(p + "?"));
 
   // Show loading while settings load
   if (isLoading) return <PageLoader />;
 
   // If maintenance mode is on and user is NOT admin, show maintenance page
-  if (maintenanceEnabled && !isAdmin) {
+  // But always allow login/register/admin routes (admin routes have their own auth guard)
+  if (maintenanceEnabled && !isAdmin && !isBypassRoute && !isAdminRoute) {
     return <MaintenanceMode />;
   }
 
