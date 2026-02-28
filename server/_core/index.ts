@@ -124,6 +124,26 @@ async function startServer() {
     }
   });
 
+  // ─── Temporary: Create ledger entry for acceptance testing ─────
+  app.post("/api/debug-create-ledger", async (req, res) => {
+    try {
+      const { getPool } = await import("../db");
+      const pool = getPool();
+      if (!pool) return res.json({ error: "no pool" });
+      const inv = `INV-TEST-${Date.now()}`;
+      await pool.query(
+        `INSERT INTO payment_ledger (invoiceNumber, bookingId, unitId, unitNumber, propertyDisplayName, type, direction, amount, currency, status, dueAt, createdBy)
+         VALUES (?, 2, 3, 'a-1', 'شقة في الرياض', 'RENT', 'IN', '12500.00', 'SAR', 'DUE', NOW(), 1)`,
+        [inv]
+      );
+      // Return the created entry
+      const [rows] = await pool.query(`SELECT * FROM payment_ledger WHERE invoiceNumber = ?`, [inv]);
+      res.json({ created: (rows as any[])[0] });
+    } catch (e: any) {
+      res.json({ error: e.message });
+    }
+  });
+
   // ─── Dynamic OG Image Generation ─────────────────────────────────
   // Homepage OG image
   app.get("/api/og/homepage.png", async (_req, res) => {
