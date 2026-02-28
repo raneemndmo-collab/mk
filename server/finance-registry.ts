@@ -850,3 +850,46 @@ export async function getLedgerByBookingId(bookingId: number) {
   );
   return rows as any[];
 }
+
+/**
+ * VOID all DUE/PENDING ledger entries for a booking (used on rejection).
+ * Returns the count of voided entries.
+ */
+export async function voidLedgerByBookingId(bookingId: number, reason?: string): Promise<number> {
+  const pool = getPool();
+  if (!pool) return 0;
+  const notesText = reason ? `VOID: ${reason}` : "VOID: Booking rejected";
+  const [result] = await pool.execute<ResultSetHeader>(
+    `UPDATE payment_ledger SET status = 'VOID', notes = CONCAT(COALESCE(notes,''), '\n', ?)
+     WHERE bookingId = ? AND status IN ('DUE', 'PENDING')`,
+    [notesText, bookingId]
+  );
+  return result.affectedRows;
+}
+
+/**
+ * Check if online payment is configured (Moyasar or any provider).
+ * Returns { configured: boolean, provider?: string, mode?: string }.
+ */
+export async function isPaymentConfigured(): Promise<{ configured: boolean; provider?: string; mode?: string }> {
+  const pool = getPool();
+  if (!pool) return { configured: false };
+  try {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT methodKey, provider, isEnabled, apiKeyConfigured FROM payment_method_settings WHERE isEnabled = true AND apiKeyConfigured = true LIMIT 1`
+    );
+    if (rows.length > 0) {
+      return { configured: true, provider: rows[0].provider, mode: rows[0].methodKey };
+    }
+    // Also check integration_configs for moyasar
+    const [intRows] = await pool.query<RowDataPacket[]>(
+      `SELECT integrationKey, isEnabled, status FROM integration_configs WHERE integrationKey = 'moyasar' AND isEnabled = true AND status IN ('configured', 'healthy') LIMIT 1`
+    );
+    if (intRows.length > 0) {
+      return { configured: true, provider: "moyasar" };
+    }
+    return { configured: false };
+  } catch {
+    return { configured: false };
+  }
+}

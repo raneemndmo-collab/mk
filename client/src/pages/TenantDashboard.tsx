@@ -206,6 +206,33 @@ export default function TenantDashboard() {
                           </span>
                         </div>
                       </div>
+                      {/* Ledger / Invoice Info */}
+                      {(b as any).ledgerEntries?.length > 0 && (
+                        <div className="mt-3 pt-3 border-t">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1.5">
+                            <FileText className="h-3 w-3" />
+                            <span>{lang === "ar" ? "الفاتورة" : "Invoice"}</span>
+                          </div>
+                          {(b as any).ledgerEntries.map((le: any) => (
+                            <div key={le.id} className="flex items-center justify-between text-xs p-2 rounded border bg-muted/30 mb-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono">{le.invoiceNumber}</span>
+                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium border ${
+                                  le.status === 'PAID' ? 'bg-green-50 text-green-700 border-green-200' :
+                                  le.status === 'VOID' ? 'bg-red-50 text-red-700 border-red-200' :
+                                  le.status === 'DUE' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                  'bg-gray-50 text-gray-700 border-gray-200'
+                                }`}>
+                                  {le.status === 'PAID' ? (lang === 'ar' ? 'مدفوع' : 'Paid') :
+                                   le.status === 'VOID' ? (lang === 'ar' ? 'ملغي' : 'Void') :
+                                   le.status === 'DUE' ? (lang === 'ar' ? 'مستحق' : 'Due') : le.status}
+                                </span>
+                              </div>
+                              <span className="font-medium">{Number(le.amount).toLocaleString()} {le.currency}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       {b.status === "approved" && (
                         <div className="mt-3 pt-3 border-t space-y-2">
                           <div className="p-2.5 rounded bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-sm">
@@ -217,14 +244,23 @@ export default function TenantDashboard() {
                               <p className="text-blue-600 dark:text-blue-300 text-xs">{(b as any).landlordNotes}</p>
                             )}
                           </div>
-                          <Button
-                            className="w-full bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] font-semibold border-0 h-11"
-                            onClick={(e) => { e.stopPropagation(); setLocation(`/pay/${b.id}`); }}
-                          >
-                            <CreditCard className="h-4 w-4 me-2" />
-                            {lang === "ar" ? "ادفع الآن" : "Pay Now"}
-                            <span className="ms-2 text-xs opacity-80">({Number(b.totalAmount).toLocaleString()} {t("payment.sar")})</span>
-                          </Button>
+                          {(b as any).paymentConfigured ? (
+                            <Button
+                              className="w-full bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] font-semibold border-0 h-11"
+                              onClick={(e) => { e.stopPropagation(); setLocation(`/pay/${b.id}`); }}
+                            >
+                              <CreditCard className="h-4 w-4 me-2" />
+                              {lang === "ar" ? "ادفع الآن" : "Pay Now"}
+                              <span className="ms-2 text-xs opacity-80">({Number(b.totalAmount).toLocaleString()} {t("payment.sar")})</span>
+                            </Button>
+                          ) : (
+                            <div className="p-2.5 rounded bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-sm">
+                              <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-medium">
+                                <AlertCircle className="h-3.5 w-3.5" />
+                                {lang === "ar" ? "الدفع الإلكتروني غير مفعّل حالياً — يرجى التواصل مع الإدارة" : "Online payment not configured — please contact admin"}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                       {b.status === "rejected" && (b as any).rejectionReason && (

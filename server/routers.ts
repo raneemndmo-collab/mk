@@ -526,15 +526,34 @@ export const appRouter = router({
         if (!isBookingParticipant(ctx.user, booking)) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
         // Attach ledger entries for this booking
         let ledgerEntries: any[] = [];
+        let paymentConfigured = false;
         try {
-          const { getLedgerByBookingId } = await import('./finance-registry.js');
+          const { getLedgerByBookingId, isPaymentConfigured } = await import('./finance-registry.js');
           ledgerEntries = await getLedgerByBookingId(input.id);
+          const payConfig = await isPaymentConfigured();
+          paymentConfigured = payConfig.configured;
         } catch { /* no ledger data */ }
-        return { ...booking, ledgerEntries };
+        return { ...booking, ledgerEntries, paymentConfigured };
       }),
 
     myBookings: protectedProcedure.query(async ({ ctx }) => {
-      return db.getBookingsByTenant(ctx.user.id);
+      const myBookings = await db.getBookingsByTenant(ctx.user.id);
+      // Enrich with ledger entries and payment config
+      let paymentConfigured = false;
+      try {
+        const { isPaymentConfigured } = await import('./finance-registry.js');
+        const pc = await isPaymentConfigured();
+        paymentConfigured = pc.configured;
+      } catch { /* ignore */ }
+      const enriched = await Promise.all(myBookings.map(async (b: any) => {
+        let ledgerEntries: any[] = [];
+        try {
+          const { getLedgerByBookingId } = await import('./finance-registry.js');
+          ledgerEntries = await getLedgerByBookingId(b.id);
+        } catch { /* ignore */ }
+        return { ...b, ledgerEntries, paymentConfigured };
+      }));
+      return enriched;
     }),
 
     landlordBookings: protectedProcedure.query(async ({ ctx }) => {
@@ -1183,7 +1202,23 @@ export const appRouter = router({
     bookings: adminWithPermission(PERMISSIONS.MANAGE_BOOKINGS)
       .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }))
       .query(async ({ input }) => {
-        return db.getAllBookings(input.limit, input.offset);
+        const bookingsList = await db.getAllBookings(input.limit, input.offset);
+        // Enrich with ledger info and payment config
+        let paymentConfigured = false;
+        try {
+          const { isPaymentConfigured } = await import('./finance-registry.js');
+          const pc = await isPaymentConfigured();
+          paymentConfigured = pc.configured;
+        } catch { /* ignore */ }
+        const enriched = await Promise.all(bookingsList.map(async (b: any) => {
+          let ledgerEntries: any[] = [];
+          try {
+            const { getLedgerByBookingId } = await import('./finance-registry.js');
+            ledgerEntries = await getLedgerByBookingId(b.id);
+          } catch { /* ignore */ }
+          return { ...b, ledgerEntries, paymentConfigured };
+        }));
+        return enriched;
       }),
 
     approveBooking: adminWithPermission(PERMISSIONS.MANAGE_BOOKINGS)
@@ -1245,6 +1280,12 @@ export const appRouter = router({
         if (!booking) throw new TRPCError({ code: 'NOT_FOUND', message: 'Booking not found' });
         if (booking.status !== 'pending') throw new TRPCError({ code: 'BAD_REQUEST', message: 'Only pending bookings can be rejected' });
         await db.updateBooking(input.id, { status: 'rejected', rejectionReason: input.rejectionReason });
+        // VOID all DUE ledger entries for this booking
+        try {
+          const { voidLedgerByBookingId } = await import('./finance-registry.js');
+          const voided = await voidLedgerByBookingId(input.id, input.rejectionReason);
+          console.log(`[Ledger] Voided ${voided} entries for rejected booking #${input.id}`);
+        } catch (e) { console.error('[Ledger] Failed to void entries on rejection', e); }
         await db.createNotification({
           userId: booking.tenantId,
           type: 'booking_rejected',
@@ -1278,6 +1319,20 @@ export const appRouter = router({
             }
           }
         });
+        // Mark ledger entries as PAID
+        try {
+          const { getLedgerByBookingId, updateLedgerStatusSafe } = await import('./finance-registry.js');
+          const ledgerEntries = await getLedgerByBookingId(input.bookingId);
+          for (const le of ledgerEntries) {
+            if (le.status === 'DUE' || le.status === 'PENDING') {
+              await updateLedgerStatusSafe(le.id, 'PAID', {
+                paymentMethod: (input.paymentMethod === 'cash' ? 'CASH' : input.paymentMethod === 'bank_transfer' ? 'BANK_TRANSFER' : undefined) as any,
+                provider: 'manual',
+                webhookVerified: true, // admin-confirmed = trusted
+              });
+            }
+          }
+        } catch (e) { console.error('[Ledger] Failed to mark ledger PAID on payment confirmation', e); }
         // Notify tenant: payment confirmed (outside tx — best-effort)
         await db.createNotification({
           userId: booking.tenantId,

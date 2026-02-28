@@ -103,38 +103,75 @@ async function startServer() {
       const [units] = await pool.query(
         `SELECT id, unitNumber, monthlyBaseRentSAR, propertyId, buildingId FROM units WHERE propertyId = 2 LIMIT 1`
       );
-      // All bookings
+      // All bookings (with rejection reason)
       const [bookings] = await pool.query(
-        `SELECT id, propertyId, tenantId, status, monthlyRent, totalAmount, durationMonths FROM bookings ORDER BY id DESC LIMIT 10`
+        `SELECT id, propertyId, unitId, tenantId, status, rejectionReason, monthlyRent, totalAmount, durationMonths, createdAt, updatedAt FROM bookings ORDER BY id DESC LIMIT 10`
       );
       // All ledger entries
       const [ledger] = await pool.query(
-        `SELECT id, invoiceNumber, bookingId, unitId, unitNumber, propertyDisplayName, type, direction, amount, currency, status, dueAt, paidAt, notes, notesAr, createdAt FROM payment_ledger ORDER BY id DESC LIMIT 10`
+        `SELECT id, invoiceNumber, bookingId, unitId, unitNumber, propertyDisplayName, type, direction, amount, currency, status, paymentMethod, provider, dueAt, paidAt, notes, notesAr, createdAt FROM payment_ledger ORDER BY id DESC LIMIT 10`
       );
 
-      // Amount matching proof
+      // Payment config check
+      let paymentConfig = { configured: false, provider: null as string | null };
+      try {
+        const { isPaymentConfigured } = await import("../finance-registry");
+        const pc = await isPaymentConfigured();
+        paymentConfig = { configured: pc.configured, provider: pc.provider || null };
+      } catch { /* ignore */ }
+
+      // Amount matching proof with status transitions
       const amountMatching = (bookings as any[]).map((b: any) => {
         const linkedLedger = (ledger as any[]).filter((l: any) => l.bookingId === b.id);
         return {
           bookingId: b.id,
+          bookingStatus: b.status,
           bookingTotalAmount: b.totalAmount,
+          rejectionReason: b.rejectionReason || null,
           ledgerEntries: linkedLedger.map((l: any) => ({
             ledgerId: l.id,
             invoiceNumber: l.invoiceNumber,
             ledgerAmount: l.amount,
+            ledgerStatus: l.status,
             amountsMatch: String(b.totalAmount) === String(l.amount),
-            status: l.status,
+            paymentMethod: l.paymentMethod,
+            provider: l.provider,
+            paidAt: l.paidAt,
+            notes: l.notes,
           })),
           hasLedger: linkedLedger.length > 0,
+          statusWorkflow: {
+            description: b.status === 'pending' ? 'PENDING_APPROVAL → awaiting admin action'
+              : b.status === 'approved' ? 'APPROVED → awaiting payment'
+              : b.status === 'rejected' ? 'REJECTED → ledger should be VOID'
+              : b.status === 'active' ? 'ACTIVE → payment confirmed, ledger should be PAID'
+              : b.status,
+            ledgerConsistent: b.status === 'rejected'
+              ? linkedLedger.every((l: any) => l.status === 'VOID')
+              : b.status === 'active'
+              ? linkedLedger.every((l: any) => l.status === 'PAID')
+              : b.status === 'pending' || b.status === 'approved'
+              ? linkedLedger.every((l: any) => l.status === 'DUE' || l.status === 'PENDING')
+              : true,
+          },
         };
       });
 
       res.json({
+        _proofTimestamp: new Date().toISOString(),
+        paymentConfig,
         property2: (props as any[])[0] || null,
         linkedUnit: (units as any[])[0] || null,
         recentBookings: bookings,
         recentLedger: ledger,
         amountMatching,
+        summary: {
+          totalBookings: (bookings as any[]).length,
+          totalLedgerEntries: (ledger as any[]).length,
+          allBookingsHaveLedger: amountMatching.every(m => m.hasLedger),
+          allAmountsMatch: amountMatching.every(m => m.ledgerEntries.every((l: any) => l.amountsMatch)),
+          allStatusesConsistent: amountMatching.every(m => m.statusWorkflow.ledgerConsistent),
+        },
       });
     } catch (e: any) {
       res.json({ error: e.message });
