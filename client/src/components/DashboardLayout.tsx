@@ -21,36 +21,45 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
+import { useI18n } from "@/lib/i18n";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
   LayoutDashboard, LogOut, PanelLeft, Wrench,
   AlertTriangle, BarChart3, Settings, MapPin, KeyRound,
   BookOpen, UserCog, Shield, MessageCircle, Database,
-  Building2, Inbox, Plug, CalendarCheck, CreditCard, Hotel
+  Building2, Inbox, Plug, CalendarCheck, CreditCard, Hotel,
+  Sun, Moon, Languages,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
-const menuItems = [
-  { icon: LayoutDashboard, label: "لوحة التحكم", path: "/admin" },
-  { icon: Building2, label: "إدارة العقارات", path: "/admin/properties" },
-  { icon: Inbox, label: "طلبات إضافة عقار", path: "/admin/submissions" },
-  { icon: Hotel, label: "المباني والوحدات", path: "/admin/buildings" },
-  { icon: CalendarCheck, label: "الحجوزات", path: "/admin/bookings" },
-  { icon: CreditCard, label: "المدفوعات والسجل المالي", path: "/admin/payments" },
-  { icon: UserCog, label: "مديرو العقارات", path: "/admin/managers" },
-  { icon: Wrench, label: "إدارة الخدمات", path: "/admin/services" },
-  { icon: AlertTriangle, label: "طوارئ الصيانة", path: "/admin/emergency-maintenance" },
-  { icon: BarChart3, label: "التحليلات", path: "/admin/analytics" },
-  { icon: MapPin, label: "المدن والأحياء", path: "/admin/cities" },
-  { icon: KeyRound, label: "الصلاحيات والأدوار", path: "/admin/permissions" },
-  { icon: BookOpen, label: "قاعدة المعرفة", path: "/admin/knowledge-base" },
-  { icon: MessageCircle, label: "واتساب", path: "/admin/whatsapp" },
-  { icon: Plug, label: "التكاملات", path: "/admin/integrations" },
-  { icon: Shield, label: "تقوية الإنتاج", path: "/admin/hardening" },
-  { icon: Database, label: "حالة قاعدة البيانات", path: "/admin/db-status" },
-  { icon: Settings, label: "الإعدادات", path: "/admin/settings" },
+type MenuItem = {
+  icon: typeof LayoutDashboard;
+  labelKey: string;
+  path: string;
+};
+
+const menuItems: MenuItem[] = [
+  { icon: LayoutDashboard, labelKey: "adminMenu.dashboard", path: "/admin" },
+  { icon: Building2, labelKey: "adminMenu.properties", path: "/admin/properties" },
+  { icon: Inbox, labelKey: "adminMenu.submissions", path: "/admin/submissions" },
+  { icon: Hotel, labelKey: "adminMenu.buildings", path: "/admin/buildings" },
+  { icon: CalendarCheck, labelKey: "adminMenu.bookings", path: "/admin/bookings" },
+  { icon: CreditCard, labelKey: "adminMenu.payments", path: "/admin/payments" },
+  { icon: UserCog, labelKey: "adminMenu.managers", path: "/admin/managers" },
+  { icon: Wrench, labelKey: "adminMenu.services", path: "/admin/services" },
+  { icon: AlertTriangle, labelKey: "adminMenu.emergency", path: "/admin/emergency-maintenance" },
+  { icon: BarChart3, labelKey: "adminMenu.analytics", path: "/admin/analytics" },
+  { icon: MapPin, labelKey: "adminMenu.cities", path: "/admin/cities" },
+  { icon: KeyRound, labelKey: "adminMenu.permissions", path: "/admin/permissions" },
+  { icon: BookOpen, labelKey: "adminMenu.knowledgeBase", path: "/admin/knowledge-base" },
+  { icon: MessageCircle, labelKey: "adminMenu.whatsapp", path: "/admin/whatsapp" },
+  { icon: Plug, labelKey: "adminMenu.integrations", path: "/admin/integrations" },
+  { icon: Shield, labelKey: "adminMenu.hardening", path: "/admin/hardening" },
+  { icon: Database, labelKey: "adminMenu.dbStatus", path: "/admin/db-status" },
+  { icon: Settings, labelKey: "adminMenu.settings", path: "/admin/settings" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -68,6 +77,7 @@ export default function DashboardLayout({
     return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
   });
   const { loading, user } = useAuth();
+  const { t, lang, dir } = useI18n();
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
@@ -79,7 +89,7 @@ export default function DashboardLayout({
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen" dir={dir}>
         <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
           <div className="flex flex-col items-center gap-6">
             <img 
@@ -90,10 +100,10 @@ export default function DashboardLayout({
             />
             <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-[#C5A55A] to-transparent" />
             <h1 className="text-2xl font-semibold tracking-tight text-center">
-              يرجى تسجيل الدخول للمتابعة
+              {t("adminMenu.loginRequired" as any)}
             </h1>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
-              الوصول إلى لوحة التحكم يتطلب تسجيل الدخول
+              {t("adminMenu.loginAccess" as any)}
             </p>
           </div>
           <Button
@@ -103,36 +113,43 @@ export default function DashboardLayout({
             size="lg"
             className="w-full shadow-lg hover:shadow-xl transition-all bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6]"
           >
-            تسجيل الدخول
+            {t("adminMenu.login" as any)}
           </Button>
         </div>
       </div>
     );
   }
 
+  // RTL → sidebar on right; LTR → sidebar on left
+  const sidebarSide = lang === "ar" ? "right" : "left";
+
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": `${sidebarWidth}px`,
-        } as CSSProperties
-      }
-    >
-      <DashboardLayoutContent setSidebarWidth={setSidebarWidth}>
-        {children}
-      </DashboardLayoutContent>
-    </SidebarProvider>
+    <div dir={dir}>
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": `${sidebarWidth}px`,
+          } as CSSProperties
+        }
+      >
+        <DashboardLayoutContent setSidebarWidth={setSidebarWidth} sidebarSide={sidebarSide}>
+          {children}
+        </DashboardLayoutContent>
+      </SidebarProvider>
+    </div>
   );
 }
 
 type DashboardLayoutContentProps = {
   children: React.ReactNode;
   setSidebarWidth: (width: number) => void;
+  sidebarSide: "left" | "right";
 };
 
 function DashboardLayoutContent({
   children,
   setSidebarWidth,
+  sidebarSide,
 }: DashboardLayoutContentProps) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
@@ -140,8 +157,11 @@ function DashboardLayoutContent({
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const activeMenuItem = menuItems.find(item => item.path === location);
+  const { t, lang, toggleLang } = useI18n();
+  const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
+
+  const activeMenuItem = menuItems.find(item => item.path === location);
 
   useEffect(() => {
     if (isCollapsed) {
@@ -153,8 +173,15 @@ function DashboardLayoutContent({
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
 
-      const sidebarLeft = sidebarRef.current?.getBoundingClientRect().left ?? 0;
-      const newWidth = e.clientX - sidebarLeft;
+      const rect = sidebarRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      let newWidth: number;
+      if (sidebarSide === "right") {
+        newWidth = rect.right - e.clientX;
+      } else {
+        newWidth = e.clientX - rect.left;
+      }
       if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) {
         setSidebarWidth(newWidth);
       }
@@ -177,12 +204,19 @@ function DashboardLayoutContent({
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
     };
-  }, [isResizing, setSidebarWidth]);
+  }, [isResizing, setSidebarWidth, sidebarSide]);
+
+  const roleLabel = user?.role === "admin"
+    ? t("adminMenu.sysAdmin" as any)
+    : user?.role === "landlord"
+    ? t("adminMenu.landlord" as any)
+    : t("adminMenu.tenant" as any);
 
   return (
     <>
       <div className="relative" ref={sidebarRef}>
         <Sidebar
+          side={sidebarSide}
           collapsible="icon"
           className="border-e-0"
           disableTransition={isResizing}
@@ -192,7 +226,7 @@ function DashboardLayoutContent({
               <button
                 onClick={toggleSidebar}
                 className="h-8 w-8 flex items-center justify-center hover:bg-accent rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
-                aria-label="تبديل القائمة"
+                aria-label={t("adminMenu.toggleMenu" as any)}
               >
                 <PanelLeft className="h-4 w-4 text-muted-foreground" />
               </button>
@@ -201,7 +235,13 @@ function DashboardLayoutContent({
                   <img 
                     src="/assets/brand/mk-logo-dark.svg" 
                     alt="Monthly Key - المفتاح الشهري" 
-                    className="h-8 w-auto object-contain"
+                    className="h-8 w-auto object-contain dark:hidden"
+                    style={{ maxWidth: '160px' }} 
+                  />
+                  <img 
+                    src="/assets/brand/mk-logo-transparent.svg" 
+                    alt="Monthly Key - المفتاح الشهري" 
+                    className="h-8 w-auto object-contain hidden dark:block"
                     style={{ maxWidth: '160px' }} 
                   />
                 </div>
@@ -221,18 +261,19 @@ function DashboardLayoutContent({
             <SidebarMenu className="px-2 py-1">
               {menuItems.map(item => {
                 const isActive = location === item.path;
+                const label = t(item.labelKey as any);
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton
                       isActive={isActive}
                       onClick={() => setLocation(item.path)}
-                      tooltip={item.label}
+                      tooltip={label}
                       className={`h-10 transition-all font-normal`}
                     >
                       <item.icon
                         className={`h-4 w-4 ${isActive ? "text-[#3ECFC0]" : ""}`}
                       />
-                      <span>{item.label}</span>
+                      <span>{label}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -254,7 +295,7 @@ function DashboardLayoutContent({
                       {user?.name || "-"}
                     </p>
                     <p className="text-xs text-muted-foreground truncate mt-1.5">
-                      {user?.role === "admin" ? "مدير النظام" : user?.role === "landlord" ? "مالك عقار" : "مستأجر"}
+                      {roleLabel}
                     </p>
                   </div>
                 </button>
@@ -265,14 +306,14 @@ function DashboardLayoutContent({
                   className="cursor-pointer"
                 >
                   <LayoutDashboard className="me-2 h-4 w-4" />
-                  <span>الصفحة الرئيسية</span>
+                  <span>{t("adminMenu.homepage" as any)}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={logout}
                   className="cursor-pointer text-destructive focus:text-destructive"
                 >
                   <LogOut className="me-2 h-4 w-4" />
-                  <span>تسجيل الخروج</span>
+                  <span>{t("adminMenu.logout" as any)}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -284,7 +325,7 @@ function DashboardLayoutContent({
           </SidebarFooter>
         </Sidebar>
         <div
-          className={`absolute top-0 end-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors ${isCollapsed ? "hidden" : ""}`}
+          className={`absolute top-0 ${sidebarSide === "right" ? "start-0" : "end-0"} w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors ${isCollapsed ? "hidden" : ""}`}
           onMouseDown={() => {
             if (isCollapsed) return;
             setIsResizing(true);
@@ -294,21 +335,39 @@ function DashboardLayoutContent({
       </div>
 
       <SidebarInset>
-        {isMobile && (
-          <div className="flex border-b h-14 items-center justify-between bg-background/95 px-2 backdrop-blur supports-[backdrop-filter]:backdrop-blur sticky top-0 z-40">
-            <div className="flex items-center gap-2">
+        {/* Top bar — always visible on mobile, also shows toggles on desktop */}
+        <div className="flex border-b h-14 items-center justify-between bg-background/95 px-3 backdrop-blur supports-[backdrop-filter]:backdrop-blur sticky top-0 z-40">
+          <div className="flex items-center gap-2">
+            {isMobile && (
               <SidebarTrigger className="h-9 w-9 rounded-lg bg-background" />
-              <div className="flex items-center gap-3">
-                <div className="flex flex-col gap-1">
-                  <span className="tracking-tight text-foreground">
-                    {activeMenuItem?.label ?? "القائمة"}
-                  </span>
-                </div>
-              </div>
-            </div>
+            )}
+            <span className="tracking-tight text-foreground text-sm font-medium">
+              {activeMenuItem ? t(activeMenuItem.labelKey as any) : t("adminMenu.menu" as any)}
+            </span>
           </div>
-        )}
-        <main className="flex-1 p-4">{children}</main>
+          <div className="flex items-center gap-1">
+            {/* Language toggle */}
+            <button
+              onClick={toggleLang}
+              className="h-9 px-3 flex items-center gap-1.5 rounded-lg hover:bg-accent transition-colors text-sm font-medium text-muted-foreground hover:text-foreground"
+              aria-label={lang === "ar" ? "Switch to English" : "التبديل إلى العربية"}
+            >
+              <Languages className="h-4 w-4" />
+              <span className="text-xs">{lang === "ar" ? "EN" : "عربي"}</span>
+            </button>
+            {/* Theme toggle */}
+            {toggleTheme && (
+              <button
+                onClick={toggleTheme}
+                className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+                aria-label={theme === "dark" ? t("adminMenu.lightMode" as any) : t("adminMenu.darkMode" as any)}
+              >
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+            )}
+          </div>
+        </div>
+        <main className="flex-1 p-4 overflow-x-hidden">{children}</main>
       </SidebarInset>
     </>
   );

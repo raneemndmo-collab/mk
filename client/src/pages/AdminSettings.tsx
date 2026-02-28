@@ -59,6 +59,8 @@ export default function AdminSettings() {
   // Settings state
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [dirty, setDirty] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [fieldsLoadedCount, setFieldsLoadedCount] = useState(0);
 
   useEffect(() => {
     if (settingsQuery.data) {
@@ -73,6 +75,7 @@ export default function AdminSettings() {
       }
       setSettings(map);
       setDirty(false);
+      setFieldsLoadedCount(Object.keys(map).filter(k => map[k] && map[k].trim() !== '').length);
     }
   }, [settingsQuery.data]);
 
@@ -84,6 +87,7 @@ export default function AdminSettings() {
   const saveSettings = () => {
     updateMutation.mutate({ settings });
     setDirty(false);
+    setLastSavedAt(new Date().toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US'));
   };
 
   const handleFileUpload = (purpose: string) => {
@@ -211,11 +215,11 @@ export default function AdminSettings() {
 
   return (
     <DashboardLayout>
-    <div className="bg-background" dir={dir}>
+    <div className="bg-background w-full">
       {/* Header */}
-      <div className="bg-card border-b sticky top-0 z-40">
-        <div className="container py-4">
-          <div className="flex items-center justify-between">
+      <div className="bg-card border-b">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <Link href="/admin">
                 <Button variant="ghost" size="icon">
@@ -229,13 +233,29 @@ export default function AdminSettings() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => seedMutation.mutate()} disabled={seedMutation.isPending}>
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* DB source indicator */}
+              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
+                <div className={`h-2 w-2 rounded-full ${settingsQuery.isLoading ? 'bg-yellow-500 animate-pulse' : settingsQuery.isError ? 'bg-red-500' : 'bg-green-500'}`} />
+                <span>{t("settings.dbSource" as any)}</span>
+                <span className="font-mono">{fieldsLoadedCount} {t("settings.fieldsLoaded" as any)}</span>
+              </div>
+              {lastSavedAt && (
+                <div className="text-xs text-muted-foreground">
+                  {t("settings.lastSavedAt" as any)}: {lastSavedAt}
+                </div>
+              )}
+              {dirty && (
+                <Badge variant="outline" className="text-amber-600 border-amber-600/30 bg-amber-50 dark:bg-amber-950/30">
+                  {t("settings.unsavedChanges" as any)}
+                </Badge>
+              )}
+              <Button variant="outline" size="sm" onClick={() => seedMutation.mutate()} disabled={seedMutation.isPending}>
                 <RefreshCw className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"} ${seedMutation.isPending ? "animate-spin" : ""}`} />
                 {t("settings.seedDefaults")}
               </Button>
               {dirty && (
-                <Button onClick={saveSettings} disabled={updateMutation.isPending}>
+                <Button size="sm" onClick={saveSettings} disabled={updateMutation.isPending}>
                   <Save className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
                   {t("settings.save")}
                 </Button>
@@ -245,7 +265,7 @@ export default function AdminSettings() {
         </div>
       </div>
 
-      <div className="container py-6">
+      <div className="px-6 py-6">
         <Tabs defaultValue="general" dir={dir}>
           <TabsList className="flex flex-wrap gap-1 h-auto p-1 mb-6">
             <TabsTrigger value="general" className="gap-2"><Settings className="h-4 w-4" />{t("settings.general")}</TabsTrigger>
