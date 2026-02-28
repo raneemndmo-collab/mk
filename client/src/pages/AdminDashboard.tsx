@@ -35,12 +35,16 @@ import { Link } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
 import { useState } from "react";
-import { HardDrive } from "lucide-react";
+import { HardDrive, MessageCircle } from "lucide-react";
 
 // Storage warning banner
 function StorageWarningBanner({ lang }: { lang: string }) {
   const storageInfo = trpc.admin.storageInfo.useQuery(undefined, { retry: false, refetchOnWindowFocus: false });
-  if (!storageInfo.data || storageInfo.data.mode === 's3') return null;
+  // Show banner if: data says local mode, OR query errored (likely means storage not configured)
+  const isLocal = storageInfo.data?.mode === 'local';
+  const isError = storageInfo.isError;
+  if (storageInfo.isLoading) return null;
+  if (!isLocal && !isError) return null;
   return (
     <div className="mb-6 p-4 rounded-lg border-2 border-red-500/30 bg-red-50 dark:bg-red-950/20">
       <div className="flex items-center gap-2 mb-1">
@@ -244,10 +248,10 @@ export default function AdminDashboard() {
 
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-2 mb-6">
-          <Link href="/admin/knowledge-base">
-            <Button variant="outline" className="gap-2">
-              <BookOpen className="h-4 w-4" />
-              {lang === "ar" ? "قاعدة المعرفة" : "Knowledge Base"}
+          <Link href="/admin/whatsapp">
+            <Button variant="outline" className="gap-2 border-green-600 text-green-600 hover:bg-green-600/10">
+              <MessageCircle className="h-4 w-4" />
+              {lang === "ar" ? "واتساب" : "WhatsApp"}
             </Button>
           </Link>
           <Link href="/admin/cities">
@@ -293,12 +297,6 @@ export default function AdminDashboard() {
             </Button>
           </Link>
 
-          <Link href="/admin/my-account">
-            <Button variant="outline" className="gap-2 border-amber-500 text-amber-500 hover:bg-amber-500/10">
-              <UserCog className="h-4 w-4" />
-              {lang === "ar" ? "حسابي" : "My Account"}
-            </Button>
-          </Link>
           <Link href="/admin/payments">
             <Button variant="outline" className="gap-2 border-emerald-600 text-emerald-600 hover:bg-emerald-600/10">
               <CreditCard className="h-4 w-4" />

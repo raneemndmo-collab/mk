@@ -95,43 +95,46 @@ function Router() {
         <Route path="/edit-property/:id" component={CreateProperty} />
         <Route path="/tenant" component={TenantDashboard} />
         <Route path="/landlord" component={LandlordDashboard} />
+        {/* Orphan routes — DEFERRED, redirect to /admin (must be before /admin catch-all) */}
+        <Route path="/admin/knowledge-base">{() => { useEffect(() => { window.location.replace("/admin"); }, []); return <PageLoader />; }}</Route>
+        <Route path="/admin/my-account">{() => { useEffect(() => { window.location.replace("/admin"); }, []); return <PageLoader />; }}</Route>
+        {/* Admin sub-routes (must be before /admin catch-all) */}
+        <Route path="/admin/settings" component={AdminSettings} />
+        <Route path="/admin/cities" component={CityDistrictManagement} />
+        <Route path="/admin/managers" component={AdminManagers} />
+        <Route path="/admin/services" component={AdminServices} />
+        <Route path="/admin/emergency-maintenance" component={AdminEmergencyMaintenance} />
+        <Route path="/admin/analytics" component={AdminAnalytics} />
+        <Route path="/admin/permissions" component={AdminPermissions} />
+        <Route path="/admin/hardening" component={AdminHardeningKB} />
+        <Route path="/admin/bookings" component={AdminBookings} />
+        <Route path="/admin/whatsapp" component={AdminWhatsApp} />
+        <Route path="/admin/payments" component={AdminPayments} />
+        <Route path="/admin/buildings/:id" component={AdminBuildings} />
+        <Route path="/admin/buildings" component={AdminBuildings} />
+        <Route path="/admin/units/:id" component={AdminUnitFinance} />
+        <Route path="/admin/db-status" component={AdminDbStatus} />
+        <Route path="/admin/properties/:id/edit" component={AdminPropertyEdit} />
+        <Route path="/admin/properties" component={AdminProperties} />
+        <Route path="/admin/submissions" component={AdminSubmissions} />
+        <Route path="/admin/integrations" component={AdminIntegrations} />
+        {/* Admin dashboard catch-all (must be LAST among /admin routes) */}
         <Route path="/admin" component={AdminDashboard} />
         <Route path="/messages" component={Messages} />
         <Route path="/messages/:id" component={Messages} />
         <Route path="/book/:propertyId" component={BookingFlow} />
         <Route path="/maintenance/new/:bookingId" component={MaintenanceRequest} />
         <Route path="/lease/:bookingId" component={LeaseContract} />
-        <Route path="/admin/knowledge-base">{() => { useEffect(() => { window.location.replace("/admin"); }, []); return <PageLoader />; }}</Route>
-        <Route path="/admin/settings" component={AdminSettings} />
-        <Route path="/admin/cities" component={CityDistrictManagement} />
         <Route path="/payment/success" component={PaymentSuccess} />
         <Route path="/payment/cancel" component={PaymentCancel} />
         <Route path="/agent/edit/:token" component={AgentEditProfile} />
         <Route path="/agent/:id" component={AgentProfile} />
-        <Route path="/admin/managers" component={AdminManagers} />
         <Route path="/pay/:id" component={PaymentPage} />
         <Route path="/payment-callback/:id" component={PaymentCallback} />
         <Route path="/faq" component={FAQ} />
         <Route path="/privacy" component={PrivacyPolicy} />
         <Route path="/terms" component={TermsOfService} />
         <Route path="/contact" component={ContactUs} />
-        <Route path="/admin/services" component={AdminServices} />
-        <Route path="/admin/emergency-maintenance" component={AdminEmergencyMaintenance} />
-        <Route path="/admin/analytics" component={AdminAnalytics} />
-        <Route path="/admin/permissions" component={AdminPermissions} />
-        <Route path="/admin/hardening" component={AdminHardeningKB} />
-        <Route path="/admin/my-account">{() => { useEffect(() => { window.location.replace("/admin"); }, []); return <PageLoader />; }}</Route>
-        <Route path="/admin/bookings" component={AdminBookings} />
-        <Route path="/admin/whatsapp" component={AdminWhatsApp} />
-        <Route path="/admin/payments" component={AdminPayments} />
-        <Route path="/admin/buildings" component={AdminBuildings} />
-        <Route path="/admin/buildings/:id" component={AdminBuildings} />
-        <Route path="/admin/units/:id" component={AdminUnitFinance} />
-        <Route path="/admin/db-status" component={AdminDbStatus} />
-        <Route path="/admin/properties" component={AdminProperties} />
-        <Route path="/admin/properties/:id/edit" component={AdminPropertyEdit} />
-        <Route path="/admin/submissions" component={AdminSubmissions} />
-        <Route path="/admin/integrations" component={AdminIntegrations} />
         {/* Removed routes: /admin/ai-ratings, /admin/ai-control, /admin/help-center, /admin/ai-copilot — not in Admin Map */}
         <Route path="/submit-property" component={SubmitProperty} />
         <Route path="/404" component={NotFound} />
