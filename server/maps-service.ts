@@ -259,6 +259,32 @@ async function geocodeMapbox(address: string, token: string): Promise<GeocodeRes
   }
 }
 
+// ─── Nominatim (Free OSM) Geocoding ───────────────────────────────
+
+async function geocodeNominatim(address: string): Promise<GeocodeResult | null> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&countrycodes=sa&limit=1&accept-language=ar`;
+    const resp = await fetch(url, {
+      signal: AbortSignal.timeout(10000),
+      headers: { "User-Agent": "MonthlyKey/1.0 (admin geocoding)" },
+    });
+    const data = await resp.json();
+    if (!Array.isArray(data) || !data.length) return null;
+    const result = data[0];
+    return {
+      lat: parseFloat(result.lat),
+      lng: parseFloat(result.lon),
+      placeId: `osm-${result.osm_type}-${result.osm_id}`,
+      formattedAddress: result.display_name,
+      fromCache: false,
+      provider: "nominatim",
+    };
+  } catch (err: any) {
+    console.error("[Maps] Nominatim geocode error:", err.message);
+    return null;
+  }
+}
+
 // ─── Public Geocode API ─────────────────────────────────────────────
 
 export async function geocodeAddress(
@@ -305,7 +331,15 @@ export async function geocodeAddress(
   } else if (config.provider === "MAPBOX" && config.mapboxToken) {
     result = await geocodeMapbox(fullAddress, config.mapboxToken);
   } else {
-    return { success: false, error: "No API key configured for selected provider" };
+    // Fallback to free Nominatim (OpenStreetMap) when no API key is configured
+    console.log("[Maps] No API key — falling back to Nominatim (free OSM geocoding)");
+    result = await geocodeNominatim(fullAddress);
+    if (!result) {
+      return { success: false, error: "Geocoding returned no results (using free Nominatim fallback)" };
+    }
+    // Cache and return early
+    await setCachedGeocode(addrHash, "nominatim", result, config.geocodeCacheTTLDays);
+    return { success: true, result };
   }
 
   if (!result) {
