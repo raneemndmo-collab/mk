@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CalendarCheck, Search, CheckCircle, XCircle, BanknoteIcon, Clock, Filter, FileText, AlertTriangle, CreditCard } from "lucide-react";
+import { CalendarCheck, Search, CheckCircle, XCircle, BanknoteIcon, Clock, Filter, FileText, AlertTriangle, CreditCard, ShieldAlert } from "lucide-react";
 
 const STATUS_MAP: Record<string, { label: string; labelAr: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pending: { label: "Pending Approval", labelAr: "بانتظار الموافقة", variant: "secondary" },
@@ -36,10 +36,13 @@ export default function AdminBookings() {
   const [rejectDialog, setRejectDialog] = useState<{ open: boolean; bookingId: number | null }>({ open: false, bookingId: null });
   const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; bookingId: number | null }>({ open: false, bookingId: null });
   const [rejectReason, setRejectReason] = useState("");
+  const [overrideReason, setOverrideReason] = useState("");
+  const [overridePaymentMethod, setOverridePaymentMethod] = useState<string>("cash");
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
 
   const utils = trpc.useUtils();
   const bookings = trpc.admin.bookings.useQuery({ limit: 200 });
+  const overrideEnabled = trpc.admin.isOverrideEnabled.useQuery();
 
   const approveBooking = trpc.admin.approveBooking.useMutation({
     onSuccess: () => {
@@ -62,9 +65,11 @@ export default function AdminBookings() {
 
   const confirmPayment = trpc.admin.confirmPayment.useMutation({
     onSuccess: () => {
-      toast.success("تم تأكيد الدفع - الحجز نشط الآن | Payment confirmed, booking active");
+      toast.success("⚠️ تم تأكيد الدفع يدوياً - مسجل في سجل المراجعة | Manual override logged to audit trail");
       utils.admin.bookings.invalidate();
       setConfirmDialog({ open: false, bookingId: null });
+      setOverrideReason("");
+      setOverridePaymentMethod("cash");
     },
     onError: (e) => toast.error(e.message),
   });
@@ -89,8 +94,8 @@ export default function AdminBookings() {
     active: bookings.data?.filter((b: any) => b.status === "active").length ?? 0,
   };
 
-  // Check payment config from first booking (all share same flag)
   const paymentConfigured = (bookings.data as any)?.[0]?.paymentConfigured ?? false;
+  const isOverrideOn = overrideEnabled.data?.enabled ?? false;
 
   return (
     <DashboardLayout>
@@ -101,12 +106,21 @@ export default function AdminBookings() {
             <h1 className="text-2xl font-bold tracking-tight">الحجوزات | Bookings</h1>
             <p className="text-muted-foreground text-sm mt-1">إدارة جميع الحجوزات ومتابعة حالتها | Manage all bookings and track their status</p>
           </div>
-          {/* Payment Config Status */}
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${paymentConfigured ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-            <CreditCard className="h-3.5 w-3.5" />
-            {paymentConfigured
-              ? "الدفع الإلكتروني مفعّل | Online Payment Active"
-              : "الدفع الإلكتروني غير مفعّل | Online Payment Not Configured"}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Payment Config Status */}
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${paymentConfigured ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+              <CreditCard className="h-3.5 w-3.5" />
+              {paymentConfigured
+                ? "الدفع الإلكتروني مفعّل | Online Payment Active"
+                : "الدفع الإلكتروني غير مفعّل | Online Payment Not Configured"}
+            </div>
+            {/* Override Status */}
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${isOverrideOn ? 'bg-red-50 text-red-700 border-red-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
+              <ShieldAlert className="h-3.5 w-3.5" />
+              {isOverrideOn
+                ? "التأكيد اليدوي مفعّل | Manual Override ON"
+                : "التأكيد اليدوي معطّل | Manual Override OFF"}
+            </div>
           </div>
         </div>
 
@@ -275,16 +289,19 @@ export default function AdminBookings() {
                                   </Button>
                                 </>
                               )}
-                              {b.status === "approved" && (
+                              {b.status === "approved" && isOverrideOn && (
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-7 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
+                                  className="h-7 text-xs text-amber-700 border-amber-300 hover:bg-amber-50"
                                   onClick={() => setConfirmDialog({ open: true, bookingId: b.id })}
                                 >
-                                  <BanknoteIcon className="h-3 w-3 me-1" />
-                                  تأكيد الدفع
+                                  <ShieldAlert className="h-3 w-3 me-1" />
+                                  تأكيد يدوي
                                 </Button>
+                              )}
+                              {b.status === "approved" && !isOverrideOn && (
+                                <span className="text-xs text-muted-foreground italic">ينتظر الدفع الإلكتروني</span>
                               )}
                               {!["pending", "approved"].includes(b.status) && (
                                 <span className="text-xs text-muted-foreground">—</span>
@@ -328,8 +345,15 @@ export default function AdminBookings() {
                                             </div>
                                             <div><span className="text-muted-foreground">المبلغ:</span> {Number(le.amount).toLocaleString()} {le.currency}</div>
                                             <div><span className="text-muted-foreground">النوع:</span> {le.type}</div>
+                                            {le.provider && <div><span className="text-muted-foreground">المزود:</span> {le.provider === 'manual_override' ? '⚠️ تأكيد يدوي' : le.provider}</div>}
                                             {le.paidAt && <div><span className="text-muted-foreground">تاريخ الدفع:</span> {new Date(le.paidAt).toLocaleDateString("ar-SA")}</div>}
                                             {le.paymentMethod && <div><span className="text-muted-foreground">طريقة الدفع:</span> {le.paymentMethod}</div>}
+                                            {le.webhookVerified !== undefined && (
+                                              <div>
+                                                <span className="text-muted-foreground">تحقق الويب هوك:</span>{" "}
+                                                {le.webhookVerified ? <span className="text-green-600">نعم ✓</span> : <span className="text-amber-600">لا (يدوي)</span>}
+                                              </div>
+                                            )}
                                           </div>
                                         );
                                       })}
@@ -343,7 +367,7 @@ export default function AdminBookings() {
                                       <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
                                       <div>
                                         <p className="font-medium">الدفع الإلكتروني غير مفعّل</p>
-                                        <p>Online payment not configured — manual confirmation required</p>
+                                        <p>Online payment not configured — manual override required</p>
                                       </div>
                                     </div>
                                   )}
@@ -425,36 +449,78 @@ export default function AdminBookings() {
         </DialogContent>
       </Dialog>
 
-      {/* Confirm Payment Dialog */}
-      <Dialog open={confirmDialog.open} onOpenChange={(o) => !o && setConfirmDialog({ open: false, bookingId: null })}>
+      {/* Manual Override Confirm Payment Dialog */}
+      <Dialog open={confirmDialog.open} onOpenChange={(o) => { if (!o) { setConfirmDialog({ open: false, bookingId: null }); setOverrideReason(""); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>تأكيد الدفع للحجز #{confirmDialog.bookingId} | Confirm Payment</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-amber-700">
+              <ShieldAlert className="h-5 w-5" />
+              تأكيد دفع يدوي (طوارئ) | Manual Payment Override
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              سيتم تفعيل الحجز وتحديث حالته إلى "نشط" وتحديث السجل المالي إلى "مدفوع".
-              <br />
-              Booking will become active and ledger entries will be marked as PAID.
-            </p>
-            {!paymentConfigured && (
-              <div className="flex items-start gap-2 p-2 bg-amber-50 border border-amber-200 rounded text-amber-700 text-xs">
-                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-                <div>
-                  <p>الدفع الإلكتروني غير مفعّل — التأكيد يدوي</p>
-                  <p>Online payment not configured — manual confirmation</p>
+          <div className="space-y-4">
+            {/* Warning Banner */}
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
+                <div className="text-xs text-red-700 space-y-1">
+                  <p className="font-semibold">تحذير: هذا الإجراء يتجاوز بوابة الدفع الإلكتروني</p>
+                  <p>Warning: This action bypasses the payment gateway (Moyasar webhook).</p>
+                  <ul className="list-disc ps-4 space-y-0.5 mt-1">
+                    <li>سيتم تسجيل هذا الإجراء في سجل المراجعة (Audit Log)</li>
+                    <li>يتطلب صلاحية <code className="bg-red-100 px-1 rounded">manage_payments_override</code></li>
+                    <li>يجب كتابة سبب التأكيد اليدوي (10 أحرف على الأقل)</li>
+                  </ul>
                 </div>
               </div>
-            )}
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              الحجز #{confirmDialog.bookingId} — سيتم تفعيله وتحديث السجل المالي إلى "مدفوع" مع تسجيل التجاوز.
+            </p>
+
+            {/* Payment Method */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">طريقة الدفع | Payment Method</label>
+              <Select value={overridePaymentMethod} onValueChange={setOverridePaymentMethod}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">نقدي | Cash</SelectItem>
+                  <SelectItem value="bank_transfer">تحويل بنكي | Bank Transfer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Override Reason */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">سبب التأكيد اليدوي (مطلوب) | Override Reason (required)</label>
+              <Textarea
+                placeholder="مثال: تم استلام تحويل بنكي مباشر - رقم العملية: ..."
+                value={overrideReason}
+                onChange={(e) => setOverrideReason(e.target.value)}
+                rows={3}
+                className="border-amber-200 focus:border-amber-400"
+              />
+              {overrideReason.length > 0 && overrideReason.length < 10 && (
+                <p className="text-xs text-amber-600">يجب أن يكون السبب 10 أحرف على الأقل ({overrideReason.length}/10)</p>
+              )}
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDialog({ open: false, bookingId: null })}>إلغاء | Cancel</Button>
+            <Button variant="outline" onClick={() => { setConfirmDialog({ open: false, bookingId: null }); setOverrideReason(""); }}>إلغاء | Cancel</Button>
             <Button
-              className="bg-blue-600 hover:bg-blue-700"
-              onClick={() => confirmDialog.bookingId && confirmPayment.mutate({ bookingId: confirmDialog.bookingId })}
-              disabled={confirmPayment.isPending}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={() => confirmDialog.bookingId && confirmPayment.mutate({
+                bookingId: confirmDialog.bookingId,
+                reason: overrideReason,
+                paymentMethod: overridePaymentMethod as any,
+              })}
+              disabled={confirmPayment.isPending || overrideReason.trim().length < 10}
             >
-              {confirmPayment.isPending ? "جارٍ..." : "تأكيد الدفع | Confirm"}
+              <ShieldAlert className="h-4 w-4 me-1" />
+              {confirmPayment.isPending ? "جارٍ..." : "تأكيد يدوي (مسجّل) | Override & Log"}
             </Button>
           </DialogFooter>
         </DialogContent>

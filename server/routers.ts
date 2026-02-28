@@ -1300,12 +1300,33 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    confirmPayment: adminWithPermission(PERMISSIONS.MANAGE_PAYMENTS)
-      .input(z.object({ bookingId: z.number(), paymentMethod: z.enum(['paypal', 'cash', 'bank_transfer']).optional(), notes: z.string().optional() }))
-      .mutation(async ({ input }) => {
+    // Check if payment override is enabled (for admin UI)
+    isOverrideEnabled: adminWithPermission(PERMISSIONS.MANAGE_PAYMENTS)
+      .query(async () => {
+        const settings = await db.getAllSettings();
+        return {
+          enabled: settings['payment.enableOverride'] === 'true',
+        };
+      }),
+
+    confirmPayment: adminWithPermission(PERMISSIONS.MANAGE_PAYMENTS_OVERRIDE)
+      .input(z.object({
+        bookingId: z.number(),
+        paymentMethod: z.enum(['paypal', 'cash', 'bank_transfer']).optional(),
+        reason: z.string().min(10, 'Override reason must be at least 10 characters'),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Check override flag is enabled
+        const settings = await db.getAllSettings();
+        if (settings['payment.enableOverride'] !== 'true') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Payment override is disabled. Enable it in Settings > Payment to use this feature.' });
+        }
+        
         const booking = await db.getBookingById(input.bookingId);
         if (!booking) throw new TRPCError({ code: 'NOT_FOUND', message: 'Booking not found' });
         if (booking.status !== 'approved') throw new TRPCError({ code: 'BAD_REQUEST', message: 'Only approved bookings can have payment confirmed' });
+        
         // TRANSACTION: booking status + payment updates must be atomic
         await withTransaction(async () => {
           await db.updateBooking(input.bookingId, { status: 'active' });
@@ -1320,6 +1341,7 @@ export const appRouter = router({
           }
         });
         // Mark ledger entries as PAID
+        let ledgerIds: number[] = [];
         try {
           const { getLedgerByBookingId, updateLedgerStatusSafe } = await import('./finance-registry.js');
           const ledgerEntries = await getLedgerByBookingId(input.bookingId);
@@ -1327,20 +1349,48 @@ export const appRouter = router({
             if (le.status === 'DUE' || le.status === 'PENDING') {
               await updateLedgerStatusSafe(le.id, 'PAID', {
                 paymentMethod: (input.paymentMethod === 'cash' ? 'CASH' : input.paymentMethod === 'bank_transfer' ? 'BANK_TRANSFER' : undefined) as any,
-                provider: 'manual',
+                provider: 'manual_override',
                 webhookVerified: true, // admin-confirmed = trusted
               });
+              ledgerIds.push(le.id);
             }
           }
         } catch (e) { console.error('[Ledger] Failed to mark ledger PAID on payment confirmation', e); }
+        
+        // ── AUDIT LOG: Record the manual override ──
+        try {
+          const { logAudit } = await import('./audit-log.js');
+          await logAudit({
+            userId: ctx.user.id,
+            userName: ctx.user.displayName || ctx.user.name || 'Admin',
+            action: 'UPDATE',
+            entityType: 'LEDGER',
+            entityId: input.bookingId,
+            entityLabel: `Manual payment override for booking #${input.bookingId}`,
+            changes: {
+              bookingStatus: { old: 'approved', new: 'active' },
+              ledgerStatus: { old: 'DUE', new: 'PAID' },
+              overrideReason: { old: null, new: input.reason },
+            },
+            metadata: {
+              overrideType: 'manual_payment_confirmation',
+              bookingId: input.bookingId,
+              ledgerIds,
+              paymentMethod: input.paymentMethod || 'unspecified',
+              reason: input.reason,
+              notes: input.notes || null,
+            },
+          });
+        } catch (e) { console.error('[Audit] Failed to log payment override', e); }
+        
         // Notify tenant: payment confirmed (outside tx — best-effort)
         await db.createNotification({
           userId: booking.tenantId,
           type: 'payment_received',
           titleEn: 'Payment Confirmed - Booking Active',
           titleAr: 'تم تأكيد الدفع - الحجز نشط الآن',
-          contentEn: `Payment for booking #${input.bookingId} has been confirmed. Your booking is now active!`,
-          contentAr: `تم تأكيد دفعة الحجز رقم #${input.bookingId}. حجزك نشط الآن!`,
+          contentEn: `Payment for booking #${input.bookingId} has been confirmed (admin override). Your booking is now active!`,
+          contentAr: `تم تأكيد دفعة الحجز رقم #${input.bookingId} (تأكيد يدوي). حجزك نشط الآن!`,
           relatedId: input.bookingId,
           relatedType: 'booking',
         });
@@ -1357,8 +1407,8 @@ export const appRouter = router({
             });
           }
         } catch { /* email is best-effort */ }
-        await notifyOwner({ title: `تم تأكيد دفع الحجز #${input.bookingId}`, content: `الحجز أصبح نشطاً` });
-        return { success: true };
+        await notifyOwner({ title: `⚠️ تأكيد دفع يدوي للحجز #${input.bookingId}`, content: `السبب: ${input.reason}` });
+        return { success: true, overrideLogged: true };
       }),
 
     sendBillReminder: adminWithPermission(PERMISSIONS.MANAGE_BOOKINGS)

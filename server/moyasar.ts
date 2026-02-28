@@ -341,6 +341,29 @@ export async function handleMoyasarWebhookVerified(req: Request, res: Response) 
     
     const ledgerEntry = rows[0];
     
+    // ── Idempotency guard: if ledger is already PAID/REFUNDED, skip ──
+    if (ledgerEntry.status === "PAID" || ledgerEntry.status === "REFUNDED") {
+      console.log(`[Moyasar Webhook] Ledger #${ledgerEntry.id} already ${ledgerEntry.status} — idempotent skip`);
+      return res.status(200).json({ received: true, matched: true, alreadyProcessed: true, currentStatus: ledgerEntry.status });
+    }
+    
+    // ── Amount validation: webhook amount (halalah) must match ledger amount (SAR) ──
+    if (amount !== undefined && status === "paid") {
+      const webhookAmountSAR = Number(amount) / 100; // Moyasar sends halalah
+      const ledgerAmountSAR = Number(ledgerEntry.amount);
+      if (Math.abs(webhookAmountSAR - ledgerAmountSAR) > 0.01) {
+        console.error(`[Moyasar Webhook] Amount mismatch! Webhook: ${webhookAmountSAR} SAR, Ledger: ${ledgerAmountSAR} SAR. Refusing to mark PAID.`);
+        return res.status(200).json({ received: true, matched: true, error: "amount_mismatch", webhookAmount: webhookAmountSAR, ledgerAmount: ledgerAmountSAR });
+      }
+    }
+    
+    // ── Currency validation ──
+    const webhookCurrency = req.body.currency?.toUpperCase();
+    if (webhookCurrency && webhookCurrency !== "SAR") {
+      console.error(`[Moyasar Webhook] Currency mismatch! Expected SAR, got ${webhookCurrency}`);
+      return res.status(200).json({ received: true, matched: true, error: "currency_mismatch" });
+    }
+    
     // Map Moyasar status to our ledger status
     let newStatus: string;
     switch (status) {

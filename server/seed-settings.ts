@@ -130,6 +130,8 @@ const defaultSettings: Record<string, string> = {
   "moyasar.enableMadaCards": "true",
   "moyasar.enableApplePay": "true",
   "moyasar.enableGooglePay": "true",
+  // Payment override (emergency admin manual confirmation)
+  "payment.enableOverride": "false",
 };
 
 /**

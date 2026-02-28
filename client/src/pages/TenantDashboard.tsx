@@ -247,7 +247,15 @@ export default function TenantDashboard() {
                           {(b as any).paymentConfigured ? (
                             <Button
                               className="w-full bg-[#3ECFC0] text-[#0B1E2D] hover:bg-[#2ab5a6] font-semibold border-0 h-11"
-                              onClick={(e) => { e.stopPropagation(); setLocation(`/pay/${b.id}`); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const dueLedger = (b as any).ledgerEntries?.find((l: any) => l.status === 'DUE');
+                                if (dueLedger) {
+                                  setLocation(`/pay/${b.id}?ledgerId=${dueLedger.id}`);
+                                } else {
+                                  toast.error(lang === 'ar' ? 'لا توجد فاتورة مستحقة' : 'No DUE invoice found');
+                                }
+                              }}
                             >
                               <CreditCard className="h-4 w-4 me-2" />
                               {lang === "ar" ? "ادفع الآن" : "Pay Now"}

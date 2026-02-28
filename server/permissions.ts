@@ -22,6 +22,7 @@ export const PERMISSIONS = {
   MANAGE_SETTINGS: "manage_settings",
   SEND_NOTIFICATIONS: "send_notifications",
   MANAGE_AI: "manage_ai",
+  MANAGE_PAYMENTS_OVERRIDE: "manage_payments_override",
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -44,7 +45,7 @@ export const PERMISSION_CATEGORIES = [
     key: "bookings",
     labelAr: "إدارة الحجوزات",
     labelEn: "Booking Management",
-    permissions: [PERMISSIONS.MANAGE_BOOKINGS, PERMISSIONS.MANAGE_PAYMENTS],
+    permissions: [PERMISSIONS.MANAGE_BOOKINGS, PERMISSIONS.MANAGE_PAYMENTS, PERMISSIONS.MANAGE_PAYMENTS_OVERRIDE],
   },
   {
     key: "services",

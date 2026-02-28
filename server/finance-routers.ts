@@ -602,23 +602,43 @@ export const financeRouter = router({
     // Create a Moyasar payment (protected — tenant creates payment)
     createPayment: protectedProcedure
       .input(z.object({
-        bookingId: z.number(),
-        amount: z.number(),
-        description: z.string(),
+        ledgerId: z.number(),
         callbackUrl: z.string(),
         sourceType: z.enum(["creditcard", "applepay", "googlepay"]),
         token: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        // Ledger is the ONLY source of truth for amount
+        const { getLedgerEntry } = await import("./finance-registry");
+        const ledger = await getLedgerEntry(input.ledgerId);
+        if (!ledger) throw new TRPCError({ code: 'NOT_FOUND', message: 'Ledger entry not found' });
+        if (ledger.status !== 'DUE') throw new TRPCError({ code: 'BAD_REQUEST', message: `Ledger status is ${ledger.status}, expected DUE` });
+        
+        // Validate booking status = approved
+        const booking = ledger.bookingId ? await db.getBookingById(ledger.bookingId) : null;
+        if (!booking) throw new TRPCError({ code: 'NOT_FOUND', message: 'Linked booking not found' });
+        if (booking.status !== 'approved') throw new TRPCError({ code: 'BAD_REQUEST', message: `Booking status is ${booking.status}, expected approved` });
+        if (booking.tenantId !== ctx.user.id) throw new TRPCError({ code: 'FORBIDDEN', message: 'Only the tenant can pay for this booking' });
+        
+        // Payment config must be active
+        const { isPaymentConfigured } = await import("./finance-registry");
+        const pc = await isPaymentConfigured();
+        if (!pc.configured) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Payment provider not configured' });
+        
         const { createMoyasarPayment } = await import("./moyasar");
         return createMoyasarPayment({
-          bookingId: input.bookingId,
-          amount: input.amount,
-          description: input.description,
+          bookingId: booking.id,
+          amount: Number(ledger.amount), // Ledger amount is the source of truth
+          description: `Rent payment for booking #${booking.id} - Invoice ${ledger.invoiceNumber}`,
           callbackUrl: input.callbackUrl,
           source: {
             type: input.sourceType,
             token: input.token,
+          },
+          metadata: {
+            bookingId: String(booking.id),
+            ledgerId: String(ledger.id),
+            invoiceNumber: ledger.invoiceNumber || '',
           },
         });
       }),
