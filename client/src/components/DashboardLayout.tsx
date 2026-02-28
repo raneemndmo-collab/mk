@@ -45,6 +45,7 @@ const menuItems = [
   { icon: BarChart3, label: "التحليلات", path: "/admin/analytics" },
   { icon: MapPin, label: "المدن والأحياء", path: "/admin/cities" },
   { icon: KeyRound, label: "الصلاحيات والأدوار", path: "/admin/permissions" },
+  { icon: BookOpen, label: "قاعدة المعرفة", path: "/admin/knowledge-base" },
   { icon: MessageCircle, label: "واتساب", path: "/admin/whatsapp" },
   { icon: Plug, label: "التكاملات", path: "/admin/integrations" },
   { icon: Shield, label: "تقوية الإنتاج", path: "/admin/hardening" },
@@ -275,6 +276,11 @@ function DashboardLayoutContent({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <div className="mt-2 text-center group-data-[collapsible=icon]:hidden">
+              <p className="text-[10px] text-muted-foreground/50 font-mono">
+                Build {typeof __APP_BUILD_VERSION__ !== 'undefined' ? __APP_BUILD_VERSION__ : 'dev'}
+              </p>
+            </div>
           </SidebarFooter>
         </Sidebar>
         <div

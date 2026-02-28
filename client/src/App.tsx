@@ -31,8 +31,7 @@ const Messages = lazy(() => import("./pages/Messages"));
 const BookingFlow = lazy(() => import("./pages/BookingFlow"));
 const MaintenanceRequest = lazy(() => import("./pages/MaintenanceRequest"));
 const LeaseContract = lazy(() => import("./pages/LeaseContract"));
-// DEFERRED: KnowledgeBase — not in sidebar, blocked
-// const KnowledgeBase = lazy(() => import("./pages/KnowledgeBase"));
+const KnowledgeBase = lazy(() => import("./pages/KnowledgeBase"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings"));
 const CityDistrictManagement = lazy(() => import("./pages/CityDistrictManagement"));
 const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
@@ -95,9 +94,9 @@ function Router() {
         <Route path="/edit-property/:id" component={CreateProperty} />
         <Route path="/tenant" component={TenantDashboard} />
         <Route path="/landlord" component={LandlordDashboard} />
-        {/* Orphan routes — DEFERRED, redirect to /admin (must be before /admin catch-all) */}
-        <Route path="/admin/knowledge-base">{() => { useEffect(() => { window.location.replace("/admin"); }, []); return <PageLoader />; }}</Route>
+        {/* Orphan route — DEFERRED, redirect to /admin */}
         <Route path="/admin/my-account">{() => { useEffect(() => { window.location.replace("/admin"); }, []); return <PageLoader />; }}</Route>
+        <Route path="/admin/knowledge-base" component={KnowledgeBase} />
         {/* Admin sub-routes (must be before /admin catch-all) */}
         <Route path="/admin/settings" component={AdminSettings} />
         <Route path="/admin/cities" component={CityDistrictManagement} />

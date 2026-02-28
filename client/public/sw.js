@@ -1,32 +1,65 @@
-const CACHE_NAME = 'monthly-key-v2';
+// Build version is injected at build time or bumped manually on each deploy
+const BUILD_VERSION = '__BUILD_VERSION__';
+const CACHE_NAME = 'monthly-key-v3-' + BUILD_VERSION;
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
 ];
 
-// Install - cache shell
+// Install - cache shell + force immediate activation
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
   );
+  // Skip waiting to activate immediately (don't wait for old tabs to close)
   self.skipWaiting();
 });
 
-// Activate - clean old caches
+// Activate - AGGRESSIVELY clean ALL old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+      Promise.all(
+        keys
+          .filter((k) => k !== CACHE_NAME)
+          .map((k) => {
+            console.log('[SW] Deleting old cache:', k);
+            return caches.delete(k);
+          })
+      )
+    ).then(() => {
+      console.log('[SW] Activated with cache:', CACHE_NAME);
+      // Claim all clients immediately so the new SW controls all tabs
+      return self.clients.claim();
+    })
   );
-  self.clients.claim();
 });
 
 // Fetch - network first, fallback to cache
+// For HTML navigation requests: ALWAYS go to network (never serve stale HTML)
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   if (event.request.url.includes('/api/')) return;
   if (event.request.url.includes('/trpc/')) return;
+
+  // For navigation requests (HTML pages), always network-first with no cache fallback
+  // This prevents stale SPA shells from being served
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request).then(r => r || caches.match('/')))
+    );
+    return;
+  }
+
+  // For other assets (JS, CSS, images): network first, cache fallback
   event.respondWith(
     fetch(event.request)
       .then((response) => {
@@ -112,4 +145,14 @@ self.addEventListener('pushsubscriptionchange', (event) => {
       });
     })
   );
+});
+
+// ─── Message handler for version checks ──────────────────────────────
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'GET_VERSION') {
+    event.ports[0].postMessage({ version: BUILD_VERSION, cache: CACHE_NAME });
+  }
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });

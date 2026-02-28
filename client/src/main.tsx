@@ -60,9 +60,31 @@ createRoot(document.getElementById("root")!).render(
   </trpc.Provider>
 );
 
-// Register service worker for PWA
+// Register service worker for PWA with forced update check
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  window.addEventListener("load", async () => {
+    try {
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      // Check for updates immediately and every 5 minutes
+      reg.update().catch(() => {});
+      setInterval(() => reg.update().catch(() => {}), 5 * 60 * 1000);
+      // If a new SW is waiting, tell it to activate immediately
+      if (reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+      reg.addEventListener('updatefound', () => {
+        const newSW = reg.installing;
+        if (newSW) {
+          newSW.addEventListener('statechange', () => {
+            if (newSW.state === 'activated') {
+              // New SW activated — reload to get fresh assets
+              window.location.reload();
+            }
+          });
+        }
+      });
+    } catch (e) {
+      // SW registration failed — not critical
+    }
   });
 }

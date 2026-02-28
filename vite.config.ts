@@ -154,6 +154,10 @@ const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(
 
 export default defineConfig({
   plugins,
+  define: {
+    '__APP_BUILD_VERSION__': JSON.stringify(new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)),
+    '__APP_BUILD_DATE__': JSON.stringify(new Date().toISOString()),
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
