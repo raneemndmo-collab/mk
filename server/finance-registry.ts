@@ -822,3 +822,16 @@ export async function getAvailableUnitsForLinking(currentPropertyId?: number) {
   );
   return rows;
 }
+
+/**
+ * Get the unit linked to a property (unit.propertyId = propertyId).
+ * Returns the first matching unit or null.
+ */
+export async function getLinkedUnitByPropertyId(propertyId: number) {
+  const pool = await getPool();
+  const [rows] = await pool.query(
+    `SELECT * FROM units WHERE propertyId = ? AND isArchived = false LIMIT 1`,
+    [propertyId]
+  );
+  return (rows as any[])[0] || null;
+}
