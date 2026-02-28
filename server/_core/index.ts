@@ -289,6 +289,11 @@ async function startServer() {
   app.post("/api/webhooks/tabby", handleTabbyWebhook);
   app.post("/api/webhooks/tamara", handleTamaraWebhook);
 
+  // ─── WhatsApp Cloud API Webhook ─────────────────────────────────
+  const { handleWhatsAppWebhook, handleWhatsAppVerification } = await import("../whatsapp-cloud");
+  app.get("/api/webhooks/whatsapp", handleWhatsAppVerification);
+  app.post("/api/webhooks/whatsapp", handleWhatsAppWebhook);
+
   // Local authentication routes (login, register, change-password)
   registerAuthRoutes(app);
   // tRPC API

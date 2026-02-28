@@ -63,6 +63,21 @@ export async function getDb() {
           }
         }
       }
+      // Auto-migrate: extend audit_log ENUMs for WhatsApp
+      const auditMigrations = [
+        `ALTER TABLE audit_log MODIFY COLUMN action ENUM('CREATE','UPDATE','ARCHIVE','RESTORE','DELETE','LINK_BEDS24','UNLINK_BEDS24','PUBLISH','UNPUBLISH','CONVERT','TEST','ENABLE','DISABLE','SEND') NOT NULL`,
+        `ALTER TABLE audit_log MODIFY COLUMN entityType ENUM('BUILDING','UNIT','BEDS24_MAP','LEDGER','EXTENSION','PAYMENT_METHOD','PROPERTY','SUBMISSION','INTEGRATION','WHATSAPP_MESSAGE','WHATSAPP_TEMPLATE') NOT NULL`,
+      ];
+      for (const migSql of auditMigrations) {
+        try {
+          await _pool.execute(migSql);
+        } catch (e: any) {
+          // Ignore if already has the values
+          if (!e?.message?.includes('Duplicate')) {
+            console.warn("[Database] audit_log migration note:", e?.message?.substring(0, 100));
+          }
+        }
+      }
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -2015,4 +2030,153 @@ export async function getPropertySubmissionCount(status?: string) {
   }
   const result = await db.select({ count: sql<number>`count(*)` }).from(propertySubmissions);
   return result[0]?.count ?? 0;
+}
+
+// ─── WhatsApp Templates (DB-stored, admin-managed) ──────────────────
+
+export async function ensureWhatsAppTemplatesTable() {
+  const pool = getPool();
+  if (!pool) return;
+  await pool.execute(`CREATE TABLE IF NOT EXISTS whatsapp_templates (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    templateKey VARCHAR(100) NOT NULL UNIQUE,
+    nameEn VARCHAR(255) NOT NULL,
+    nameAr VARCHAR(255) NOT NULL,
+    metaTemplateName VARCHAR(255) DEFAULT NULL COMMENT 'Meta-approved template name for Cloud API',
+    languageCode VARCHAR(10) DEFAULT 'ar',
+    messageType ENUM('property_share','booking_reminder','follow_up','custom','welcome','payment_reminder','booking_approved','booking_rejected') NOT NULL,
+    bodyEn TEXT,
+    bodyAr TEXT,
+    variableKeys JSON COMMENT 'Array of variable placeholder names',
+    isActive BOOLEAN DEFAULT TRUE NOT NULL,
+    channel ENUM('click_to_chat','cloud_api','both') DEFAULT 'both' NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL
+  )`);
+}
+
+export async function listWhatsAppTemplates(activeOnly: boolean = false) {
+  const pool = getPool();
+  if (!pool) return [];
+  await ensureWhatsAppTemplatesTable();
+  const where = activeOnly ? "WHERE isActive = TRUE" : "";
+  const [rows] = await pool.query(`SELECT * FROM whatsapp_templates ${where} ORDER BY createdAt DESC`);
+  return rows as any[];
+}
+
+export async function getWhatsAppTemplate(id: number) {
+  const pool = getPool();
+  if (!pool) return null;
+  await ensureWhatsAppTemplatesTable();
+  const [rows] = await pool.query(`SELECT * FROM whatsapp_templates WHERE id = ?`, [id]);
+  return (rows as any[])[0] || null;
+}
+
+export async function createWhatsAppTemplateRecord(data: {
+  templateKey: string; nameEn: string; nameAr: string; metaTemplateName?: string;
+  languageCode?: string; messageType: string; bodyEn?: string; bodyAr?: string;
+  variableKeys?: string[]; channel?: string;
+}) {
+  const pool = getPool();
+  if (!pool) return null;
+  await ensureWhatsAppTemplatesTable();
+  const [result] = await pool.query(
+    `INSERT INTO whatsapp_templates (templateKey, nameEn, nameAr, metaTemplateName, languageCode, messageType, bodyEn, bodyAr, variableKeys, channel)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [data.templateKey, data.nameEn, data.nameAr, data.metaTemplateName || null, data.languageCode || 'ar',
+     data.messageType, data.bodyEn || null, data.bodyAr || null,
+     data.variableKeys ? JSON.stringify(data.variableKeys) : null, data.channel || 'both']
+  );
+  return (result as any).insertId;
+}
+
+export async function updateWhatsAppTemplateRecord(id: number, data: {
+  nameEn?: string; nameAr?: string; metaTemplateName?: string; languageCode?: string;
+  messageType?: string; bodyEn?: string; bodyAr?: string; variableKeys?: string[];
+  isActive?: boolean; channel?: string;
+}) {
+  const pool = getPool();
+  if (!pool) return;
+  const sets: string[] = [];
+  const params: any[] = [];
+  if (data.nameEn !== undefined) { sets.push("nameEn = ?"); params.push(data.nameEn); }
+  if (data.nameAr !== undefined) { sets.push("nameAr = ?"); params.push(data.nameAr); }
+  if (data.metaTemplateName !== undefined) { sets.push("metaTemplateName = ?"); params.push(data.metaTemplateName); }
+  if (data.languageCode !== undefined) { sets.push("languageCode = ?"); params.push(data.languageCode); }
+  if (data.messageType !== undefined) { sets.push("messageType = ?"); params.push(data.messageType); }
+  if (data.bodyEn !== undefined) { sets.push("bodyEn = ?"); params.push(data.bodyEn); }
+  if (data.bodyAr !== undefined) { sets.push("bodyAr = ?"); params.push(data.bodyAr); }
+  if (data.variableKeys !== undefined) { sets.push("variableKeys = ?"); params.push(JSON.stringify(data.variableKeys)); }
+  if (data.isActive !== undefined) { sets.push("isActive = ?"); params.push(data.isActive); }
+  if (data.channel !== undefined) { sets.push("channel = ?"); params.push(data.channel); }
+  if (sets.length === 0) return;
+  params.push(id);
+  await pool.query(`UPDATE whatsapp_templates SET ${sets.join(", ")} WHERE id = ?`, params);
+}
+
+export async function deleteWhatsAppTemplateRecord(id: number) {
+  const pool = getPool();
+  if (!pool) return;
+  await pool.query(`DELETE FROM whatsapp_templates WHERE id = ?`, [id]);
+}
+
+export async function seedDefaultWhatsAppTemplates() {
+  const pool = getPool();
+  if (!pool) return;
+  await ensureWhatsAppTemplatesTable();
+  const [existing] = await pool.query(`SELECT COUNT(*) as cnt FROM whatsapp_templates`);
+  if ((existing as any[])[0]?.cnt > 0) return;
+  const defaults = [
+    { templateKey: "welcome", nameEn: "Welcome New Tenant", nameAr: "ترحيب بمستأجر جديد", messageType: "welcome",
+      bodyEn: "Welcome {name}! 🏠\nWelcome to Monthly Key. We're happy to have you.\nIf you need any help, don't hesitate to reach out.",
+      bodyAr: "مرحباً {name}! 🏠\nأهلاً بك في Monthly Key. نحن سعداء بانضمامك.\nإذا احتجت أي مساعدة، لا تتردد في التواصل معنا.",
+      variableKeys: ["name"] },
+    { templateKey: "booking_confirm", nameEn: "Booking Confirmation", nameAr: "تأكيد حجز", messageType: "booking_reminder",
+      bodyEn: "Hi {name}! ✅\nYour booking is confirmed for: {property}\nMove-in: {date}\nMonthly rent: {rent} SAR",
+      bodyAr: "مرحباً {name}! ✅\nتم تأكيد حجزك للعقار: {property}\nتاريخ الدخول: {date}\nالإيجار الشهري: {rent} ر.س",
+      variableKeys: ["name", "property", "date", "rent"] },
+    { templateKey: "payment_reminder", nameEn: "Payment Reminder", nameAr: "تذكير بالدفع", messageType: "payment_reminder",
+      bodyEn: "Hi {name} 💰\nReminder for your monthly rent for: {property}\nAmount: {rent} SAR",
+      bodyAr: "مرحباً {name} 💰\nنذكرك بموعد دفع الإيجار الشهري للعقار: {property}\nالمبلغ: {rent} ر.س",
+      variableKeys: ["name", "property", "rent"] },
+    { templateKey: "booking_approved", nameEn: "Booking Approved", nameAr: "تمت الموافقة على الحجز", messageType: "booking_approved",
+      bodyEn: "Hi {name}! ✅\nYour booking for {property} has been approved.\nPlease proceed with payment.",
+      bodyAr: "مرحباً {name}! ✅\nتمت الموافقة على حجزك للعقار: {property}\nيرجى إتمام الدفع لتأكيد الحجز.",
+      variableKeys: ["name", "property"] },
+    { templateKey: "booking_rejected", nameEn: "Booking Rejected", nameAr: "تم رفض الحجز", messageType: "booking_rejected",
+      bodyEn: "Hi {name},\nYour booking for {property} could not be approved.\nReason: {reason}",
+      bodyAr: "مرحباً {name},\nللأسف لم تتم الموافقة على حجزك للعقار: {property}\nالسبب: {reason}",
+      variableKeys: ["name", "property", "reason"] },
+    { templateKey: "follow_up", nameEn: "Follow Up", nameAr: "متابعة", messageType: "follow_up",
+      bodyEn: "Hi {name}! 👋\nWe hope you're enjoying your stay. Need any help?",
+      bodyAr: "مرحباً {name}! 👋\nنتمنى أنك مستمتع بإقامتك. هل تحتاج أي مساعدة؟",
+      variableKeys: ["name"] },
+    { templateKey: "custom", nameEn: "Custom Message", nameAr: "رسالة مخصصة", messageType: "custom",
+      bodyEn: "", bodyAr: "", variableKeys: [] },
+  ];
+  for (const t of defaults) {
+    await pool.query(
+      `INSERT INTO whatsapp_templates (templateKey, nameEn, nameAr, messageType, bodyEn, bodyAr, variableKeys, channel)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'both')`,
+      [t.templateKey, t.nameEn, t.nameAr, t.messageType, t.bodyEn, t.bodyAr, JSON.stringify(t.variableKeys)]
+    );
+  }
+}
+
+// ─── WhatsApp Delivery Status Updates ───────────────────────────────
+
+export async function updateWhatsAppMessageStatus(providerMsgId: string, status: string, timestamp?: Date) {
+  const pool = getPool();
+  if (!pool) return;
+  try {
+    const sets: string[] = [`status = ?`];
+    const params: any[] = [status];
+    if (status === "delivered" && timestamp) { sets.push("deliveredAt = ?"); params.push(timestamp); }
+    if (status === "read" && timestamp) { sets.push("readAt = ?"); params.push(timestamp); }
+    if (status === "failed") { sets.push("errorMessage = COALESCE(errorMessage, 'Delivery failed')"); }
+    params.push(providerMsgId);
+    await pool.query(`UPDATE whatsapp_messages SET ${sets.join(", ")} WHERE providerMsgId = ?`, params);
+  } catch {
+    // Silently ignore - delivery status is best-effort
+  }
 }

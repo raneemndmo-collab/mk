@@ -6,7 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { I18nProvider } from "./lib/i18n";
 import { SiteSettingsProvider, useSiteSettings } from "./contexts/SiteSettingsContext";
-import React, { lazy, Suspense } from "react";
+import React, { lazy, Suspense, useEffect } from "react";
 import AiAssistant from "./components/AiAssistant";
 import { useAuth } from "./_core/hooks/useAuth";
 import CookieConsent from "./components/CookieConsent";
@@ -31,7 +31,8 @@ const Messages = lazy(() => import("./pages/Messages"));
 const BookingFlow = lazy(() => import("./pages/BookingFlow"));
 const MaintenanceRequest = lazy(() => import("./pages/MaintenanceRequest"));
 const LeaseContract = lazy(() => import("./pages/LeaseContract"));
-const KnowledgeBase = lazy(() => import("./pages/KnowledgeBase"));
+// DEFERRED: KnowledgeBase — not in sidebar, blocked
+// const KnowledgeBase = lazy(() => import("./pages/KnowledgeBase"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings"));
 const CityDistrictManagement = lazy(() => import("./pages/CityDistrictManagement"));
 const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
@@ -55,7 +56,8 @@ const MapViewPage = lazy(() => import("./pages/MapView"));
 const AdminHardeningKB = lazy(() => import("./pages/AdminHardeningKB"));
 const AdminHelpCenter = lazy(() => import("./pages/AdminHelpCenter"));
 const AdminAICopilot = lazy(() => import("./pages/AdminAICopilot"));
-const AdminMyAccount = lazy(() => import("./pages/AdminMyAccount"));
+// DEFERRED: AdminMyAccount — not in sidebar, blocked
+// const AdminMyAccount = lazy(() => import("./pages/AdminMyAccount"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const AdminWhatsApp = lazy(() => import("./pages/AdminWhatsApp"));
 const AdminPayments = lazy(() => import("./pages/AdminPayments"));
@@ -99,7 +101,7 @@ function Router() {
         <Route path="/book/:propertyId" component={BookingFlow} />
         <Route path="/maintenance/new/:bookingId" component={MaintenanceRequest} />
         <Route path="/lease/:bookingId" component={LeaseContract} />
-        <Route path="/admin/knowledge-base" component={KnowledgeBase} />
+        <Route path="/admin/knowledge-base">{() => { useEffect(() => { window.location.replace("/admin"); }, []); return <PageLoader />; }}</Route>
         <Route path="/admin/settings" component={AdminSettings} />
         <Route path="/admin/cities" component={CityDistrictManagement} />
         <Route path="/payment/success" component={PaymentSuccess} />
@@ -118,7 +120,7 @@ function Router() {
         <Route path="/admin/analytics" component={AdminAnalytics} />
         <Route path="/admin/permissions" component={AdminPermissions} />
         <Route path="/admin/hardening" component={AdminHardeningKB} />
-        <Route path="/admin/my-account" component={AdminMyAccount} />
+        <Route path="/admin/my-account">{() => { useEffect(() => { window.location.replace("/admin"); }, []); return <PageLoader />; }}</Route>
         <Route path="/admin/bookings" component={AdminBookings} />
         <Route path="/admin/whatsapp" component={AdminWhatsApp} />
         <Route path="/admin/payments" component={AdminPayments} />

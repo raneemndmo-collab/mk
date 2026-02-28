@@ -35,6 +35,33 @@ import { Link } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
 import { useState } from "react";
+import { HardDrive } from "lucide-react";
+
+// Storage warning banner
+function StorageWarningBanner({ lang }: { lang: string }) {
+  const storageInfo = trpc.admin.storageInfo.useQuery(undefined, { retry: false, refetchOnWindowFocus: false });
+  if (!storageInfo.data || storageInfo.data.mode === 's3') return null;
+  return (
+    <div className="mb-6 p-4 rounded-lg border-2 border-red-500/30 bg-red-50 dark:bg-red-950/20">
+      <div className="flex items-center gap-2 mb-1">
+        <HardDrive className="h-5 w-5 text-red-500" />
+        <h3 className="font-semibold text-red-700 dark:text-red-400">
+          {lang === 'ar' ? '\u26a0\ufe0f \u062a\u062e\u0632\u064a\u0646 \u0627\u0644\u0645\u0644\u0641\u0627\u062a \u063a\u064a\u0631 \u0645\u0643\u0648\u0651\u0646' : '\u26a0\ufe0f File Storage Not Configured'}
+        </h3>
+      </div>
+      <p className="text-sm text-red-600 dark:text-red-300">
+        {lang === 'ar'
+          ? '\u0627\u0644\u062a\u062e\u0632\u064a\u0646 \u0627\u0644\u0645\u062d\u0644\u064a \u0646\u0634\u0637. \u0627\u0644\u0645\u0644\u0641\u0627\u062a \u0627\u0644\u0645\u0631\u0641\u0648\u0639\u0629 \u0644\u0646 \u062a\u0628\u0642\u0649 \u0628\u0639\u062f \u0625\u0639\u0627\u062f\u0629 \u0646\u0634\u0631 Railway. \u064a\u0631\u062c\u0649 \u062a\u0643\u0648\u064a\u0646 S3/R2 \u0641\u064a \u0627\u0644\u062a\u0643\u0627\u0645\u0644\u0627\u062a.'
+          : 'Local storage active. Uploaded files will NOT persist after Railway redeploy. Please configure S3/R2 in Integrations.'}
+      </p>
+      <Link href="/admin/integrations">
+        <Button size="sm" variant="outline" className="mt-2 text-red-600 border-red-300 hover:bg-red-100">
+          {lang === 'ar' ? '\u0627\u0644\u0630\u0647\u0627\u0628 \u0644\u0644\u062a\u0643\u0627\u0645\u0644\u0627\u062a' : 'Go to Integrations'}
+        </Button>
+      </Link>
+    </div>
+  );
+}
 
 // Status badge styling
 function BookingStatusBadge({ status, lang }: { status: string; lang: string }) {
@@ -183,6 +210,9 @@ export default function AdminDashboard() {
           <h1 className="text-2xl font-heading font-bold">{t("dashboard.admin")}</h1>
           <p className="text-muted-foreground mt-1">{lang === "ar" ? "إدارة المنصة" : "Platform Management"}</p>
         </div>
+
+        {/* Storage Warning */}
+        <StorageWarningBanner lang={lang} />
 
         {/* Pending Actions Alert */}
         {(pendingBookings.length > 0 || approvedBookings.length > 0) && (

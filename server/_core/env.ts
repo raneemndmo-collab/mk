@@ -165,10 +165,17 @@ export const ENV = {
   // Legacy Forge API vars (mapped to OpenAI for backward compat)
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? process.env.OPENAI_API_KEY ?? "",
-  // Local file storage
+  // File storage (S3-compatible or local fallback)
   uploadDir: process.env.UPLOAD_DIR ?? "uploads",
   publicUrl: process.env.PUBLIC_URL ?? "", // Auto-detected from request if empty
   maxUploadSize: parseInt(process.env.MAX_UPLOAD_SIZE ?? "52428800"), // 50MB
+  // S3-compatible storage (Cloudflare R2, AWS S3, MinIO)
+  s3Endpoint: process.env.S3_ENDPOINT ?? "",
+  s3Bucket: process.env.S3_BUCKET ?? "",
+  s3AccessKeyId: process.env.S3_ACCESS_KEY_ID ?? "",
+  s3SecretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? "",
+  s3Region: process.env.S3_REGION ?? "auto",
+  s3PublicBaseUrl: process.env.S3_PUBLIC_BASE_URL ?? "", // CDN or R2 public URL
   // SMTP Email Configuration
   smtpHost: process.env.SMTP_HOST ?? "localhost",
   smtpPort: parseInt(process.env.SMTP_PORT ?? "587"),

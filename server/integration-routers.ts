@@ -8,6 +8,7 @@ import { ENV } from "./_core/env";
 import { eq } from "drizzle-orm";
 import { integrationConfigs, auditLog } from "../drizzle/schema";
 import { verifySmtpConnection, isSmtpConfigured } from "./email";
+import { testS3Connection, reloadS3Client, getStorageInfo } from "./storage";
 
 const pool = mysql.createPool(ENV.databaseUrl);
 const db = drizzle(pool);
@@ -18,6 +19,8 @@ const DEFAULT_INTEGRATIONS = [
   { integrationKey: 'moyasar', displayName: 'Moyasar Payments', displayNameAr: 'مدفوعات مُيسّر' },
   { integrationKey: 'email', displayName: 'Email (SMTP)', displayNameAr: 'البريد الإلكتروني (SMTP)' },
   { integrationKey: 'maps', displayName: 'Google Maps', displayNameAr: 'خرائط جوجل' },
+  { integrationKey: 'whatsapp', displayName: 'WhatsApp Cloud API', displayNameAr: 'واتساب كلاود API' },
+  { integrationKey: 'storage', displayName: 'File Storage (S3/R2)', displayNameAr: 'تخزين الملفات (S3/R2)' },
 ];
 
 // Mask a secret string: show first 4 and last 4 chars
@@ -77,6 +80,26 @@ function getConfigFields(key: string): { name: string; label: string; labelAr: s
       return [
         { name: 'apiKey', label: 'API Key', labelAr: 'مفتاح API', isSecret: true },
         { name: 'mapId', label: 'Map ID', labelAr: 'معرف الخريطة', isSecret: false },
+      ];
+    case 'whatsapp':
+      return [
+        { name: 'phoneNumberId', label: 'Phone Number ID', labelAr: 'معرف رقم الهاتف', isSecret: false },
+        { name: 'businessAccountId', label: 'Business Account ID', labelAr: 'معرف حساب الأعمال', isSecret: false },
+        { name: 'accessToken', label: 'Access Token', labelAr: 'رمز الوصول', isSecret: true },
+        { name: 'apiVersion', label: 'API Version (e.g. v20.0)', labelAr: 'إصدار API', isSecret: false },
+        { name: 'webhookVerifyToken', label: 'Webhook Verify Token', labelAr: 'رمز التحقق من الويب هوك', isSecret: true },
+        { name: 'appSecret', label: 'App Secret (Signature Verification)', labelAr: 'سر التطبيق (التحقق من التوقيع)', isSecret: true },
+        { name: 'defaultCountryCode', label: 'Default Country Code', labelAr: 'رمز الدولة الافتراضي', isSecret: false },
+        { name: 'senderName', label: 'Sender Display Name', labelAr: 'اسم المرسل', isSecret: false },
+      ];
+    case 'storage':
+      return [
+        { name: 'endpoint', label: 'S3 Endpoint (e.g. https://xxx.r2.cloudflarestorage.com)', labelAr: 'نقطة الوصول S3', isSecret: false },
+        { name: 'bucket', label: 'Bucket Name', labelAr: 'اسم الحاوية', isSecret: false },
+        { name: 'accessKeyId', label: 'Access Key ID', labelAr: 'معرف مفتاح الوصول', isSecret: true },
+        { name: 'secretAccessKey', label: 'Secret Access Key', labelAr: 'مفتاح الوصول السري', isSecret: true },
+        { name: 'region', label: 'Region (default: auto)', labelAr: 'المنطقة', isSecret: false },
+        { name: 'publicBaseUrl', label: 'Public/CDN Base URL', labelAr: 'رابط CDN العام', isSecret: false },
       ];
     default:
       return [];
@@ -156,6 +179,20 @@ export const integrationRouter = router({
       }
 
       await db.update(integrationConfigs).set(updates).where(eq(integrationConfigs.id, input.id));
+
+      // If storage config was updated, reload S3 client with new credentials
+      if (item.integrationKey === 'storage' && input.config) {
+        const finalConfig = parseConfig(updates.configJson || item.configJson);
+        if (finalConfig.bucket && finalConfig.accessKeyId && finalConfig.secretAccessKey) {
+          process.env.S3_ENDPOINT = finalConfig.endpoint || '';
+          process.env.S3_BUCKET = finalConfig.bucket;
+          process.env.S3_ACCESS_KEY_ID = finalConfig.accessKeyId;
+          process.env.S3_SECRET_ACCESS_KEY = finalConfig.secretAccessKey;
+          process.env.S3_REGION = finalConfig.region || 'auto';
+          if (finalConfig.publicBaseUrl) process.env.S3_PUBLIC_BASE_URL = finalConfig.publicBaseUrl;
+          reloadS3Client();
+        }
+      }
 
       // Audit log (never log secrets)
       await db.insert(auditLog).values({
@@ -245,6 +282,59 @@ export const integrationRouter = router({
           case 'maps': {
             // Maps is proxied through Manus, always available
             testResult = { success: true, message: 'Google Maps proxy is available (Manus-managed)' };
+            break;
+          }
+          case 'whatsapp': {
+            const phoneNumberId = config.phoneNumberId;
+            const accessToken = config.accessToken;
+            const apiVersion = config.apiVersion || 'v20.0';
+            if (!phoneNumberId || !accessToken) {
+              testResult = { success: false, message: 'Phone Number ID and Access Token are required' };
+              break;
+            }
+            try {
+              const resp = await fetch(
+                `https://graph.facebook.com/${apiVersion}/${phoneNumberId}`,
+                {
+                  headers: { 'Authorization': `Bearer ${accessToken}` },
+                  signal: AbortSignal.timeout(10000),
+                }
+              );
+              if (resp.ok) {
+                const data = await resp.json();
+                const displayPhone = data.display_phone_number || phoneNumberId;
+                testResult = { success: true, message: `Connected. Phone: ${displayPhone}, Status: ${data.quality_rating || 'OK'}` };
+              } else {
+                const errData = await resp.json().catch(() => ({}));
+                const errMsg = errData?.error?.message || `HTTP ${resp.status}`;
+                testResult = { success: false, message: `WhatsApp API error: ${errMsg}` };
+              }
+            } catch (e: any) {
+              testResult = { success: false, message: `Connection failed: ${e.message}` };
+            }
+            break;
+          }
+          case 'storage': {
+            const endpoint = config.endpoint;
+            const bucket = config.bucket;
+            const accessKeyId = config.accessKeyId;
+            const secretAccessKey = config.secretAccessKey;
+            const region = config.region || 'auto';
+            if (!bucket || !accessKeyId || !secretAccessKey) {
+              testResult = { success: false, message: 'Bucket, Access Key ID, and Secret Access Key are required' };
+              break;
+            }
+            testResult = await testS3Connection({ endpoint, bucket, accessKeyId, secretAccessKey, region });
+            if (testResult.success) {
+              // Also set env vars so storage.ts picks them up
+              process.env.S3_ENDPOINT = endpoint;
+              process.env.S3_BUCKET = bucket;
+              process.env.S3_ACCESS_KEY_ID = accessKeyId;
+              process.env.S3_SECRET_ACCESS_KEY = secretAccessKey;
+              process.env.S3_REGION = region;
+              if (config.publicBaseUrl) process.env.S3_PUBLIC_BASE_URL = config.publicBaseUrl;
+              reloadS3Client();
+            }
             break;
           }
           default:

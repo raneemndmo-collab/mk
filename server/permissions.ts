@@ -23,6 +23,7 @@ export const PERMISSIONS = {
   SEND_NOTIFICATIONS: "send_notifications",
   MANAGE_AI: "manage_ai",
   MANAGE_PAYMENTS_OVERRIDE: "manage_payments_override",
+  MANAGE_WHATSAPP: "manage_whatsapp",
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -64,6 +65,12 @@ export const PERMISSION_CATEGORIES = [
     labelAr: "إدارة النظام",
     labelEn: "System Administration",
     permissions: [PERMISSIONS.MANAGE_ROLES, PERMISSIONS.MANAGE_SETTINGS, PERMISSIONS.VIEW_ANALYTICS, PERMISSIONS.SEND_NOTIFICATIONS, PERMISSIONS.MANAGE_AI],
+  },
+  {
+    key: "whatsapp",
+    labelAr: "إدارة واتساب",
+    labelEn: "WhatsApp Management",
+    permissions: [PERMISSIONS.MANAGE_WHATSAPP],
   },
 ];
 

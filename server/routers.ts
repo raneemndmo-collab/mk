@@ -28,6 +28,8 @@ import { sanitizeText, sanitizeObject, validateContentType, validateFileExtensio
 import { financeRouter } from "./finance-routers";
 import { submissionRouter } from "./submission-routers";
 import { integrationRouter } from "./integration-routers";
+import { sendTemplateMessage, sendTextMessage, getWhatsAppConfig, formatPhoneForWhatsApp, maskPhone } from "./whatsapp-cloud";
+import { logAudit } from "./audit-log";
 import { dbIdentity } from "./_core/env";
 
 // Shared drizzle instance for roles/aiStats (avoid creating new connections per request)
@@ -1307,6 +1309,12 @@ export const appRouter = router({
         return {
           enabled: settings['payment.enableOverride'] === 'true',
         };
+      }),
+
+    storageInfo: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .query(async () => {
+        const { getStorageInfo } = await import('./storage');
+        return getStorageInfo();
       }),
 
     confirmPayment: adminWithPermission(PERMISSIONS.MANAGE_PAYMENTS_OVERRIDE)
@@ -2997,15 +3005,15 @@ export const appRouter = router({
       }),
   }),
 
-  // ─── WhatsApp Messages ──────────────────────────────────────────────
+  // ─── WhatsApp Messages (Cloud API + Click-to-Chat) ─────────────────
   whatsapp: router({
-    // Log a message (admin sends via click-to-chat or cloud API)
-    send: adminProcedure
+    // Send a message (click-to-chat logs only, or Cloud API actual send)
+    send: adminWithPermission(PERMISSIONS.MANAGE_WHATSAPP)
       .input(z.object({
         recipientPhone: z.string().min(10),
         recipientName: z.string().optional(),
         userId: z.number().optional(),
-        messageType: z.enum(["property_share", "booking_reminder", "follow_up", "custom", "welcome", "payment_reminder"]),
+        messageType: z.enum(["property_share", "booking_reminder", "follow_up", "custom", "welcome", "payment_reminder", "booking_approved", "booking_rejected"]),
         templateName: z.string().optional(),
         messageBody: z.string().min(1),
         propertyId: z.number().optional(),
@@ -3013,6 +3021,22 @@ export const appRouter = router({
         channel: z.enum(["click_to_chat", "cloud_api"]).default("click_to_chat"),
       }))
       .mutation(async ({ input, ctx }) => {
+        let status: string = "sent";
+        let providerMsgId: string | null = null;
+        let errorMessage: string | null = null;
+
+        if (input.channel === "cloud_api") {
+          // Actually send via WhatsApp Cloud API
+          const result = await sendTextMessage(input.recipientPhone, input.messageBody);
+          if (result.success) {
+            status = "sent";
+            providerMsgId = result.providerMsgId || null;
+          } else {
+            status = "failed";
+            errorMessage = result.error || "Unknown error";
+          }
+        }
+
         const msgId = await db.createWhatsAppMessage({
           ...input,
           recipientName: input.recipientName || null,
@@ -3021,14 +3045,111 @@ export const appRouter = router({
           propertyId: input.propertyId || null,
           bookingId: input.bookingId || null,
           sentBy: ctx.user.id,
-          status: input.channel === "click_to_chat" ? "sent" : "pending",
+          status: status as any,
           sentAt: new Date(),
         });
-        return { id: msgId, status: "sent" };
+
+        // Update providerMsgId if we got one
+        if (providerMsgId) {
+          const pool = db.getPool();
+          if (pool) {
+            await pool.query(`UPDATE whatsapp_messages SET providerMsgId = ? WHERE id = ?`, [providerMsgId, msgId]);
+          }
+        }
+        if (errorMessage) {
+          const pool = db.getPool();
+          if (pool) {
+            await pool.query(`UPDATE whatsapp_messages SET errorMessage = ? WHERE id = ?`, [errorMessage, msgId]);
+          }
+        }
+
+        // Audit log (mask phone)
+        try {
+          await logAudit({
+            userId: ctx.user.id,
+            userName: ctx.user.displayName || "admin",
+            action: "SEND",
+            entityType: "WHATSAPP_MESSAGE",
+            entityId: msgId,
+            entityLabel: `WhatsApp to ${maskPhone(input.recipientPhone)}`,
+            metadata: { channel: input.channel, messageType: input.messageType, status },
+          });
+        } catch {}
+
+        return { id: msgId, status, providerMsgId, error: errorMessage };
+      }),
+
+    // Send template message via Cloud API
+    sendTemplate: adminWithPermission(PERMISSIONS.MANAGE_WHATSAPP)
+      .input(z.object({
+        recipientPhone: z.string().min(10),
+        recipientName: z.string().optional(),
+        userId: z.number().optional(),
+        templateId: z.number(),
+        variables: z.record(z.string()).optional(),
+        propertyId: z.number().optional(),
+        bookingId: z.number().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const template = await db.getWhatsAppTemplate(input.templateId);
+        if (!template) throw new TRPCError({ code: "NOT_FOUND", message: "Template not found" });
+
+        // Build message body from template with variable substitution
+        let body = template.bodyAr || template.bodyEn || "";
+        const vars = input.variables || {};
+        for (const [key, val] of Object.entries(vars)) {
+          body = body.replace(new RegExp(`\\{${key}\\}`, "g"), val);
+        }
+
+        let status = "sent";
+        let providerMsgId: string | null = null;
+        let errorMessage: string | null = null;
+
+        // If template has a Meta template name, send via Cloud API
+        if (template.metaTemplateName && (template.channel === "cloud_api" || template.channel === "both")) {
+          const variableValues = template.variableKeys
+            ? JSON.parse(template.variableKeys).map((k: string) => vars[k] || "")
+            : [];
+          const result = await sendTemplateMessage({
+            to: input.recipientPhone,
+            templateName: template.metaTemplateName,
+            languageCode: template.languageCode || "ar",
+            variables: variableValues,
+          });
+          if (result.success) {
+            providerMsgId = result.providerMsgId || null;
+          } else {
+            status = "failed";
+            errorMessage = result.error || "Template send failed";
+          }
+        }
+
+        // Log the message
+        const msgId = await db.createWhatsAppMessage({
+          recipientPhone: input.recipientPhone,
+          recipientName: input.recipientName || null,
+          userId: input.userId || null,
+          messageType: template.messageType,
+          templateName: template.templateKey,
+          messageBody: body,
+          propertyId: input.propertyId || null,
+          bookingId: input.bookingId || null,
+          channel: template.metaTemplateName ? "cloud_api" : "click_to_chat",
+          sentBy: ctx.user.id,
+          status: status as any,
+          sentAt: new Date(),
+        });
+
+        if (providerMsgId) {
+          const pool = db.getPool();
+          if (pool) await pool.query(`UPDATE whatsapp_messages SET providerMsgId = ? WHERE id = ?`, [providerMsgId, msgId]);
+        }
+
+        return { id: msgId, status, providerMsgId, error: errorMessage };
       }),
 
     // List messages with filters
-    list: adminProcedure
+    list: adminWithPermission(PERMISSIONS.MANAGE_WHATSAPP)
       .input(z.object({
         limit: z.number().min(1).max(100).default(50),
         offset: z.number().min(0).default(0),
@@ -3040,31 +3161,101 @@ export const appRouter = router({
       }),
 
     // Get stats
-    stats: adminProcedure.query(async () => {
+    stats: adminWithPermission(PERMISSIONS.MANAGE_WHATSAPP).query(async () => {
       return db.getWhatsAppStats();
     }),
 
-    // Get message templates
-    templates: adminProcedure.query(async () => {
-      return [
-        { id: "welcome", nameAr: "ترحيب بمستأجر جديد", nameEn: "Welcome New Tenant", type: "welcome" as const,
-          bodyAr: "مرحباً {name}! 🏠\nأهلاً بك في Monthly Key. نحن سعداء بانضمامك.\nإذا احتجت أي مساعدة، لا تتردد في التواصل معنا.",
-          bodyEn: "Welcome {name}! 🏠\nWelcome to Monthly Key. We're happy to have you.\nIf you need any help, don't hesitate to reach out." },
-        { id: "booking_confirm", nameAr: "تأكيد حجز", nameEn: "Booking Confirmation", type: "booking_reminder" as const,
-          bodyAr: "مرحباً {name}! ✅\nتم تأكيد حجزك للعقار: {property}\nتاريخ الدخول: {date}\nالإيجار الشهري: {rent} ر.س",
-          bodyEn: "Hi {name}! ✅\nYour booking is confirmed for: {property}\nMove-in: {date}\nMonthly rent: {rent} SAR" },
-        { id: "payment_reminder", nameAr: "تذكير بالدفع", nameEn: "Payment Reminder", type: "payment_reminder" as const,
-          bodyAr: "مرحباً {name} 💰\nنذكرك بموعد دفع الإيجار الشهري للعقار: {property}\nالمبلغ: {rent} ر.س\nيرجى الدفع في أقرب وقت.",
-          bodyEn: "Hi {name} 💰\nThis is a reminder for your monthly rent payment for: {property}\nAmount: {rent} SAR\nPlease pay at your earliest convenience." },
-        { id: "follow_up", nameAr: "متابعة", nameEn: "Follow Up", type: "follow_up" as const,
-          bodyAr: "مرحباً {name}! 👋\nنتمنى أنك مستمتع بإقامتك. هل تحتاج أي مساعدة؟\nلا تتردد في التواصل معنا في أي وقت.",
-          bodyEn: "Hi {name}! 👋\nWe hope you're enjoying your stay. Do you need any help?\nFeel free to reach out anytime." },
-        { id: "property_share", nameAr: "مشاركة عقار", nameEn: "Share Property", type: "property_share" as const,
-          bodyAr: "مرحباً {name}! 🏠\nنقترح عليك هذا العقار:\n{property}\n📍 {location}\n💰 {rent} ر.س/شهر\n🔗 {link}",
-          bodyEn: "Hi {name}! 🏠\nWe suggest this property for you:\n{property}\n📍 {location}\n💰 {rent} SAR/mo\n🔗 {link}" },
-        { id: "custom", nameAr: "رسالة مخصصة", nameEn: "Custom Message", type: "custom" as const,
-          bodyAr: "", bodyEn: "" },
-      ];
+    // Get message templates (from DB)
+    templates: adminWithPermission(PERMISSIONS.MANAGE_WHATSAPP).query(async () => {
+      await db.seedDefaultWhatsAppTemplates();
+      return db.listWhatsAppTemplates();
+    }),
+
+    // Create template
+    createTemplate: adminWithPermission(PERMISSIONS.MANAGE_WHATSAPP)
+      .input(z.object({
+        templateKey: z.string().min(1).max(100),
+        nameEn: z.string().min(1),
+        nameAr: z.string().min(1),
+        metaTemplateName: z.string().optional(),
+        languageCode: z.string().default("ar"),
+        messageType: z.enum(["property_share", "booking_reminder", "follow_up", "custom", "welcome", "payment_reminder", "booking_approved", "booking_rejected"]),
+        bodyEn: z.string().optional(),
+        bodyAr: z.string().optional(),
+        variableKeys: z.array(z.string()).optional(),
+        channel: z.enum(["click_to_chat", "cloud_api", "both"]).default("both"),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const id = await db.createWhatsAppTemplateRecord(input);
+        try {
+          await logAudit({
+            userId: ctx.user.id,
+            userName: ctx.user.displayName || "admin",
+            action: "CREATE",
+            entityType: "WHATSAPP_TEMPLATE",
+            entityId: id || 0,
+            entityLabel: input.nameEn,
+          });
+        } catch {}
+        return { id };
+      }),
+
+    // Update template
+    updateTemplate: adminWithPermission(PERMISSIONS.MANAGE_WHATSAPP)
+      .input(z.object({
+        id: z.number(),
+        nameEn: z.string().optional(),
+        nameAr: z.string().optional(),
+        metaTemplateName: z.string().optional(),
+        languageCode: z.string().optional(),
+        messageType: z.enum(["property_share", "booking_reminder", "follow_up", "custom", "welcome", "payment_reminder", "booking_approved", "booking_rejected"]).optional(),
+        bodyEn: z.string().optional(),
+        bodyAr: z.string().optional(),
+        variableKeys: z.array(z.string()).optional(),
+        isActive: z.boolean().optional(),
+        channel: z.enum(["click_to_chat", "cloud_api", "both"]).optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        await db.updateWhatsAppTemplateRecord(input.id, input);
+        try {
+          await logAudit({
+            userId: ctx.user.id,
+            userName: ctx.user.displayName || "admin",
+            action: "UPDATE",
+            entityType: "WHATSAPP_TEMPLATE",
+            entityId: input.id,
+            entityLabel: `Template #${input.id}`,
+          });
+        } catch {}
+        return { success: true };
+      }),
+
+    // Delete template
+    deleteTemplate: adminWithPermission(PERMISSIONS.MANAGE_WHATSAPP)
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        await db.deleteWhatsAppTemplateRecord(input.id);
+        try {
+          await logAudit({
+            userId: ctx.user.id,
+            userName: ctx.user.displayName || "admin",
+            action: "DELETE",
+            entityType: "WHATSAPP_TEMPLATE",
+            entityId: input.id,
+            entityLabel: `Template #${input.id}`,
+          });
+        } catch {}
+        return { success: true };
+      }),
+
+    // Check if WhatsApp Cloud API is configured
+    isConfigured: adminWithPermission(PERMISSIONS.MANAGE_WHATSAPP).query(async () => {
+      const config = await getWhatsAppConfig();
+      return {
+        configured: !!config,
+        cloudApiEnabled: !!config?.accessToken,
+        senderName: config?.senderName || null,
+      };
     }),
   }),
   // ─── Property Submissions (Lead Intake + Admin Review) ──

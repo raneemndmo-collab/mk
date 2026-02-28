@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { SendWhatsAppDialog } from "./AdminWhatsApp";
 import {
-  Search, Loader2, Eye, Phone, Mail, MapPin, BedDouble, Bath, Ruler,
+  Search, Loader2, Eye, Phone, Mail, MapPin, BedDouble, Bath, Ruler, MessageCircle as MessageCircleWA,
   ChevronLeft, ChevronRight, Inbox, ArrowUpRight, CheckCircle, XCircle,
   MessageSquare, Clock, Building2
 } from "lucide-react";
@@ -332,6 +333,15 @@ function SubmissionDetailDialog({ id, open, onClose, onRefresh, onConvert }: {
                   <Building2 className="h-3.5 w-3.5 me-1" /> تحويل إلى عقار
                 </Button>
               )}
+              <SendWhatsAppDialog
+                trigger={
+                  <Button size="sm" variant="outline" className="text-green-600 border-green-200 hover:bg-green-50">
+                    <MessageCircleWA className="h-3.5 w-3.5 me-1" /> واتساب
+                  </Button>
+                }
+                defaultPhone={data.phone || ""}
+                defaultName={data.name || ""}
+              />
             </div>
           </div>
         ) : null}

@@ -8,8 +8,8 @@
  */
 import { getPool } from "./db";
 
-export type AuditAction = "CREATE" | "UPDATE" | "ARCHIVE" | "RESTORE" | "DELETE" | "LINK_BEDS24" | "UNLINK_BEDS24";
-export type AuditEntityType = "BUILDING" | "UNIT" | "BEDS24_MAP" | "LEDGER" | "EXTENSION" | "PAYMENT_METHOD";
+export type AuditAction = "CREATE" | "UPDATE" | "ARCHIVE" | "RESTORE" | "DELETE" | "LINK_BEDS24" | "UNLINK_BEDS24" | "SEND";
+export type AuditEntityType = "BUILDING" | "UNIT" | "BEDS24_MAP" | "LEDGER" | "EXTENSION" | "PAYMENT_METHOD" | "WHATSAPP_MESSAGE" | "WHATSAPP_TEMPLATE";
 
 export interface AuditEntry {
   userId?: number;

@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CalendarCheck, Search, CheckCircle, XCircle, BanknoteIcon, Clock, Filter, FileText, AlertTriangle, CreditCard, ShieldAlert } from "lucide-react";
+import { CalendarCheck, Search, CheckCircle, XCircle, BanknoteIcon, Clock, Filter, FileText, AlertTriangle, CreditCard, ShieldAlert, MessageCircle } from "lucide-react";
+import { SendWhatsAppDialog } from "./AdminWhatsApp";
 
 const STATUS_MAP: Record<string, { label: string; labelAr: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pending: { label: "Pending Approval", labelAr: "بانتظار الموافقة", variant: "secondary" },
@@ -306,6 +307,17 @@ export default function AdminBookings() {
                               {!["pending", "approved"].includes(b.status) && (
                                 <span className="text-xs text-muted-foreground">—</span>
                               )}
+                              <SendWhatsAppDialog
+                                trigger={
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-green-600 hover:bg-green-50">
+                                    <MessageCircle className="h-3.5 w-3.5" />
+                                  </Button>
+                                }
+                                defaultPhone={b.tenantPhone || b.phone || ""}
+                                defaultName={b.tenantName || ""}
+                                defaultBookingId={b.id}
+                                defaultPropertyId={b.propertyId}
+                              />
                             </div>
                           </td>
                         </tr>

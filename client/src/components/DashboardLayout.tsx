@@ -45,6 +45,7 @@ const menuItems = [
   { icon: BarChart3, label: "التحليلات", path: "/admin/analytics" },
   { icon: MapPin, label: "المدن والأحياء", path: "/admin/cities" },
   { icon: KeyRound, label: "الصلاحيات والأدوار", path: "/admin/permissions" },
+  { icon: MessageCircle, label: "واتساب", path: "/admin/whatsapp" },
   { icon: Plug, label: "التكاملات", path: "/admin/integrations" },
   { icon: Shield, label: "تقوية الإنتاج", path: "/admin/hardening" },
   { icon: Database, label: "حالة قاعدة البيانات", path: "/admin/db-status" },

@@ -18,12 +18,13 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   CreditCard, Search, ArrowLeft, Loader2, Filter, Download,
   FileText, Eye, Receipt, StickyNote, Building2, Calendar,
-  User, Hash, ChevronLeft, ChevronRight
+  User, Hash, ChevronLeft, ChevronRight, MessageCircle
 } from "lucide-react";
 import { Link } from "wouter";
 import { getLoginUrl } from "@/const";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
+import { SendWhatsAppDialog } from "./AdminWhatsApp";
 
 const STATUS_COLORS: Record<string, string> = {
   DUE: "bg-amber-100 text-amber-800 border-amber-200",
@@ -263,6 +264,17 @@ export default function AdminPayments() {
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setNotesDialog({ open: true, entry })} title="Notes">
                               <StickyNote className="h-3.5 w-3.5" />
                             </Button>
+                            <SendWhatsAppDialog
+                              trigger={
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:bg-green-50" title="WhatsApp">
+                                  <MessageCircle className="h-3.5 w-3.5" />
+                                </Button>
+                              }
+                              defaultPhone={entry.guestPhone || ""}
+                              defaultName={entry.guestName || ""}
+                              defaultBookingId={entry.bookingId}
+                              defaultPropertyId={entry.propertyId}
+                            />
                           </div>
                         </td>
                       </tr>
