@@ -177,15 +177,14 @@ export default function MaintenanceMode() {
       {/* Main content */}
       <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 py-12">
         
-        {/* Logo / Key icon */}
+        {/* Logo */}
         <div className="relative mb-8">
-          <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-[#3ECFC0] to-[#2ba89e] flex items-center justify-center shadow-2xl shadow-[#3ECFC0]/20">
-            <Key className="w-12 h-12 text-white" />
-          </div>
-          <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#C9A96E] flex items-center justify-center animate-bounce">
-            <Sparkles className="w-4 h-4 text-white" />
-          </div>
-          <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-b from-[#3ECFC0]/10 to-transparent -z-10 blur-xl animate-pulse" />
+          <img 
+            src="/assets/brand/mk-logo-transparent.svg" 
+            alt="Monthly Key" 
+            className="w-28 h-28 drop-shadow-2xl"
+          />
+          <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-b from-white/5 to-transparent -z-10 blur-xl animate-pulse" />
         </div>
 
         {/* Site name */}
