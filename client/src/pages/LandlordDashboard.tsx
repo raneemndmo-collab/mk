@@ -1,6 +1,7 @@
 import SEOHead from "@/components/SEOHead";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
+import { normalizeImageUrl, BROKEN_IMAGE_PLACEHOLDER } from "@/lib/image-utils";
 import { useAuth } from "@/_core/hooks/useAuth";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -161,7 +162,7 @@ export default function LandlordDashboard() {
                   <Card key={p.id} className="card-hover transition-shadow">
                     <CardContent className="p-4 flex items-center gap-4">
                       <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0 bg-muted">
-                        <img src={`/api/img-proxy?url=${encodeURIComponent(p.photos?.[0] || "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80")}`} alt="" className="w-full h-full object-cover" />
+                        <img src={normalizeImageUrl(p.photos?.[0]) || normalizeImageUrl("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80")} alt="" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = BROKEN_IMAGE_PLACEHOLDER; }} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">

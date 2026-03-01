@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { normalizeImageUrl, BROKEN_IMAGE_PLACEHOLDER } from "@/lib/image-utils";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -61,7 +62,7 @@ function SortablePhoto({ id, url, index, onRemove, onSetCover }: {
 
   return (
     <div ref={setNodeRef} style={style} className="relative group rounded-lg overflow-hidden border aspect-square">
-      <img src={url} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
+      <img src={normalizeImageUrl(url)} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = BROKEN_IMAGE_PLACEHOLDER; }} />
       {/* Drag handle */}
       <div
         {...attributes} {...listeners}

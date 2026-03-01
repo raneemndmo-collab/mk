@@ -1,6 +1,7 @@
 import SEOHead from "@/components/SEOHead";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
+import { normalizeImageUrl, BROKEN_IMAGE_PLACEHOLDER } from "@/lib/image-utils";
 import { useAuth } from "@/_core/hooks/useAuth";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -170,7 +171,7 @@ export default function BookingFlow() {
           <CardContent className="p-0">
             <div className="flex items-stretch">
               <div className="w-28 h-28 shrink-0 bg-muted">
-                <img src={(() => { const u = prop.photos?.[0]; if (!u) return `/api/img-proxy?url=${encodeURIComponent("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80")}`; if (u.startsWith('/uploads/')) return u; if (u.includes('/uploads/')) return '/uploads/' + u.split('/uploads/').pop(); return `/api/img-proxy?url=${encodeURIComponent(u)}`; })()} alt="" className="w-full h-full object-cover" />
+                <img src={normalizeImageUrl(prop.photos?.[0]) || normalizeImageUrl("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80")} alt="" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = BROKEN_IMAGE_PLACEHOLDER; }} />
               </div>
               <div className="flex-1 p-4 flex flex-col justify-center">
                 <h3 className="font-semibold text-base">{title}</h3>

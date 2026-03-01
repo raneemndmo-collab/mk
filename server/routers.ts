@@ -2628,6 +2628,39 @@ export const appRouter = router({
         const { url } = await storagePut(key, buffer, input.contentType);
         return { url };
       }),
+    // Property photo upload with optimization (called from AdminPropertyEdit)
+    propertyPhoto: adminWithPermission(PERMISSIONS.MANAGE_PROPERTIES)
+      .input(z.object({ propertyId: z.number(), photo: z.string().max(MAX_BASE64_SIZE), filename: z.string().max(255) }))
+      .mutation(async ({ ctx, input }) => {
+        // Extract base64 data and content type from data URL
+        let base64 = input.photo;
+        let contentType = 'image/jpeg';
+        const match = base64.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          contentType = match[1];
+          base64 = match[2];
+        }
+        if (!validateContentType(contentType, ALLOWED_IMAGE_TYPES)) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid file type. Only images allowed.' });
+        }
+        const buffer = Buffer.from(base64, 'base64');
+        const basePath = `properties/${input.propertyId}`;
+        try {
+          const optimized = await optimizeImage(buffer, basePath, input.filename);
+          return {
+            url: optimized.original.url,
+            thumbnail: optimized.thumbnail?.url,
+            medium: optimized.medium?.url,
+            variants: optimized,
+          };
+        } catch (err) {
+          console.error('[upload.propertyPhoto] Optimization failed, uploading original:', err);
+          const ext = input.filename.split('.').pop() || 'jpg';
+          const key = `${basePath}/${nanoid()}.${ext}`;
+          const { url } = await storagePut(key, buffer, contentType);
+          return { url };
+        }
+      }),
   }),
 
   // ─── Reviews ────────────────────────────────────────────────────────

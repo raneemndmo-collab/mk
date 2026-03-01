@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { trpc } from "@/lib/trpc";
+import { normalizeImageUrl, BROKEN_IMAGE_PLACEHOLDER } from "@/lib/image-utils";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -100,7 +101,7 @@ export default function AdminProperties() {
                     {/* Thumbnail */}
                     <div className="w-24 h-24 rounded-lg bg-muted overflow-hidden shrink-0">
                       {prop.photos?.[0] ? (
-                        <img src={(() => { const u = prop.photos[0]; if (!u) return u; if (u.startsWith('/uploads/')) return u; if (u.includes('/uploads/')) return '/uploads/' + u.split('/uploads/').pop(); return u; })()} alt="" className="w-full h-full object-cover" />
+                        <img src={normalizeImageUrl(prop.photos[0])} alt="" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = BROKEN_IMAGE_PLACEHOLDER; }} />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <Building2 className="h-8 w-8 text-muted-foreground/30" />
@@ -410,7 +411,7 @@ function PropertyFormDialog({ open, onClose, editId, onSuccess }: {
             <div className="flex flex-wrap gap-3">
               {form.photos.map((url, i) => (
                 <div key={i} className="relative w-24 h-24 rounded-lg overflow-hidden border group">
-                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <img src={normalizeImageUrl(url)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = BROKEN_IMAGE_PLACEHOLDER; }} />
                   <button onClick={() => removePhoto(i)} className="absolute top-1 end-1 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <X className="h-3 w-3" />
                   </button>

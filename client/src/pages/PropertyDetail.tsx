@@ -1,5 +1,6 @@
 import SEOHead from "@/components/SEOHead";
 import { useI18n } from "@/lib/i18n";
+import { normalizeImageUrl, handleImageError, BROKEN_IMAGE_PLACEHOLDER } from "@/lib/image-utils";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import Navbar from "@/components/Navbar";
@@ -195,29 +196,12 @@ export default function PropertyDetail() {
   const description = lang === "ar" ? prop.descriptionAr : prop.descriptionEn;
   const city = lang === "ar" ? prop.cityAr : prop.city;
   const district = lang === "ar" ? prop.districtAr : prop.district;
-  // Helper: normalize photo URLs
-  // - Relative /uploads/... paths → use as-is (served by our Express static)
-  // - Old absolute URLs with /uploads/ → strip domain, use relative path
-  // - External URLs (Unsplash etc.) → proxy through our server
-  const normalizePhotoUrl = (url: string): string => {
-    if (!url) return url;
-    // Already a relative path
-    if (url.startsWith("/uploads/")) return url;
-    // Old absolute URL pointing to /uploads/ on any domain → extract relative path
-    if (url.includes("/uploads/")) {
-      return "/uploads/" + url.split("/uploads/").pop();
-    }
-    // data: URLs
-    if (url.startsWith("data:") || url.startsWith("/")) return url;
-    // External URL → proxy
-    return `/api/img-proxy?url=${encodeURIComponent(url)}`;
-  };
-  // Accept ALL photo URLs (relative, absolute, external) and normalize them
-  const validPhotos = (prop.photos || []).filter((url: string) => !!url).map(normalizePhotoUrl);
+  // Normalize ALL photo URLs consistently using shared utility
+  const validPhotos = (prop.photos || []).filter((url: string) => !!url).map(normalizeImageUrl);
   const photos = validPhotos.length ? validPhotos : [
-    normalizePhotoUrl("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80"),
-    normalizePhotoUrl("https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80"),
-    normalizePhotoUrl("https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&q=80"),
+    normalizeImageUrl("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80"),
+    normalizeImageUrl("https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80"),
+    normalizeImageUrl("https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&q=80"),
   ];
 
   // Derive location data from the hook (hook is called above, before early returns)
@@ -281,7 +265,7 @@ export default function PropertyDetail() {
                   const target = e.currentTarget;
                   if (!target.dataset.fallback) {
                     target.dataset.fallback = "1";
-                    target.src = `/api/img-proxy?url=${encodeURIComponent("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80")}`;
+                    target.src = normalizeImageUrl("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80");
                   }
                 }}
               />
@@ -393,7 +377,7 @@ export default function PropertyDetail() {
                         : "border-transparent opacity-60 hover:opacity-100 hover:border-border"
                     }`}
                   >
-                    <img src={photo} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    <img src={photo} alt="" className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.currentTarget as HTMLImageElement).src = BROKEN_IMAGE_PLACEHOLDER; }} />
                   </button>
                 ))}
               </div>
@@ -821,7 +805,7 @@ export default function PropertyDetail() {
                   <CardContent className="p-5">
                     <div className="flex items-center gap-4 mb-3">
                       {(prop as any).manager.photoUrl ? (
-                        <img src={(() => { const u = (prop as any).manager.photoUrl; if (!u || u.startsWith('/') || u.startsWith('data:')) return u; return `/api/img-proxy?url=${encodeURIComponent(u)}`; })()} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-[#3ECFC0]/30" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
+                        <img src={normalizeImageUrl((prop as any).manager.photoUrl)} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-[#3ECFC0]/30" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
                       ) : null}
                       <div className={`w-14 h-14 rounded-full bg-gradient-to-br from-[#3ECFC0] to-[#2ab5a6] flex items-center justify-center text-white font-bold text-lg select-none ${(prop as any).manager.photoUrl ? 'hidden' : ''}`}>
                         {((prop as any).manager.name || '').split(' ').filter(Boolean).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase() || 'PM'}

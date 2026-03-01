@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { normalizeImageUrl, BROKEN_IMAGE_PLACEHOLDER } from "@/lib/image-utils";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -299,17 +300,11 @@ function SubmissionDetailDialog({ id, open, onClose, onRefresh, onConvert }: {
                 <div className="flex flex-wrap gap-3">
                   {data.photos.map((photo: any, i: number) => {
                     // Normalize URLs: strip old domain prefix, keep /uploads/... relative
-                    const fixUrl = (u: string) => {
-                      if (!u) return u;
-                      if (u.startsWith("/uploads/")) return u;
-                      if (u.includes("/uploads/")) return "/uploads/" + u.split("/uploads/").pop();
-                      return u;
-                    };
-                    const imgUrl = fixUrl(photo.thumbnailUrl || photo.url);
-                    const fullUrl = fixUrl(photo.url);
+                    const imgUrl = normalizeImageUrl(photo.thumbnailUrl || photo.url);
+                    const fullUrl = normalizeImageUrl(photo.url);
                     return (
                       <a key={i} href={fullUrl} target="_blank" rel="noopener" className="w-28 h-28 rounded-lg overflow-hidden border hover:ring-2 ring-[#3ECFC0] transition-all">
-                        <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                        <img src={imgUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = BROKEN_IMAGE_PLACEHOLDER; }} />
                       </a>
                     );
                   })}

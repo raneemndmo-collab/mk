@@ -7,26 +7,18 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 import { useState, useEffect, useCallback } from "react";
-
-// Helper: wrap external URLs through our image proxy to avoid CORS/CSP issues
-function proxyUrl(url: string): string {
-  if (!url) return "";
-  // Already a relative URL or data URL — leave as-is
-  if (url.startsWith("/") || url.startsWith("data:")) return url;
-  // External URL — proxy through our server
-  return `/api/img-proxy?url=${encodeURIComponent(url)}`;
-}
+import { normalizeImageUrl, BROKEN_IMAGE_PLACEHOLDER } from "@/lib/image-utils";
 
 // Reliable fallback images by property type (Unsplash via proxy)
 const FALLBACK_IMAGES: Record<string, string> = {
-  apartment: proxyUrl("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80"),
-  villa: proxyUrl("https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&q=80"),
-  studio: proxyUrl("https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80"),
-  duplex: proxyUrl("https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80"),
-  furnished_room: proxyUrl("https://images.unsplash.com/photo-1540518614846-7eded433c457?w=800&q=80"),
-  compound: proxyUrl("https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80"),
-  hotel_apartment: proxyUrl("https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80"),
-  default: proxyUrl("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80"),
+  apartment: normalizeImageUrl("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80"),
+  villa: normalizeImageUrl("https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&q=80"),
+  studio: normalizeImageUrl("https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80"),
+  duplex: normalizeImageUrl("https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80"),
+  furnished_room: normalizeImageUrl("https://images.unsplash.com/photo-1540518614846-7eded433c457?w=800&q=80"),
+  compound: normalizeImageUrl("https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80"),
+  hotel_apartment: normalizeImageUrl("https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80"),
+  default: normalizeImageUrl("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80"),
 };
 
 interface PropertyCardProps {
@@ -77,16 +69,8 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
 
   const fallbackImg = FALLBACK_IMAGES[property.propertyType] || FALLBACK_IMAGES.default;
   const originalPhoto = property.photos?.[0];
-  // Normalize photo URLs: fix old domain, keep relative /uploads/ paths, proxy external
-  const resolvedPhoto = originalPhoto
-    ? originalPhoto.startsWith("/uploads/")
-      ? originalPhoto // already relative
-      : originalPhoto.includes("/uploads/")
-        ? "/uploads/" + originalPhoto.split("/uploads/").pop() // strip old domain
-        : originalPhoto.startsWith("http")
-          ? proxyUrl(originalPhoto)
-          : originalPhoto
-    : "";
+  // Normalize photo URL using shared utility
+  const resolvedPhoto = originalPhoto ? normalizeImageUrl(originalPhoto) : "";
 
   const [imgSrc, setImgSrc] = useState(resolvedPhoto || fallbackImg);
   const [imgStatus, setImgStatus] = useState<"loading" | "loaded" | "error">("loading");
@@ -195,7 +179,7 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
                 {lang === "ar" ? (property.managerNameAr || property.managerName) : property.managerName}
               </span>
               {property.managerPhotoUrl ? (
-                <img src={(() => { const u = property.managerPhotoUrl; if (!u || u.startsWith('/') || u.startsWith('data:')) return u || ''; return `/api/img-proxy?url=${encodeURIComponent(u)}`; })()} alt="" className="w-6 h-6 rounded-full object-cover border border-[#3ECFC0]/30" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
+                <img src={normalizeImageUrl(property.managerPhotoUrl)} alt="" className="w-6 h-6 rounded-full object-cover border border-[#3ECFC0]/30" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
               ) : null}
               <div className={`w-6 h-6 rounded-full bg-gradient-to-br from-[#3ECFC0] to-[#2ab5a6] flex items-center justify-center text-white text-[8px] font-bold select-none ${property.managerPhotoUrl ? 'hidden' : ''}`}>
                 {(property.managerName || '').split(' ').filter(Boolean).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase() || 'PM'}
