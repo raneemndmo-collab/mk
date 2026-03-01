@@ -19,7 +19,7 @@ import { generateHomepageOG, generatePropertyOG, invalidateCache as invalidateOG
 import { getDb } from "../db";
 import { properties, integrationConfigs } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
-import { reloadS3Client } from "../storage";
+import { reloadS3Client, getStorageMode } from "../storage";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -46,6 +46,8 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
  * This ensures config survives Railway redeployments.
  */
 async function loadStorageConfigFromDb(): Promise<void> {
+  // Log env vars BEFORE DB load to see if Railway set them directly
+  console.log(`[Storage] Pre-DB env check: S3_BUCKET=${process.env.S3_BUCKET ? 'SET' : 'EMPTY'}, S3_ACCESS_KEY_ID=${process.env.S3_ACCESS_KEY_ID ? 'SET' : 'EMPTY'}`);
   try {
     const db = await getDb();
     if (!db) {
@@ -84,12 +86,12 @@ async function loadStorageConfigFromDb(): Promise<void> {
     process.env.S3_ACCESS_KEY_ID = config.accessKeyId;
     process.env.S3_SECRET_ACCESS_KEY = config.secretAccessKey;
     process.env.S3_REGION = config.region || 'auto';
-    if (config.publicBaseUrl) process.env.S3_PUBLIC_BASE_URL = config.publicBaseUrl;
+     if (config.publicBaseUrl) process.env.S3_PUBLIC_BASE_URL = config.publicBaseUrl;
 
     // Reset the S3 client so it picks up the new env vars
     reloadS3Client();
-
-    console.log(`[Storage] ✅ Loaded R2/S3 config from DB → bucket: ${config.bucket}, endpoint: ${config.endpoint || 'default'}`);
+    console.log(`[Storage] \u2705 Loaded R2/S3 config from DB -> bucket: ${config.bucket}, endpoint: ${config.endpoint || 'default'}`);
+    console.log(`[Storage] Env check after DB load: S3_BUCKET=${process.env.S3_BUCKET ? 'SET' : 'EMPTY'}, S3_ACCESS_KEY_ID=${process.env.S3_ACCESS_KEY_ID ? 'SET' : 'EMPTY'}, S3_SECRET_ACCESS_KEY=${process.env.S3_SECRET_ACCESS_KEY ? 'SET' : 'EMPTY'}, S3_PUBLIC_BASE_URL=${process.env.S3_PUBLIC_BASE_URL ? 'SET' : 'EMPTY'}`);
   } catch (err) {
     console.error("[Storage] Error loading config from DB:", err);
   }
@@ -416,7 +418,15 @@ async function startServer() {
   seedDefaultSettings().catch(err => console.error("[Seed] Settings failed:", err));
 
   // ─── Load integration configs from DB (survives Railway redeploy) ──
-  loadStorageConfigFromDb().catch(err => console.error("[Storage] DB config load failed:", err));
+  // MUST await before server.listen so storage mode is resolved before any request
+  try {
+    await loadStorageConfigFromDb();
+  } catch (err) {
+    console.error("[Storage] DB config load failed:", err);
+  }
+
+  // Log final storage state for debugging
+  console.log(`[Storage] Final mode at boot: ${getStorageMode()}`);
 
   server.listen(port, "0.0.0.0", () => {
     console.log(`Server running on http://0.0.0.0:${port}/`);
