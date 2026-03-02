@@ -16,7 +16,22 @@ export async function seedCitiesAndDistricts() {
     // Check if cities already seeded
     const [cityCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(cities);
     if (cityCount.count >= 6) {
-      console.log("[Seed] Cities already seeded, skipping.");
+      console.log("[Seed] Cities already seeded, updating images...");
+      // Always update city images to latest CDN URLs (fixes old Unsplash/Dubai images)
+      const imageMap: Record<string, string> = {
+        Riyadh: "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-riyadh-gBvDvbaArHxRTAuez5dnXn.webp",
+        Jeddah: "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-jeddah-WFGmiJYKMNRSNaTnzq8qXt.webp",
+        Madinah: "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-madinah-hxt4voaJVbMTWzXoSdVsd6.webp",
+        Makkah: "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-makkah-oGPYddxbBFYkcXSUWcLYDB.webp",
+        Dammam: "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-dammam-bZJNfjyoKPkeXDTR8RNW6z.webp",
+        Khobar: "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-khobar-cjrqkEFq6b9jxdXNb7BmKx.webp",
+        Tabuk: "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-tabuk-Ui8CmcjahN2oxD3bKY99z5.webp",
+        Abha: "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/SVjftMwJXeVbFV32MvDGSY/city-abha-TGsfEcdWqSoDPJ5Q6Ng78X.webp",
+      };
+      for (const [name, url] of Object.entries(imageMap)) {
+        await db.update(cities).set({ imageUrl: url }).where(eq(cities.nameEn, name));
+      }
+      console.log("[Seed] City images updated to authentic Saudi CDN URLs.");
       await seedDefaultRoles(db);
       return;
     }
