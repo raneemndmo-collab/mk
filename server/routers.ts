@@ -1831,6 +1831,44 @@ export const appRouter = router({
         "ai.welcomeMessageEn": "Hello! I'm Monthly Key AI, how can I help you?",
         "ai.customInstructions": "",
         "ai.maxResponseLength": "800",
+        // Homepage services (JSON array)
+        "homepage.services": JSON.stringify([
+          { iconName: "Building2", titleAr: "إدارة العقارات", titleEn: "Property Management", descAr: "إدارة شاملة لعقارك الشهري مع تقارير دورية", descEn: "Complete monthly property management with periodic reports" },
+          { iconName: "Key", titleAr: "الإيجار الشهري", titleEn: "Monthly Rentals", descAr: "تأجير مرن بعقود رقمية متوافقة", descEn: "Flexible rentals with Ejar-compliant digital contracts" },
+          { iconName: "TrendingUp", titleAr: "إدارة الإيرادات", titleEn: "Revenue Management", descAr: "تسعير ذكي وتحسين العوائد بناءً على السوق", descEn: "Smart pricing and yield optimization based on market data" },
+          { iconName: "Paintbrush", titleAr: "العناية بالعقار", titleEn: "Property Care", descAr: "صيانة وتجديد وتصميم داخلي احترافي", descEn: "Professional maintenance, renovation & interior design" },
+          { iconName: "Headphones", titleAr: "تجربة المستأجر", titleEn: "Tenant Experience", descAr: "دعم المستأجرين على مدار الساعة بالعربية", descEn: "24/7 Arabic tenant support" },
+          { iconName: "UserCheck", titleAr: "التحقق والأمان", titleEn: "Verification & Security", descAr: "تحقق من الهوية الوطنية وعقود رقمية آمنة", descEn: "National ID verification & secure digital contracts" },
+        ]),
+        // Homepage steps (JSON array)
+        "homepage.steps": JSON.stringify([
+          { num: "01", titleAr: "ابحث عن عقارك", titleEn: "Search Properties", descAr: "تصفح مئات العقارات المتاحة للتأجير الشهري في مدينتك", descEn: "Browse hundreds of monthly rental properties in your city" },
+          { num: "02", titleAr: "احجز إقامتك", titleEn: "Book Your Stay", descAr: "اختر المدة المناسبة واحجز بسهولة مع عقد رقمي", descEn: "Choose your duration and book easily with a digital contract" },
+          { num: "03", titleAr: "استمتع بسكنك", titleEn: "Enjoy Your Home", descAr: "انتقل واستمتع بإقامة مريحة مع دعم متواصل", descEn: "Move in and enjoy a comfortable stay with ongoing support" },
+        ]),
+        // Homepage testimonials (JSON array)
+        "homepage.testimonials": JSON.stringify([
+          { textAr: "منصة المفتاح الشهري سهّلت علي البحث عن شقة شهرية في الرياض. الخدمة ممتازة والعقود واضحة.", textEn: "المفتاح الشهري made it easy to find a monthly apartment in Riyadh. Excellent service and clear contracts.", nameAr: "أحمد المطيري", nameEn: "Ahmed Al-Mutairi", roleAr: "مستأجر - الرياض", roleEn: "Tenant - Riyadh", rating: 5 },
+          { textAr: "سعيدة جداً باختياري لمنصة المفتاح الشهري. من البحث وحتى التوقيع، كل شيء كان سلس واحترافي.", textEn: "Very happy with المفتاح الشهري. From search to signing, everything was smooth and professional.", nameAr: "سارة الحربي", nameEn: "Sara Al-Harbi", roleAr: "مستأجرة - جدة", roleEn: "Tenant - Jeddah", rating: 5 },
+          { textAr: "كمالك عقار، المفتاح الشهري وفّرت لي إدارة كاملة لشقتي. العوائد ممتازة والتواصل مع المستأجرين سهل.", textEn: "As a property owner, المفتاح الشهري provided complete management. Great returns and easy tenant communication.", nameAr: "خالد العتيبي", nameEn: "Khaled Al-Otaibi", roleAr: "مالك عقار - المدينة", roleEn: "Property Owner - Madinah", rating: 5 },
+        ]),
+        // Section headings
+        "services.titleAr": "خدماتنا",
+        "services.titleEn": "Our Services",
+        "services.subtitleAr": "نقدم مجموعة متكاملة من الخدمات لتسهيل تجربة التأجير الشهري",
+        "services.subtitleEn": "A complete suite of services for a seamless monthly rental experience",
+        "steps.titleAr": "كيف يعمل",
+        "steps.titleEn": "How It Works",
+        "steps.subtitleAr": "ثلاث خطوات بسيطة للحصول على سكنك الشهري المثالي",
+        "steps.subtitleEn": "Three simple steps to find your perfect monthly home",
+        "featured.titleAr": "عقارات مميزة",
+        "featured.titleEn": "Featured Properties",
+        "featured.subtitleAr": "اكتشف أفضل العقارات المتاحة للتأجير الشهري",
+        "featured.subtitleEn": "Discover the best monthly rental properties",
+        "testimonials.titleAr": "آراء عملائنا",
+        "testimonials.titleEn": "What Our Clients Say",
+        "testimonials.subtitleAr": "تجارب حقيقية من مستأجرين وملاك عقارات",
+        "testimonials.subtitleEn": "Real experiences from tenants and property owners",
       };
       await db.bulkSetSettings(defaults);
       return { success: true };

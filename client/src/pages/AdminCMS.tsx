@@ -61,6 +61,10 @@ const CMS_SECTIONS = [
     labelAr: "الخدمات",
     labelEn: "Services",
     keys: [
+      { key: "services.titleAr", labelAr: "عنوان القسم (عربي)", labelEn: "Section Title (Arabic)", type: "text" },
+      { key: "services.titleEn", labelAr: "عنوان القسم (إنجليزي)", labelEn: "Section Title (English)", type: "text" },
+      { key: "services.subtitleAr", labelAr: "العنوان الفرعي (عربي)", labelEn: "Section Subtitle (Arabic)", type: "text" },
+      { key: "services.subtitleEn", labelAr: "العنوان الفرعي (إنجليزي)", labelEn: "Section Subtitle (English)", type: "text" },
       { key: "homepage.services", labelAr: "قائمة الخدمات (JSON)", labelEn: "Services List (JSON)", type: "json" },
     ],
   },
@@ -69,7 +73,22 @@ const CMS_SECTIONS = [
     labelAr: "خطوات الاستخدام",
     labelEn: "How It Works",
     keys: [
+      { key: "steps.titleAr", labelAr: "عنوان القسم (عربي)", labelEn: "Section Title (Arabic)", type: "text" },
+      { key: "steps.titleEn", labelAr: "عنوان القسم (إنجليزي)", labelEn: "Section Title (English)", type: "text" },
+      { key: "steps.subtitleAr", labelAr: "العنوان الفرعي (عربي)", labelEn: "Section Subtitle (Arabic)", type: "text" },
+      { key: "steps.subtitleEn", labelAr: "العنوان الفرعي (إنجليزي)", labelEn: "Section Subtitle (English)", type: "text" },
       { key: "homepage.steps", labelAr: "خطوات الاستخدام (JSON)", labelEn: "Steps List (JSON)", type: "json" },
+    ],
+  },
+  {
+    id: "featured",
+    labelAr: "عقارات مميزة",
+    labelEn: "Featured Properties",
+    keys: [
+      { key: "featured.titleAr", labelAr: "عنوان القسم (عربي)", labelEn: "Section Title (Arabic)", type: "text" },
+      { key: "featured.titleEn", labelAr: "عنوان القسم (إنجليزي)", labelEn: "Section Title (English)", type: "text" },
+      { key: "featured.subtitleAr", labelAr: "العنوان الفرعي (عربي)", labelEn: "Section Subtitle (Arabic)", type: "text" },
+      { key: "featured.subtitleEn", labelAr: "العنوان الفرعي (إنجليزي)", labelEn: "Section Subtitle (English)", type: "text" },
     ],
   },
   {
@@ -77,6 +96,10 @@ const CMS_SECTIONS = [
     labelAr: "آراء العملاء",
     labelEn: "Testimonials",
     keys: [
+      { key: "testimonials.titleAr", labelAr: "عنوان القسم (عربي)", labelEn: "Section Title (Arabic)", type: "text" },
+      { key: "testimonials.titleEn", labelAr: "عنوان القسم (إنجليزي)", labelEn: "Section Title (English)", type: "text" },
+      { key: "testimonials.subtitleAr", labelAr: "العنوان الفرعي (عربي)", labelEn: "Section Subtitle (Arabic)", type: "text" },
+      { key: "testimonials.subtitleEn", labelAr: "العنوان الفرعي (إنجليزي)", labelEn: "Section Subtitle (English)", type: "text" },
       { key: "homepage.testimonials", labelAr: "آراء العملاء (JSON)", labelEn: "Testimonials (JSON)", type: "json" },
     ],
   },

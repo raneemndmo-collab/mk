@@ -524,7 +524,9 @@ export default function Home() {
     { value: s("stats.satisfaction", "98%"), labelAr: s("stats.satisfactionLabelAr", "رضا العملاء"), labelEn: s("stats.satisfactionLabelEn", "Satisfaction Rate") },
   ];
 
-  const services = [
+  // Icon map for CMS-driven services
+  const iconMap: Record<string, typeof Building2> = { Building2, Key, TrendingUp, Paintbrush, Headphones, UserCheck, Shield, MapPin, BarChart3, Search };
+  const defaultServices = [
     { icon: Building2, titleAr: "إدارة العقارات", titleEn: "Property Management", descAr: "إدارة شاملة لعقارك الشهري مع تقارير دورية", descEn: "Complete monthly property management with periodic reports" },
     { icon: Key, titleAr: "الإيجار الشهري", titleEn: "Monthly Rentals", descAr: "تأجير مرن بعقود رقمية متوافقة", descEn: "Flexible rentals with Ejar-compliant digital contracts" },
     { icon: TrendingUp, titleAr: "إدارة الإيرادات", titleEn: "Revenue Management", descAr: "تسعير ذكي وتحسين العوائد بناءً على السوق", descEn: "Smart pricing and yield optimization based on market data" },
@@ -532,31 +534,65 @@ export default function Home() {
     { icon: Headphones, titleAr: "تجربة المستأجر", titleEn: "Tenant Experience", descAr: "دعم المستأجرين على مدار الساعة بالعربية", descEn: "24/7 Arabic tenant support" },
     { icon: UserCheck, titleAr: "التحقق والأمان", titleEn: "Verification & Security", descAr: "تحقق من الهوية الوطنية وعقود رقمية آمنة", descEn: "National ID verification & secure digital contracts" },
   ];
+  const services = useMemo(() => {
+    try {
+      const raw = s("homepage.services", "");
+      if (!raw) return defaultServices;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || parsed.length === 0) return defaultServices;
+      return parsed.map((svc: any) => ({
+        icon: iconMap[svc.iconName] || Building2,
+        titleAr: svc.titleAr || "",
+        titleEn: svc.titleEn || "",
+        descAr: svc.descAr || "",
+        descEn: svc.descEn || "",
+      }));
+    } catch { return defaultServices; }
+  }, [s("homepage.services", "")]);
 
-  const steps = [
+  const defaultSteps = [
     { num: "01", titleAr: "ابحث عن عقارك", titleEn: "Search Properties", descAr: "تصفح مئات العقارات المتاحة للتأجير الشهري في مدينتك", descEn: "Browse hundreds of monthly rental properties in your city" },
     { num: "02", titleAr: "احجز إقامتك", titleEn: "Book Your Stay", descAr: "اختر المدة المناسبة واحجز بسهولة مع عقد رقمي", descEn: "Choose your duration and book easily with a digital contract" },
     { num: "03", titleAr: "استمتع بسكنك", titleEn: "Enjoy Your Home", descAr: "انتقل واستمتع بإقامة مريحة مع دعم متواصل", descEn: "Move in and enjoy a comfortable stay with ongoing support" },
   ];
+  const steps = useMemo(() => {
+    try {
+      const raw = s("homepage.steps", "");
+      if (!raw) return defaultSteps;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || parsed.length === 0) return defaultSteps;
+      return parsed;
+    } catch { return defaultSteps; }
+  }, [s("homepage.steps", "")]);
 
-  // Testimonials: load from CMS settings, fall back to defaults
+  // Testimonials: load from CMS JSON setting, fall back to individual keys, then defaults
   const defaultTestimonials = [
     { textAr: "منصة المفتاح الشهري سهّلت علي البحث عن شقة شهرية في الرياض. الخدمة ممتازة والعقود واضحة.", textEn: "المفتاح الشهري made it easy to find a monthly apartment in Riyadh. Excellent service and clear contracts.", nameAr: "أحمد المطيري", nameEn: "Ahmed Al-Mutairi", roleAr: "مستأجر - الرياض", roleEn: "Tenant - Riyadh", rating: 5 },
     { textAr: "سعيدة جداً باختياري لمنصة المفتاح الشهري. من البحث وحتى التوقيع، كل شيء كان سلس واحترافي.", textEn: "Very happy with المفتاح الشهري. From search to signing, everything was smooth and professional.", nameAr: "سارة الحربي", nameEn: "Sara Al-Harbi", roleAr: "مستأجرة - جدة", roleEn: "Tenant - Jeddah", rating: 5 },
     { textAr: "كمالك عقار، المفتاح الشهري وفّرت لي إدارة كاملة لشقتي. العوائد ممتازة والتواصل مع المستأجرين سهل.", textEn: "As a property owner, المفتاح الشهري provided complete management. Great returns and easy tenant communication.", nameAr: "خالد العتيبي", nameEn: "Khaled Al-Otaibi", roleAr: "مالك عقار - المدينة", roleEn: "Property Owner - Madinah", rating: 5 },
   ];
-  const testimonials = defaultTestimonials.map((def, idx) => {
-    const i = idx + 1;
-    return {
-      textAr: s(`testimonial.${i}.textAr`, def.textAr),
-      textEn: s(`testimonial.${i}.textEn`, def.textEn),
-      nameAr: s(`testimonial.${i}.nameAr`, def.nameAr),
-      nameEn: s(`testimonial.${i}.nameEn`, def.nameEn),
-      roleAr: s(`testimonial.${i}.roleAr`, def.roleAr),
-      roleEn: s(`testimonial.${i}.roleEn`, def.roleEn),
-      rating: parseInt(s(`testimonial.${i}.rating`, String(def.rating))) || def.rating,
-    };
-  });
+  const testimonials = useMemo(() => {
+    try {
+      const raw = s("homepage.testimonials", "");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    // Fallback: individual keys (backward compatible)
+    return defaultTestimonials.map((def, idx) => {
+      const i = idx + 1;
+      return {
+        textAr: s(`testimonial.${i}.textAr`, def.textAr),
+        textEn: s(`testimonial.${i}.textEn`, def.textEn),
+        nameAr: s(`testimonial.${i}.nameAr`, def.nameAr),
+        nameEn: s(`testimonial.${i}.nameEn`, def.nameEn),
+        roleAr: s(`testimonial.${i}.roleAr`, def.roleAr),
+        roleEn: s(`testimonial.${i}.roleEn`, def.roleEn),
+        rating: parseInt(s(`testimonial.${i}.rating`, String(def.rating))) || def.rating,
+      };
+    });
+  }, [s("homepage.testimonials", "")]);
 
   const ArrowIcon = dir === "rtl" ? ArrowLeft : ArrowRight;
 
@@ -720,10 +756,10 @@ export default function Home() {
         <div className="container">
           <ScrollSection>
             <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-center mb-3 text-[#0B1E2D] dark:text-white">
-              {lang === "ar" ? "خدماتنا" : "Our Services"}
+              {lang === "ar" ? s("services.titleAr", "خدماتنا") : s("services.titleEn", "Our Services")}
             </h2>
             <p className="text-[#4a5568] dark:text-gray-300/90 text-center mb-12 max-w-xl mx-auto">
-              {lang === "ar" ? "نقدم مجموعة متكاملة من الخدمات لتسهيل تجربة التأجير الشهري" : "A complete suite of services for a seamless monthly rental experience"}
+              {lang === "ar" ? s("services.subtitleAr", "نقدم مجموعة متكاملة من الخدمات لتسهيل تجربة التأجير الشهري") : s("services.subtitleEn", "A complete suite of services for a seamless monthly rental experience")}
             </p>
           </ScrollSection>
           <StaggerGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -752,10 +788,10 @@ export default function Home() {
         <div className="container relative">
           <ScrollSection>
             <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-center mb-3">
-              {lang === "ar" ? "كيف يعمل" : "How It Works"}
+              {lang === "ar" ? s("steps.titleAr", "كيف يعمل") : s("steps.titleEn", "How It Works")}
             </h2>
             <p className="text-white/90 text-center mb-14 max-w-xl mx-auto">
-              {lang === "ar" ? "ثلاث خطوات بسيطة للحصول على سكنك الشهري المثالي" : "Three simple steps to find your perfect monthly home"}
+              {lang === "ar" ? s("steps.subtitleAr", "ثلاث خطوات بسيطة للحصول على سكنك الشهري المثالي") : s("steps.subtitleEn", "Three simple steps to find your perfect monthly home")}
             </p>
           </ScrollSection>
           <StaggerGrid className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-10">
@@ -792,10 +828,10 @@ export default function Home() {
             <div className="flex items-center justify-between mb-6 sm:mb-10">
               <div>
                 <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-[#0B1E2D] dark:text-foreground">
-                  {lang === "ar" ? "عقارات مميزة" : "Featured Properties"}
+                  {lang === "ar" ? s("featured.titleAr", "عقارات مميزة") : s("featured.titleEn", "Featured Properties")}
                 </h2>
                 <p className="text-[#4a5568] dark:text-gray-300 mt-1">
-                  {lang === "ar" ? "اكتشف أفضل العقارات المتاحة للتأجير الشهري" : "Discover the best monthly rental properties"}
+                  {lang === "ar" ? s("featured.subtitleAr", "اكتشف أفضل العقارات المتاحة للتأجير الشهري") : s("featured.subtitleEn", "Discover the best monthly rental properties")}
                 </p>
               </div>
               <Button
@@ -930,10 +966,10 @@ export default function Home() {
         <div className="container">
           <ScrollSection>
             <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-center mb-3 text-[#0B1E2D] dark:text-foreground">
-              {lang === "ar" ? "آراء عملائنا" : "What Our Clients Say"}
+              {lang === "ar" ? s("testimonials.titleAr", "آراء عملائنا") : s("testimonials.titleEn", "What Our Clients Say")}
             </h2>
             <p className="text-[#4a5568] dark:text-gray-300 text-center mb-12">
-              {lang === "ar" ? "تجارب حقيقية من مستأجرين وملاك عقارات" : "Real experiences from tenants and property owners"}
+              {lang === "ar" ? s("testimonials.subtitleAr", "تجارب حقيقية من مستأجرين وملاك عقارات") : s("testimonials.subtitleEn", "Real experiences from tenants and property owners")}
             </p>
           </ScrollSection>
           <StaggerGrid className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
