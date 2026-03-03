@@ -1,4 +1,4 @@
-import { useSiteSettings } from "@/hooks/use-site-settings";
+import { useSiteSettings } from "@/contexts/SiteSettingsContext";
 import { useI18n } from "@/lib/i18n";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Clock, Globe, Mail } from "lucide-react";

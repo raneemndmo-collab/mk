@@ -25,7 +25,7 @@ interface VerificationGateProps {
 export default function VerificationGate({ children, actionLabel, actionLabelAr, softBlock }: VerificationGateProps) {
   const { lang } = useI18n();
   const isAr = lang === "ar";
-  const { data: user, isLoading } = trpc.user.me.useQuery();
+  const { data: user, isLoading } = trpc.auth.me.useQuery();
 
   if (isLoading) {
     return (
