@@ -46,8 +46,8 @@ const statusBadge = (status: string, lang: string) => {
 };
 
 /* ─── RTL-aware timeline arrow ─── */
-const TimelineArrow = () => (
-  <span className="timeline-arrow text-muted-foreground text-xs select-none">→</span>
+const TimelineArrow = ({ isRtl }: { isRtl: boolean }) => (
+  <span className="text-muted-foreground text-xs select-none">{isRtl ? "\u2190" : "\u2192"}</span>
 );
 
 export default function TenantDashboard() {
@@ -201,19 +201,19 @@ export default function TenantDashboard() {
                           <Clock className="h-3 w-3 shrink-0" />
                           <span>{isAr ? "الجدول الزمني" : "Timeline"}</span>
                         </div>
-                        <div className="flex items-center gap-1 flex-wrap">
+                        <div className={`flex items-center gap-1 flex-wrap ${isAr ? "flex-row-reverse" : ""}`}>
                           <span className={`text-xs px-2 py-0.5 rounded-full ${b.status === "pending" || b.status === "approved" || b.status === "active" || b.status === "completed" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"}`}>
                             {isAr ? "تم الطلب" : "Requested"}
                           </span>
-                          <TimelineArrow />
+                          <TimelineArrow isRtl={isAr} />
                           <span className={`text-xs px-2 py-0.5 rounded-full ${b.status === "approved" || b.status === "active" || b.status === "completed" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : b.status === "rejected" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"}`}>
                             {b.status === "rejected" ? (isAr ? "مرفوض" : "Rejected") : (isAr ? "موافق عليه" : "Approved")}
                           </span>
-                          <TimelineArrow />
+                          <TimelineArrow isRtl={isAr} />
                           <span className={`text-xs px-2 py-0.5 rounded-full ${b.status === "active" || b.status === "completed" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"}`}>
                             {isAr ? "تم الدفع" : "Paid"}
                           </span>
-                          <TimelineArrow />
+                          <TimelineArrow isRtl={isAr} />
                           <span className={`text-xs px-2 py-0.5 rounded-full ${b.status === "active" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : b.status === "completed" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"}`}>
                             {b.status === "completed" ? (isAr ? "مكتمل" : "Completed") : (isAr ? "نشط" : "Active")}
                           </span>
@@ -242,7 +242,7 @@ export default function TenantDashboard() {
                                    le.status === 'DUE' ? (isAr ? 'مستحق' : 'Due') : le.status}
                                 </span>
                               </div>
-                              <span className="font-medium"><span className="currency-amount">{Number(le.amount).toLocaleString()}</span> {le.currency}</span>
+                              <span className="font-medium"><span className="currency-amount">{Number(le.amount).toLocaleString()}</span> {isAr ? "ر.س" : le.currency}</span>
                             </div>
                           ))}
                         </div>
