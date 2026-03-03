@@ -9,11 +9,13 @@ import { authRouterDefs } from "./auth.router";
 import { bookingRouterDefs } from "./booking.router";
 import { cmsRouterDefs } from "./cms.router";
 import { geoRouterDefs } from "./geo.router";
+import { leaseRouterDefs } from "./lease.router";
 import { maintenanceRouterDefs } from "./maintenance.router";
-import { miscRouterDefs } from "./misc.router";
+import { managerRouterDefs } from "./manager.router";
 import { notificationRouterDefs } from "./notification.router";
 import { paymentRouterDefs } from "./payment.router";
 import { propertyRouterDefs } from "./property.router";
+import { rolesRouterDefs } from "./roles.router";
 import { userRouterDefs } from "./user.router";
 
 export const appRouter = router({
@@ -24,11 +26,13 @@ export const appRouter = router({
   ...bookingRouterDefs,
   ...cmsRouterDefs,
   ...geoRouterDefs,
+  ...leaseRouterDefs,
   ...maintenanceRouterDefs,
-  ...miscRouterDefs,
+  ...managerRouterDefs,
   ...notificationRouterDefs,
   ...paymentRouterDefs,
   ...propertyRouterDefs,
+  ...rolesRouterDefs,
   ...userRouterDefs,
   submission: submissionRouter,
   finance: financeRouter,

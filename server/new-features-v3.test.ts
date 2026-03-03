@@ -68,7 +68,7 @@ describe("Roles & Permissions System", () => {
 
   it("should have roles router with CRUD endpoints", async () => {
     const fs = await import("fs");
-    const content = fs.readFileSync("server/routers/misc.router.ts", "utf-8");
+    const content = fs.readFileSync("server/routers/roles.router.ts", "utf-8");
     expect(content).toContain("roles:");
     expect(content).toContain("roles");
   });
@@ -114,7 +114,7 @@ describe("Roles & Permissions System", () => {
 
   it("should protect system roles from deletion", async () => {
     const fs = await import("fs");
-    const content = fs.readFileSync("server/routers/misc.router.ts", "utf-8");
+    const content = fs.readFileSync("server/routers/roles.router.ts", "utf-8");
     expect(content).toContain("isSystem");
   });
 });
