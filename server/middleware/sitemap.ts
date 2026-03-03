@@ -1,15 +1,15 @@
 /**
  * Dynamic Sitemap Generator
  * Generates a comprehensive sitemap.xml with:
- * - Static pages (home, search, FAQ, legal, contact)
- * - Dynamic property pages with lastmod from DB
+ * - Static pages (home, search, map, FAQ, legal, contact, submit-property)
+ * - Dynamic property pages with lastmod from DB (published + active)
  * - City-filtered search pages
  * - hreflang annotations for Arabic/English
  */
 import type { Request, Response } from "express";
 import { getDb } from "../db";
 import { properties, cities } from "../../drizzle/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, or } from "drizzle-orm";
 
 const BASE_URL = "https://monthlykey.com";
 
@@ -17,18 +17,19 @@ export async function sitemapHandler(req: Request, res: Response): Promise<void>
   try {
     const db = await getDb();
 
-    // Static pages
+    // Static pages — only public, indexable routes
     const staticPages = [
       { loc: "/", changefreq: "daily", priority: "1.0" },
       { loc: "/search", changefreq: "daily", priority: "0.9" },
       { loc: "/map", changefreq: "weekly", priority: "0.7" },
+      { loc: "/submit-property", changefreq: "monthly", priority: "0.6" },
       { loc: "/faq", changefreq: "monthly", priority: "0.5" },
       { loc: "/contact", changefreq: "monthly", priority: "0.5" },
       { loc: "/terms", changefreq: "monthly", priority: "0.3" },
       { loc: "/privacy", changefreq: "monthly", priority: "0.3" },
     ];
 
-    // Dynamic pages: published properties
+    // Dynamic pages: published + active properties
     let propertyPages: Array<{ loc: string; changefreq: string; priority: string; lastmod?: string }> = [];
     let cityPages: Array<{ loc: string; changefreq: string; priority: string }> = [];
 
@@ -38,11 +39,14 @@ export async function sitemapHandler(req: Request, res: Response): Promise<void>
           .select({ 
             id: properties.id, 
             updatedAt: properties.updatedAt,
-            photos: properties.photos,
-            titleAr: properties.titleAr,
           })
           .from(properties)
-          .where(eq(properties.status, "active"))
+          .where(
+            or(
+              eq(properties.status, "active"),
+              eq(properties.status, "published")
+            )
+          )
           .orderBy(desc(properties.updatedAt))
           .limit(5000);
 

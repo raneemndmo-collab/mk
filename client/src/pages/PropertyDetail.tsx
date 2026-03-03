@@ -167,7 +167,7 @@ export default function PropertyDetail() {
   if (property.isLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-background text-foreground">
-        <SEOHead title="Property Details" titleAr="تفاصيل العقار" description="View property details, photos, amenities and book monthly rental in Saudi Arabia" path="/property" />
+        <SEOHead title="Property Details" titleAr="تفاصيل العقار" description="View property details, photos, amenities and book monthly rental in Saudi Arabia" path={`/property/${id}`} />
         <Navbar />
         <div className="container pt-3 pb-4 sm:py-8 space-y-6 flex-1">
           <Skeleton className="h-[300px] sm:h-[400px] rounded-lg sm:rounded-xl" />
@@ -181,7 +181,7 @@ export default function PropertyDetail() {
   if (!prop) {
     return (
       <div className="min-h-screen flex flex-col bg-background text-foreground">
-        <SEOHead title="Property Details" titleAr="تفاصيل العقار" description="View property details, photos, amenities and book monthly rental in Saudi Arabia" path="/property" />
+        <SEOHead title="Property Not Found" titleAr="العقار غير موجود" description="This property could not be found" path={`/property/${id}`} noindex />
         <Navbar />
         <div className="container pt-3 pb-4 sm:py-20 text-center flex-1">
           <p className="text-muted-foreground mt-16">{lang === "ar" ? "العقار غير موجود" : "Property not found"}</p>
@@ -209,11 +209,59 @@ export default function PropertyDetail() {
   const showMap = locData?.showMap === true;
   const isApproximate = locData?.visibility === "APPROXIMATE";
 
+  // === Dynamic SEO metadata ===
+  const _propertyTypeAr: Record<string, string> = {
+    apartment: 'شقة', villa: 'فيلا', studio: 'استوديو', duplex: 'دوبلكس',
+    furnished_room: 'غرفة مفروشة', compound: 'مجمع سكني', hotel_apartment: 'شقة فندقية',
+  };
+  const _typeLabel = lang === "ar" ? (_propertyTypeAr[prop.propertyType] || prop.propertyType) : prop.propertyType;
+  const _locationStr = [city, district].filter(Boolean).join(lang === "ar" ? " — " : " - ");
+  const _priceStr = `${Number(prop.monthlyRent).toLocaleString()} ${lang === "ar" ? "ر.س" : "SAR"}`;
+  const _seoDesc = lang === "ar"
+    ? `${_typeLabel} للإيجار الشهري في ${_locationStr || "السعودية"} | ${_priceStr}/شهر${prop.bedrooms ? ` • ${prop.bedrooms} غرف` : ""}${prop.bathrooms ? ` • ${prop.bathrooms} حمامات` : ""}${prop.sizeSqm ? ` • ${prop.sizeSqm} م²` : ""}`
+    : `${_typeLabel} for monthly rent in ${_locationStr || "Saudi Arabia"} | ${_priceStr}/month${prop.bedrooms ? ` • ${prop.bedrooms} beds` : ""}${prop.bathrooms ? ` • ${prop.bathrooms} baths` : ""}${prop.sizeSqm ? ` • ${prop.sizeSqm} sqm` : ""}`;
+  const _seoDescAr = `${_propertyTypeAr[prop.propertyType] || prop.propertyType} للإيجار الشهري في ${[prop.cityAr, prop.districtAr].filter(Boolean).join(" — ") || "السعودية"} | ${Number(prop.monthlyRent).toLocaleString()} ر.س/شهر`;
+  const _ogImage = photos.length > 0 ? photos[0] : `https://monthlykey.com/api/og/property/${prop.id}.png`;
+  const _propertyJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "RealEstateListing",
+    "name": prop.titleAr,
+    "description": (prop.descriptionAr || "").substring(0, 300),
+    "url": `https://monthlykey.com/property/${prop.id}`,
+    "image": _ogImage,
+    "datePosted": prop.createdAt ? new Date(prop.createdAt).toISOString() : undefined,
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": prop.cityAr || prop.city || "",
+      "addressRegion": prop.districtAr || prop.district || "",
+      "addressCountry": "SA"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": prop.monthlyRent,
+      "priceCurrency": "SAR",
+      "availability": "https://schema.org/InStock"
+    },
+    "numberOfBedrooms": prop.bedrooms || undefined,
+    "numberOfBathroomsTotal": prop.bathrooms || undefined,
+    "floorSize": prop.sizeSqm ? { "@type": "QuantitativeValue", "value": prop.sizeSqm, "unitCode": "MTK" } : undefined
+  };
+
   const BackArrow = dir === "rtl" ? ArrowRight : ArrowLeft;
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
-      <SEOHead title="Property Details" titleAr="تفاصيل العقار" description="View property details, photos, amenities and book monthly rental in Saudi Arabia" path="/property" />
+      <SEOHead
+        title={title || "Property Details"}
+        titleAr={prop.titleAr || "تفاصيل العقار"}
+        description={_seoDesc}
+        descriptionAr={_seoDescAr}
+        path={`/property/${prop.id}`}
+        type="article"
+        image={_ogImage}
+        imageAlt={prop.titleAr || "عقار للإيجار الشهري"}
+        jsonLd={_propertyJsonLd}
+      />
       <Navbar />
 
       <div className="container pt-3 pb-4 sm:py-6 flex-1">

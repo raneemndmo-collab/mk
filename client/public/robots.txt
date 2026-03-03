@@ -4,16 +4,19 @@
 User-agent: *
 Allow: /
 Allow: /search
+Allow: /map
 Allow: /property/
 Allow: /faq
 Allow: /privacy
 Allow: /terms
 Allow: /contact
 Allow: /agent/
+Allow: /submit-property
 Disallow: /admin
 Disallow: /admin/
 Disallow: /login
 Disallow: /register
+Disallow: /forgot-password
 Disallow: /api/
 Disallow: /tenant
 Disallow: /landlord
@@ -23,8 +26,10 @@ Disallow: /maintenance/
 Disallow: /lease/
 Disallow: /pay/
 Disallow: /payment/
+Disallow: /payment-callback/
 Disallow: /edit-property/
 Disallow: /list-property
+Disallow: /404
 
 # Crawl-delay for polite crawling
 User-agent: AhrefsBot

@@ -89,7 +89,6 @@ function AnimatedCounter({ target, suffix = "" }: { target: string; suffix?: str
 
   return (
     <div ref={ref} className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#3ECFC0] font-heading counter-glow">
-      <SEOHead title="Monthly Rental Platform" titleAr="منصة التأجير الشهري" description="Find furnished apartments, studios, and villas for monthly rent across Saudi Arabia." path="/" />
       {count.toLocaleString("en-US")}{hasPercent ? "%" : ""}{hasPlus ? "+" : ""}{suffix}
     </div>
   );
@@ -596,8 +595,42 @@ export default function Home() {
 
   const ArrowIcon = dir === "rtl" ? ArrowLeft : ArrowRight;
 
+  const _homeJsonLd = useMemo(() => [
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "المفتاح الشهري - Monthly Key",
+      "url": "https://monthlykey.com",
+      "logo": "https://monthlykey.com/logo-mark.png",
+      "description": lang === "ar" ? "المنصة الرائدة للإيجار الشهري في المملكة العربية السعودية" : "The leading monthly rental platform in Saudi Arabia",
+      "areaServed": { "@type": "Country", "name": "Saudi Arabia" },
+      "contactPoint": { "@type": "ContactPoint", "contactType": "customer service", "url": "https://monthlykey.com/contact" }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "المفتاح الشهري",
+      "alternateName": "Monthly Key",
+      "url": "https://monthlykey.com",
+      "inLanguage": ["ar", "en"],
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://monthlykey.com/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+  ], [lang]);
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <SEOHead
+        title="Monthly Rental Platform in Saudi Arabia"
+        titleAr="منصة التأجير الشهري في السعودية"
+        description="Find furnished apartments, studios, and villas for monthly rent in Riyadh, Jeddah, Dammam and all Saudi cities. Easy booking with secure digital contracts."
+        descriptionAr="اكتشف أفضل الشقق المفروشة، الاستوديوهات، والفلل للإيجار الشهري في الرياض، جدة، الدمام وجميع المدن السعودية. حجز سهل وعقود رقمية آمنة."
+        path="/"
+        jsonLd={_homeJsonLd}
+      />
       <Navbar />
 
       {/* ═══ Hero Section - Video/Image Background ═══ */}

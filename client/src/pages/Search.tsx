@@ -144,7 +144,13 @@ export default function Search() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <SEOHead title="Search Properties" titleAr="البحث عن عقارات" description="Search furnished apartments and properties for monthly rent in Saudi Arabia" path="/search" />
+      <SEOHead
+        title="Search Properties for Monthly Rent"
+        titleAr="البحث عن عقارات للإيجار الشهري"
+        description="Search furnished apartments, studios, villas, and duplexes for monthly rent in Riyadh, Jeddah, Dammam and all Saudi cities."
+        descriptionAr="ابحث عن شقق مفروشة، استوديوهات، فلل، ودوبلكس للإيجار الشهري في الرياض، جدة، الدمام وجميع المدن السعودية."
+        path="/search"
+      />
       <Navbar />
 
       <div className="container py-6">
