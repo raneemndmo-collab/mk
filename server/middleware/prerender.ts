@@ -15,20 +15,25 @@ import { getDb } from "../db";
 import { properties, cities, districts } from "../../drizzle/schema";
 import { eq, desc, and } from "drizzle-orm";
 
-const BOT_USER_AGENTS = [
-  'googlebot', 'bingbot', 'yandexbot', 'duckduckbot', 'slurp',
-  'baiduspider', 'facebookexternalhit', 'twitterbot', 'linkedinbot',
-  'whatsapp', 'telegrambot', 'applebot', 'pinterest', 'semrushbot',
-  'ahrefsbot', 'mj12bot', 'dotbot', 'petalbot', 'bytespider',
-  'curl', 'wget', 'python-requests', 'go-http-client', 'java',
-  'lighthouse', 'chrome-lighthouse', 'pagespeed',
+// Only real SEO / social-preview bots get prerendered HTML.
+// Everything else (curl, wget, python-requests, Lighthouse, unknown bots)
+// receives the normal React SPA so they are never accidentally blocked.
+const SEO_BOT_USER_AGENTS = [
+  'googlebot',
+  'bingbot',
+  'twitterbot',
+  'facebookexternalhit',
+  'applebot',
+  'linkedinbot',
+  'whatsapp',
+  'slackbot',
 ];
 
 const BASE_URL = "https://monthlykey.com";
 
-function isBot(userAgent: string): boolean {
+function isSEOBot(userAgent: string): boolean {
   const ua = userAgent.toLowerCase();
-  return BOT_USER_AGENTS.some(bot => ua.includes(bot));
+  return SEO_BOT_USER_AGENTS.some(bot => ua.includes(bot));
 }
 
 function escapeHtml(str: string): string {
@@ -510,8 +515,8 @@ export function prerenderMiddleware(htmlTemplate: string) {
   return async (req: Request, res: Response, next: NextFunction) => {
     const userAgent = req.headers['user-agent'] || '';
     
-    // Only intercept for bots
-    if (!isBot(userAgent)) {
+    // Only intercept for known SEO bots — everything else gets the React SPA
+    if (!isSEOBot(userAgent)) {
       return next();
     }
 
