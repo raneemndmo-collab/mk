@@ -61,11 +61,11 @@ export async function sendOtp(params: {
   const { channel, destination, purpose, userId, ip, lang = "ar" } = params;
 
   // Rate limit per destination
-  const destRl = rateLimiter.check(
+  const destRl = await Promise.resolve(rateLimiter.check(
     `otp:send:${destination}`,
     OTP_RATE_LIMITS.SEND_PER_DEST.maxRequests,
     OTP_RATE_LIMITS.SEND_PER_DEST.windowMs
-  );
+  ));
   if (!destRl.allowed) {
     return {
       success: false,
@@ -76,11 +76,11 @@ export async function sendOtp(params: {
   }
 
   // Rate limit per IP
-  const ipRl = rateLimiter.check(
+  const ipRl = await Promise.resolve(rateLimiter.check(
     `otp:send:ip:${ip}`,
     OTP_RATE_LIMITS.SEND_PER_IP.maxRequests,
     OTP_RATE_LIMITS.SEND_PER_IP.windowMs
-  );
+  ));
   if (!ipRl.allowed) {
     return {
       success: false,
@@ -185,11 +185,11 @@ export async function verifyOtp(params: {
   const { channel, destination, code, purpose, ip } = params;
 
   // Rate limit verification attempts per IP
-  const ipRl = rateLimiter.check(
+  const ipRl = await Promise.resolve(rateLimiter.check(
     `otp:verify:ip:${ip}`,
     OTP_RATE_LIMITS.VERIFY_PER_IP.maxRequests,
     OTP_RATE_LIMITS.VERIFY_PER_IP.windowMs
-  );
+  ));
   if (!ipRl.allowed) {
     return {
       success: false,

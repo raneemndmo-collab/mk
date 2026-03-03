@@ -1,7 +1,9 @@
 import { COOKIE_NAME } from "@shared/const";
+import { parse as parseCookieHeader } from "cookie";
 import { TRPCError } from "@trpc/server";
 import { ENV } from "./_core/env";
 import { getSessionCookieOptions } from "./_core/cookies";
+import { sdk } from "./_core/sdk";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, adminWithPermission, router } from "./_core/trpc";
 import { PERMISSIONS, PERMISSION_CATEGORIES, clearPermissionCache } from "./permissions";
@@ -45,7 +47,16 @@ export const appRouter = router({
 
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
-    logout: publicProcedure.mutation(({ ctx }) => {
+    logout: publicProcedure.mutation(async ({ ctx }) => {
+      // Blacklist the current JWT so it cannot be reused after logout
+      const cookies = ctx.req.headers.cookie;
+      if (cookies) {
+        const parsed = parseCookieHeader(cookies);
+        const token = parsed[COOKIE_NAME];
+        if (token) {
+          await sdk.revokeToken(token);
+        }
+      }
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
@@ -235,7 +246,7 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         // Rate limit public search
         const ip = getClientIP(ctx.req);
-        const rl = rateLimiter.check(`search:${ip}`, RATE_LIMITS.PUBLIC_READ.maxRequests, RATE_LIMITS.PUBLIC_READ.windowMs);
+        const rl = await Promise.resolve(rateLimiter.check(`search:${ip}`, RATE_LIMITS.PUBLIC_READ.maxRequests, RATE_LIMITS.PUBLIC_READ.windowMs));
         if (!rl.allowed) throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Rate limit exceeded. Please try again later.' });
         // Cache search results by input hash
         const hash = JSON.stringify(input);
@@ -261,7 +272,7 @@ export const appRouter = router({
       }).optional())
       .query(async ({ ctx, input }) => {
         const ip = getClientIP(ctx.req);
-        const rl = rateLimiter.check(`map:${ip}`, RATE_LIMITS.PUBLIC_READ.maxRequests, RATE_LIMITS.PUBLIC_READ.windowMs);
+        const rl = await Promise.resolve(rateLimiter.check(`map:${ip}`, RATE_LIMITS.PUBLIC_READ.maxRequests, RATE_LIMITS.PUBLIC_READ.windowMs));
         if (!rl.allowed) throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Rate limit exceeded.' });
         const hash = JSON.stringify(input || {});
         return cacheThrough(`map:data:${hash}`, CACHE_TTL.SEARCH_RESULTS, () => db.getMapProperties(input || undefined));
@@ -776,7 +787,7 @@ export const appRouter = router({
         fileUrl: z.string().max(2000).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const rl = rateLimiter.check(`msg:${ctx.user.id}`, 30, 60000); // 30 per min
+        const rl = await Promise.resolve(rateLimiter.check(`msg:${ctx.user.id}`, 30, 60000)); // 30 per min
         if (!rl.allowed) throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Too many messages. Please slow down.' });
         if (input.messageType === 'text') input.content = sanitizeText(input.content);
         let convId = input.conversationId;
@@ -2749,7 +2760,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         // Rate limit to prevent email enumeration
         const ip = getClientIP(ctx.req);
-        const rl = rateLimiter.check(`editlink:${ip}`, 5, 300000); // 5 per 5 min
+        const rl = await Promise.resolve(rateLimiter.check(`editlink:${ip}`, 5, 300000)); // 5 per 5 min
         if (!rl.allowed) throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Too many requests' });
         const manager = await db.getManagerByEmail(input.email);
         if (!manager) throw new TRPCError({ code: 'NOT_FOUND', message: 'No manager found with this email' });

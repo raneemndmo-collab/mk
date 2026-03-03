@@ -143,18 +143,18 @@ describe("CACHE_TTL", () => {
 });
 
 describe("Rate Limiter", () => {
-  it("should allow requests within limit", () => {
-    const result = rateLimiter.check("test:allow:" + Date.now(), 5, 60_000);
+  it("should allow requests within limit", async () => {
+    const result = await Promise.resolve(rateLimiter.check("test:allow:" + Date.now(), 5, 60_000));
     expect(result.allowed).toBe(true);
     expect(result.remaining).toBe(4);
   });
 
-  it("should block requests exceeding limit", () => {
+  it("should block requests exceeding limit", async () => {
     const key = "test:block:" + Date.now();
     for (let i = 0; i < 5; i++) {
-      rateLimiter.check(key, 5, 60_000);
+      await Promise.resolve(rateLimiter.check(key, 5, 60_000));
     }
-    const result = rateLimiter.check(key, 5, 60_000);
+    const result = await Promise.resolve(rateLimiter.check(key, 5, 60_000));
     expect(result.allowed).toBe(false);
     expect(result.remaining).toBe(0);
     expect(result.resetIn).toBeGreaterThan(0);
@@ -163,22 +163,22 @@ describe("Rate Limiter", () => {
   it("should reset after window expires", async () => {
     const key = "test:reset:" + Date.now();
     for (let i = 0; i < 3; i++) {
-      rateLimiter.check(key, 3, 100);
+      await Promise.resolve(rateLimiter.check(key, 3, 100));
     }
-    const blocked = rateLimiter.check(key, 3, 100);
+    const blocked = await Promise.resolve(rateLimiter.check(key, 3, 100));
     expect(blocked.allowed).toBe(false);
     await new Promise(r => setTimeout(r, 150));
-    const allowed = rateLimiter.check(key, 3, 100);
+    const allowed = await Promise.resolve(rateLimiter.check(key, 3, 100));
     expect(allowed.allowed).toBe(true);
   });
 
-  it("should track different keys independently", () => {
+  it("should track different keys independently", async () => {
     const ts = Date.now();
     for (let i = 0; i < 3; i++) {
-      rateLimiter.check(`test:ip1:${ts}`, 3, 60_000);
+      await Promise.resolve(rateLimiter.check(`test:ip1:${ts}`, 3, 60_000));
     }
-    const ip1 = rateLimiter.check(`test:ip1:${ts}`, 3, 60_000);
-    const ip2 = rateLimiter.check(`test:ip2:${ts}`, 3, 60_000);
+    const ip1 = await Promise.resolve(rateLimiter.check(`test:ip1:${ts}`, 3, 60_000));
+    const ip2 = await Promise.resolve(rateLimiter.check(`test:ip2:${ts}`, 3, 60_000));
     expect(ip1.allowed).toBe(false);
     expect(ip2.allowed).toBe(true);
   });
@@ -216,13 +216,13 @@ describe("Performance Benchmarks", () => {
     expect(cache.size).toBe(10_000);
   });
 
-  it("rate limiter should handle rapid checks efficiently", () => {
+  it("rate limiter should handle rapid checks efficiently", async () => {
     const start = performance.now();
     for (let i = 0; i < 10_000; i++) {
-      rateLimiter.check(`perf:ip${i % 100}:bench`, 1000, 60_000);
+      await Promise.resolve(rateLimiter.check(`perf:ip${i % 100}:bench`, 1000, 60_000));
     }
     const elapsed = performance.now() - start;
-    expect(elapsed).toBeLessThan(200);
+    expect(elapsed).toBeLessThan(500); // Allow more time since Promise.resolve adds overhead
   });
 
   it("prefix invalidation should be efficient with many keys", () => {

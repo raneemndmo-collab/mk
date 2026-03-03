@@ -81,46 +81,46 @@ import { checkAccountLockout, recordFailedLogin, resetLoginAttempts } from "../s
 describe("Account Lockout (SEC-04)", () => {
   const testUserId = "test-lockout-user-" + Date.now();
 
-  beforeEach(() => {
-    resetLoginAttempts(testUserId);
+  beforeEach(async () => {
+    await resetLoginAttempts(testUserId);
   });
 
-  it("allows login when no failed attempts", () => {
-    const result = checkAccountLockout(testUserId);
+  it("allows login when no failed attempts", async () => {
+    const result = await checkAccountLockout(testUserId);
     expect(result.locked).toBe(false);
   });
 
-  it("allows login after 1-4 failed attempts", () => {
+  it("allows login after 1-4 failed attempts", async () => {
     for (let i = 0; i < 4; i++) {
-      const r = recordFailedLogin(testUserId);
+      const r = await recordFailedLogin(testUserId);
       expect(r.locked).toBe(false);
       expect(r.attemptsRemaining).toBe(4 - i);
     }
   });
 
-  it("locks account after 5 failed attempts", () => {
+  it("locks account after 5 failed attempts", async () => {
     for (let i = 0; i < 5; i++) {
-      recordFailedLogin(testUserId);
+      await recordFailedLogin(testUserId);
     }
-    const result = checkAccountLockout(testUserId);
+    const result = await checkAccountLockout(testUserId);
     expect(result.locked).toBe(true);
     expect(result.resetIn).toBeGreaterThan(0);
   });
 
-  it("reports remaining attempts correctly", () => {
-    const r1 = recordFailedLogin(testUserId);
+  it("reports remaining attempts correctly", async () => {
+    const r1 = await recordFailedLogin(testUserId);
     expect(r1.attemptsRemaining).toBe(4);
-    const r2 = recordFailedLogin(testUserId);
+    const r2 = await recordFailedLogin(testUserId);
     expect(r2.attemptsRemaining).toBe(3);
   });
 
-  it("resets lockout after resetLoginAttempts()", () => {
+  it("resets lockout after resetLoginAttempts()", async () => {
     for (let i = 0; i < 5; i++) {
-      recordFailedLogin(testUserId);
+      await recordFailedLogin(testUserId);
     }
-    expect(checkAccountLockout(testUserId).locked).toBe(true);
-    resetLoginAttempts(testUserId);
-    expect(checkAccountLockout(testUserId).locked).toBe(false);
+    expect((await checkAccountLockout(testUserId)).locked).toBe(true);
+    await resetLoginAttempts(testUserId);
+    expect((await checkAccountLockout(testUserId)).locked).toBe(false);
   });
 });
 

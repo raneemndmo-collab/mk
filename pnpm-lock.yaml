@@ -178,6 +178,9 @@ importers:
       input-otp:
         specifier: ^1.4.2
         version: 1.4.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      ioredis:
+        specifier: ^5.10.0
+        version: 5.10.0
       jose:
         specifier: 6.1.0
         version: 6.1.0

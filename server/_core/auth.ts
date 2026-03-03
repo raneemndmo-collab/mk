@@ -79,7 +79,7 @@ export function registerAuthRoutes(app: Express) {
     const ip = getClientIP(req);
 
     // Rate limiting: 10 attempts per 5 minutes per IP
-    const rl = rateLimiter.check(`auth:login:${ip}`, RATE_LIMITS.AUTH.maxRequests, RATE_LIMITS.AUTH.windowMs);
+    const rl = await Promise.resolve(rateLimiter.check(`auth:login:${ip}`, RATE_LIMITS.AUTH.maxRequests, RATE_LIMITS.AUTH.windowMs));
     if (!rl.allowed) {
       logAuthEvent("LOGIN_RATE_LIMITED", { ip, resetIn: rl.resetIn });
       res.status(429).json({
@@ -114,7 +114,7 @@ export function registerAuthRoutes(app: Express) {
       const valid = await bcrypt.compare(password, user.passwordHash);
       if (!valid) {
         // Record failed attempt and check for account lockout
-        const lockout = recordFailedLogin(userId);
+        const lockout = await recordFailedLogin(userId);
         logAuthEvent("LOGIN_FAILED", { userId, ip, reason: "wrong_password", attemptsRemaining: lockout.attemptsRemaining, locked: lockout.locked });
         if (lockout.locked) {
           const lockoutMinutes = Math.ceil(lockout.resetIn / 60_000);
@@ -133,7 +133,7 @@ export function registerAuthRoutes(app: Express) {
       }
 
       // Reset login attempts on successful login
-      resetLoginAttempts(userId);
+      await resetLoginAttempts(userId);
 
       // Update last signed in
       await db.upsertUser({ openId: user.openId, lastSignedIn: new Date() });
@@ -177,7 +177,7 @@ export function registerAuthRoutes(app: Express) {
     const ip = getClientIP(req);
 
     // Rate limiting: 10 attempts per 5 minutes per IP
-    const rl = rateLimiter.check(`auth:register:${ip}`, RATE_LIMITS.AUTH.maxRequests, RATE_LIMITS.AUTH.windowMs);
+    const rl = await Promise.resolve(rateLimiter.check(`auth:register:${ip}`, RATE_LIMITS.AUTH.maxRequests, RATE_LIMITS.AUTH.windowMs));
     if (!rl.allowed) {
       logAuthEvent("REGISTER_RATE_LIMITED", { ip, resetIn: rl.resetIn });
       res.status(429).json({
@@ -581,7 +581,7 @@ export function registerAuthRoutes(app: Express) {
   app.post("/api/v1/auth/register", async (req: Request, res: Response) => {
     const ip = getClientIP(req);
 
-    const rl = rateLimiter.check(`auth:register:${ip}`, RATE_LIMITS.AUTH.maxRequests, RATE_LIMITS.AUTH.windowMs);
+    const rl = await Promise.resolve(rateLimiter.check(`auth:register:${ip}`, RATE_LIMITS.AUTH.maxRequests, RATE_LIMITS.AUTH.windowMs));
     if (!rl.allowed) {
       logAuthEvent("REGISTER_V1_RATE_LIMITED", { ip, resetIn: rl.resetIn });
       res.status(429).json({

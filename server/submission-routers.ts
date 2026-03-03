@@ -42,7 +42,7 @@ export const submissionRouter = router({
     .mutation(async ({ ctx, input }) => {
       // Rate limit: 5 submissions per IP per hour
       const ip = getClientIP(ctx.req);
-      const rl = rateLimiter.check(`submission:${ip}`, 5, 3600000);
+      const rl = await Promise.resolve(rateLimiter.check(`submission:${ip}`, 5, 3600000));
       if (!rl.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Too many submissions. Please try again later." });
 
       const { photos, ...submissionData } = input;
@@ -77,7 +77,7 @@ export const submissionRouter = router({
     .mutation(async ({ ctx, input }) => {
       // Rate limit photo uploads
       const ip = getClientIP(ctx.req);
-      const rl = rateLimiter.check(`submission-photo:${ip}`, 30, 3600000);
+      const rl = await Promise.resolve(rateLimiter.check(`submission-photo:${ip}`, 30, 3600000));
       if (!rl.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Too many uploads." });
 
       if (!validateContentType(input.contentType, ALLOWED_IMAGE_TYPES)) {

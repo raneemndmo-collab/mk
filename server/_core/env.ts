@@ -146,6 +146,20 @@ const SESSION_TTL_MS = isProduction
   ? parseInt(process.env.SESSION_TTL_MS ?? String(30 * 60 * 1000))   // 30 minutes
   : parseInt(process.env.SESSION_TTL_MS ?? String(24 * 60 * 60 * 1000)); // 24 hours (dev)
 
+// ─── Redis Configuration Warning ────────────────────────────────────────────
+// Log a clear warning when REDIS_URL is not set, since the platform will fall
+// back to in-memory stores that do not survive restarts and are not shared
+// across multiple Railway instances.
+if (!process.env.REDIS_URL) {
+  console.warn("[Redis] ⚠ REDIS_URL is not configured.");
+  console.warn("[Redis]   Cache, rate-limiting, and token blacklist will use in-memory stores.");
+  console.warn("[Redis]   This is NOT suitable for multi-instance deployments.");
+  console.warn("[Redis]   To enable Redis: add the Redis plugin in Railway → redeploy.");
+  if (isProduction) {
+    console.warn("[Redis]   ⚠ PRODUCTION without Redis: rate limits and revoked tokens will be lost on restart.");
+  }
+}
+
 export const ENV = {
   appId: process.env.VITE_APP_ID ?? "monthly-key-local",
   cookieSecret: requireProductionSecret("JWT_SECRET", process.env.JWT_SECRET, 32),

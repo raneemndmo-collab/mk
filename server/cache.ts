@@ -1,24 +1,31 @@
 /**
  * Cache layer with swappable backends
- * - In-memory (default): zero-config, works for single-instance deployments
- * - Redis (when REDIS_URL is set): for multi-instance horizontal scaling
+ * - Redis (when REDIS_URL is set): distributed cache for multi-instance deployments
+ * - In-memory (default): zero-config fallback for single-instance / development
  *
  * Both backends implement the same CacheBackend interface, so switching
  * is transparent to all consumers.
  *
- * Security hardening (2026-02-26):
- * - Real Redis backend via ioredis when REDIS_URL is configured
- * - In-memory fallback preserved for development / single-instance
+ * Graceful degradation: if Redis connection fails at runtime, operations
+ * silently fall back to in-memory and log errors (never crash).
  */
+
+import Redis from "ioredis";
 
 // ─── Interface ───────────────────────────────────────────────────────────────
 
 export interface CacheBackend {
   get<T>(key: string): T | null | Promise<T | null>;
   set<T>(key: string, data: T, ttlMs: number): void | Promise<void>;
+  /** Alias for invalidate — matches the spec's delete(key) requirement */
+  delete(key: string): void | Promise<void>;
   invalidate(key: string): void | Promise<void>;
   invalidatePrefix(prefix: string): void | Promise<void>;
   invalidateAll(): void | Promise<void>;
+  /** Alias for invalidateAll — matches the spec's flush() requirement */
+  flush(): void | Promise<void>;
+  /** Cache-aside pattern: get from cache or fetch + store */
+  getOrSet<T>(key: string, fetchFn: () => Promise<T>, ttlMs: number): Promise<T>;
   get size(): number;
   destroy(): void;
 }
@@ -66,6 +73,10 @@ class MemoryCache implements CacheBackend {
     this.store.set(key, { data, expiresAt: Date.now() + ttlMs });
   }
 
+  delete(key: string): void {
+    this.store.delete(key);
+  }
+
   invalidate(key: string): void {
     this.store.delete(key);
   }
@@ -83,6 +94,18 @@ class MemoryCache implements CacheBackend {
     this.store.clear();
     this.hitCount = 0;
     this.missCount = 0;
+  }
+
+  flush(): void {
+    this.invalidateAll();
+  }
+
+  async getOrSet<T>(key: string, fetchFn: () => Promise<T>, ttlMs: number): Promise<T> {
+    const cached = this.get<T>(key);
+    if (cached !== null) return cached;
+    const data = await fetchFn();
+    this.set(key, data, ttlMs);
+    return data;
   }
 
   get size(): number {
@@ -141,14 +164,170 @@ class MemoryCache implements CacheBackend {
   }
 }
 
-// ─── Namespaced Cache Wrapper ───────────────────────────────────────────────
+// ─── Redis Backend ──────────────────────────────────────────────────────────
+// Uses ioredis for distributed caching across multiple Railway instances.
+// Activated automatically when REDIS_URL environment variable is set.
+// Graceful degradation: if Redis is unreachable, operations return null/void
+// and log errors without crashing.
+
+class RedisBackend implements CacheBackend {
+  private client: Redis;
+  private namespace: string;
+  private fallback: MemoryCache;
+  private _connected = false;
+
+  constructor(redisUrl: string, namespace = "mk") {
+    this.namespace = namespace;
+    this.fallback = new MemoryCache(50_000);
+
+    this.client = new Redis(redisUrl, {
+      maxRetriesPerRequest: 3,
+      retryStrategy: (times: number) => {
+        if (times > 10) {
+          console.error("[Cache/Redis] Max retries exceeded — giving up reconnection");
+          return null; // Stop retrying
+        }
+        return Math.min(times * 200, 5000);
+      },
+      lazyConnect: true,
+      enableReadyCheck: true,
+      connectTimeout: 10_000,
+      commandTimeout: 5_000,
+    });
+
+    this.client.on("error", (err: Error) => {
+      if (this._connected) {
+        console.error("[Cache/Redis] Connection lost:", err.message);
+        this._connected = false;
+      }
+    });
+    this.client.on("connect", () => {
+      console.log("[Cache/Redis] Connected successfully");
+      this._connected = true;
+    });
+    this.client.on("close", () => {
+      if (this._connected) {
+        console.warn("[Cache/Redis] Connection closed");
+        this._connected = false;
+      }
+    });
+
+    // Connect asynchronously — don't block startup
+    this.client.connect().catch((err: Error) => {
+      console.error("[Cache/Redis] Initial connection failed:", err.message);
+      console.warn("[Cache/Redis] Falling back to in-memory cache until Redis reconnects");
+    });
+  }
+
+  private prefixKey(key: string): string {
+    return `${this.namespace}:${key}`;
+  }
+
+  async get<T>(key: string): Promise<T | null> {
+    if (!this._connected) return this.fallback.get<T>(key);
+    try {
+      const raw = await this.client.get(this.prefixKey(key));
+      if (!raw) return null;
+      return JSON.parse(raw) as T;
+    } catch (err) {
+      console.error("[Cache/Redis] GET error:", (err as Error).message);
+      return this.fallback.get<T>(key);
+    }
+  }
+
+  async set<T>(key: string, data: T, ttlMs: number): Promise<void> {
+    // Always write to fallback for graceful degradation
+    this.fallback.set(key, data, ttlMs);
+    if (!this._connected) return;
+    try {
+      const ttlSeconds = Math.max(1, Math.ceil(ttlMs / 1000));
+      await this.client.setex(this.prefixKey(key), ttlSeconds, JSON.stringify(data));
+    } catch (err) {
+      console.error("[Cache/Redis] SET error:", (err as Error).message);
+    }
+  }
+
+  async delete(key: string): Promise<void> {
+    return this.invalidate(key);
+  }
+
+  async invalidate(key: string): Promise<void> {
+    this.fallback.invalidate(key);
+    if (!this._connected) return;
+    try {
+      await this.client.del(this.prefixKey(key));
+    } catch (err) {
+      console.error("[Cache/Redis] DEL error:", (err as Error).message);
+    }
+  }
+
+  async invalidatePrefix(prefix: string): Promise<void> {
+    this.fallback.invalidatePrefix(prefix);
+    if (!this._connected) return;
+    try {
+      const pattern = `${this.namespace}:${prefix}*`;
+      let cursor = "0";
+      do {
+        const [nextCursor, keys] = await this.client.scan(cursor, "MATCH", pattern, "COUNT", 100);
+        cursor = nextCursor;
+        if (keys.length > 0) {
+          await this.client.del(...keys);
+        }
+      } while (cursor !== "0");
+    } catch (err) {
+      console.error("[Cache/Redis] INVALIDATE_PREFIX error:", (err as Error).message);
+    }
+  }
+
+  async invalidateAll(): Promise<void> {
+    this.fallback.invalidateAll();
+    if (!this._connected) return;
+    try {
+      const pattern = `${this.namespace}:*`;
+      let cursor = "0";
+      do {
+        const [nextCursor, keys] = await this.client.scan(cursor, "MATCH", pattern, "COUNT", 100);
+        cursor = nextCursor;
+        if (keys.length > 0) {
+          await this.client.del(...keys);
+        }
+      } while (cursor !== "0");
+    } catch (err) {
+      console.error("[Cache/Redis] FLUSH error:", (err as Error).message);
+    }
+  }
+
+  async flush(): Promise<void> {
+    return this.invalidateAll();
+  }
+
+  async getOrSet<T>(key: string, fetchFn: () => Promise<T>, ttlMs: number): Promise<T> {
+    const cached = await this.get<T>(key);
+    if (cached !== null) return cached;
+    const data = await fetchFn();
+    await this.set(key, data, ttlMs);
+    return data;
+  }
+
+  get size(): number {
+    // Approximate — returns fallback size since Redis DBSIZE is async
+    return this.fallback.size;
+  }
+
+  destroy(): void {
+    this.fallback.destroy();
+    this.client.disconnect();
+  }
+}
+
+// ─── Namespaced Cache Wrapper (for in-memory only) ──────────────────────────
 // Adds a namespace prefix to all keys for multi-tenant isolation.
 
 class NamespacedCache implements CacheBackend {
   private backend: MemoryCache;
   private namespace: string;
 
-  constructor(namespace = "ijar", maxEntries = 100_000) {
+  constructor(namespace = "mk", maxEntries = 100_000) {
     this.namespace = namespace;
     this.backend = new MemoryCache(maxEntries);
   }
@@ -165,6 +344,10 @@ class NamespacedCache implements CacheBackend {
     this.backend.set(this.prefixKey(key), data, ttlMs);
   }
 
+  delete(key: string): void {
+    this.backend.invalidate(this.prefixKey(key));
+  }
+
   invalidate(key: string): void {
     this.backend.invalidate(this.prefixKey(key));
   }
@@ -175,6 +358,18 @@ class NamespacedCache implements CacheBackend {
 
   invalidateAll(): void {
     this.backend.invalidateAll();
+  }
+
+  flush(): void {
+    this.backend.invalidateAll();
+  }
+
+  async getOrSet<T>(key: string, fetchFn: () => Promise<T>, ttlMs: number): Promise<T> {
+    const cached = this.get<T>(key);
+    if (cached !== null) return cached;
+    const data = await fetchFn();
+    this.set(key, data, ttlMs);
+    return data;
   }
 
   get size(): number {
@@ -190,131 +385,16 @@ class NamespacedCache implements CacheBackend {
   }
 }
 
-// ─── Redis Backend (requires ioredis) ───────────────────────────────────────
-// Uses real Redis for distributed caching across multiple instances.
-// Activated automatically when REDIS_URL environment variable is set.
-
-let RedisCache: (new (redisUrl: string, namespace?: string) => CacheBackend) | null = null;
-
-try {
-  // Dynamic import check — ioredis may not be installed
-  const ioredis = require("ioredis");
-
-  class RedisCacheImpl implements CacheBackend {
-    private client: InstanceType<typeof ioredis>;
-    private namespace: string;
-    private _size = 0;
-
-    constructor(redisUrl: string, namespace = "ijar") {
-      this.namespace = namespace;
-      this.client = new ioredis(redisUrl, {
-        maxRetriesPerRequest: 3,
-        retryStrategy: (times: number) => Math.min(times * 200, 5000),
-        lazyConnect: true,
-        enableReadyCheck: true,
-      });
-
-      this.client.on("error", (err: Error) => {
-        console.error("[Cache/Redis] Connection error:", err.message);
-      });
-      this.client.on("connect", () => {
-        console.log("[Cache/Redis] Connected successfully");
-      });
-
-      // Connect asynchronously
-      this.client.connect().catch((err: Error) => {
-        console.error("[Cache/Redis] Initial connection failed:", err.message);
-      });
-    }
-
-    private prefixKey(key: string): string {
-      return `${this.namespace}:${key}`;
-    }
-
-    async get<T>(key: string): Promise<T | null> {
-      try {
-        const raw = await this.client.get(this.prefixKey(key));
-        if (!raw) return null;
-        return JSON.parse(raw) as T;
-      } catch {
-        return null;
-      }
-    }
-
-    async set<T>(key: string, data: T, ttlMs: number): Promise<void> {
-      try {
-        const ttlSeconds = Math.ceil(ttlMs / 1000);
-        await this.client.setex(this.prefixKey(key), ttlSeconds, JSON.stringify(data));
-        this._size++;
-      } catch (err) {
-        console.error("[Cache/Redis] SET error:", (err as Error).message);
-      }
-    }
-
-    async invalidate(key: string): Promise<void> {
-      try {
-        await this.client.del(this.prefixKey(key));
-      } catch {}
-    }
-
-    async invalidatePrefix(prefix: string): Promise<void> {
-      try {
-        const pattern = `${this.namespace}:${prefix}*`;
-        let cursor = "0";
-        do {
-          const [nextCursor, keys] = await this.client.scan(cursor, "MATCH", pattern, "COUNT", 100);
-          cursor = nextCursor;
-          if (keys.length > 0) {
-            await this.client.del(...keys);
-          }
-        } while (cursor !== "0");
-      } catch {}
-    }
-
-    async invalidateAll(): Promise<void> {
-      try {
-        const pattern = `${this.namespace}:*`;
-        let cursor = "0";
-        do {
-          const [nextCursor, keys] = await this.client.scan(cursor, "MATCH", pattern, "COUNT", 100);
-          cursor = nextCursor;
-          if (keys.length > 0) {
-            await this.client.del(...keys);
-          }
-        } while (cursor !== "0");
-        this._size = 0;
-      } catch {}
-    }
-
-    get size(): number {
-      return this._size;
-    }
-
-    destroy(): void {
-      this.client.disconnect();
-    }
-  }
-
-  RedisCache = RedisCacheImpl as any;
-} catch {
-  // ioredis not installed — Redis backend unavailable
-}
-
 // ─── Factory & Singleton ─────────────────────────────────────────────────────
 
 function createCache(): CacheBackend {
   const redisUrl = process.env.REDIS_URL;
-  if (redisUrl && RedisCache) {
+  if (redisUrl) {
     console.log("[Cache] REDIS_URL detected — using Redis distributed cache");
-    return new RedisCache(redisUrl, "ijar");
+    return new RedisBackend(redisUrl, "mk");
   }
-  if (redisUrl && !RedisCache) {
-    console.warn("[Cache] REDIS_URL set but ioredis not installed. Run: npm install ioredis");
-    console.warn("[Cache] Falling back to in-memory cache");
-  } else {
-    console.log("[Cache] Using in-memory cache (set REDIS_URL for distributed caching)");
-  }
-  return new NamespacedCache("ijar");
+  console.warn("[Cache] ⚠ Redis not configured — using in-memory cache. Not suitable for multi-instance deployments.");
+  return new NamespacedCache("mk");
 }
 
 export const cache = createCache();

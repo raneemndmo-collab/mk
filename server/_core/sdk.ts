@@ -17,6 +17,7 @@ import { SignJWT, jwtVerify } from "jose";
 import type { User } from "../../drizzle/schema";
 import * as db from "../db";
 import { ENV } from "./env";
+import { tokenBlacklist } from "../token-blacklist";
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;
@@ -81,7 +82,7 @@ class AuthService {
 
   /**
    * Verify a session token and return the payload.
-   * Returns null if the token is invalid or expired.
+   * Returns null if the token is invalid, expired, or blacklisted (revoked).
    */
   async verifySession(
     cookieValue: string | undefined | null
@@ -90,6 +91,13 @@ class AuthService {
       return null;
     }
     try {
+      // Check if token has been revoked (blacklisted on logout)
+      const revoked = await tokenBlacklist.isBlacklisted(cookieValue);
+      if (revoked) {
+        console.warn("[Auth] Token is blacklisted (revoked)");
+        return null;
+      }
+
       const secretKey = this.getSessionSecret();
       const { payload } = await jwtVerify(cookieValue, secretKey, {
         algorithms: ["HS256"],
@@ -108,6 +116,34 @@ class AuthService {
     } catch (error) {
       console.warn("[Auth] Session verification failed", String(error));
       return null;
+    }
+  }
+
+  /**
+   * Revoke a session token by adding it to the blacklist.
+   * The token remains blacklisted until its natural JWT expiry.
+   */
+  async revokeToken(cookieValue: string): Promise<void> {
+    if (!cookieValue) return;
+    try {
+      // Decode (without verifying) to get the expiry time
+      const secretKey = this.getSessionSecret();
+      const { payload } = await jwtVerify(cookieValue, secretKey, {
+        algorithms: ["HS256"],
+      });
+      const exp = payload.exp;
+      if (exp) {
+        const remainingMs = exp * 1000 - Date.now();
+        if (remainingMs > 0) {
+          await tokenBlacklist.add(cookieValue, remainingMs);
+          console.log(`[Auth] Token blacklisted for ${Math.ceil(remainingMs / 1000)}s`);
+        }
+      } else {
+        // No expiry — blacklist for session TTL as fallback
+        await tokenBlacklist.add(cookieValue, ENV.sessionTtlMs);
+      }
+    } catch {
+      // Token is already invalid/expired — no need to blacklist
     }
   }
 
