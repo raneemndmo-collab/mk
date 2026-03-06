@@ -41,30 +41,68 @@ type MenuItem = {
   path: string;
 };
 
-const menuItems: MenuItem[] = [
-  { icon: LayoutDashboard, labelKey: "adminMenu.dashboard", path: "/admin" },
-  { icon: Building2, labelKey: "adminMenu.properties", path: "/admin/properties" },
-  { icon: Inbox, labelKey: "adminMenu.submissions", path: "/admin/submissions" },
-  { icon: Hotel, labelKey: "adminMenu.buildings", path: "/admin/buildings" },
-  { icon: CalendarCheck, labelKey: "adminMenu.bookings", path: "/admin/bookings" },
-  { icon: CreditCard, labelKey: "adminMenu.payments", path: "/admin/payments" },
-  { icon: UserCog, labelKey: "adminMenu.managers", path: "/admin/managers" },
-  { icon: Wrench, labelKey: "adminMenu.services", path: "/admin/services" },
-  { icon: AlertTriangle, labelKey: "adminMenu.emergency", path: "/admin/emergency-maintenance" },
-  { icon: BarChart3, labelKey: "adminMenu.analytics", path: "/admin/analytics" },
-  { icon: MapPin, labelKey: "adminMenu.cities", path: "/admin/cities" },
-  { icon: KeyRound, labelKey: "adminMenu.permissions", path: "/admin/permissions" },
-  { icon: BookOpen, labelKey: "adminMenu.knowledgeBase", path: "/admin/knowledge-base" },
-  { icon: MessageCircle, labelKey: "adminMenu.whatsapp", path: "/admin/whatsapp" },
-  { icon: Plug, labelKey: "adminMenu.integrations", path: "/admin/integrations" },
-  { icon: Fingerprint, labelKey: "adminMenu.kyc", path: "/admin/kyc" },
-  { icon: ToggleLeft, labelKey: "adminMenu.featureFlags", path: "/admin/feature-flags" },
-  { icon: Shield, labelKey: "adminMenu.hardening", path: "/admin/hardening" },
-  { icon: Newspaper, labelKey: "adminMenu.cms", path: "/admin/cms" },
-  { icon: FileText, labelKey: "adminMenu.auditLog", path: "/admin/audit-log" },
-  { icon: Database, labelKey: "adminMenu.dbStatus", path: "/admin/db-status" },
-  { icon: Settings, labelKey: "adminMenu.settings", path: "/admin/settings" },
+type MenuSection = {
+  titleKey: string;
+  items: MenuItem[];
+};
+
+const menuSections: MenuSection[] = [
+  {
+    titleKey: "",
+    items: [
+      { icon: LayoutDashboard, labelKey: "adminMenu.dashboard", path: "/admin" },
+    ],
+  },
+  {
+    titleKey: "adminMenu.sectionProperties",
+    items: [
+      { icon: Building2, labelKey: "adminMenu.properties", path: "/admin/properties" },
+      { icon: Inbox, labelKey: "adminMenu.submissions", path: "/admin/submissions" },
+      { icon: Hotel, labelKey: "adminMenu.buildings", path: "/admin/buildings" },
+    ],
+  },
+  {
+    titleKey: "adminMenu.sectionOperations",
+    items: [
+      { icon: CalendarCheck, labelKey: "adminMenu.bookings", path: "/admin/bookings" },
+      { icon: CreditCard, labelKey: "adminMenu.payments", path: "/admin/payments" },
+      { icon: UserCog, labelKey: "adminMenu.managers", path: "/admin/managers" },
+      { icon: Wrench, labelKey: "adminMenu.services", path: "/admin/services" },
+      { icon: AlertTriangle, labelKey: "adminMenu.emergency", path: "/admin/emergency-maintenance" },
+    ],
+  },
+  {
+    titleKey: "adminMenu.sectionMarketing",
+    items: [
+      { icon: Newspaper, labelKey: "adminMenu.cms", path: "/admin/cms" },
+      { icon: MessageCircle, labelKey: "adminMenu.whatsapp", path: "/admin/whatsapp" },
+      { icon: BookOpen, labelKey: "adminMenu.knowledgeBase", path: "/admin/knowledge-base" },
+    ],
+  },
+  {
+    titleKey: "adminMenu.sectionAnalytics",
+    items: [
+      { icon: BarChart3, labelKey: "adminMenu.analytics", path: "/admin/analytics" },
+    ],
+  },
+  {
+    titleKey: "adminMenu.sectionSystem",
+    items: [
+      { icon: MapPin, labelKey: "adminMenu.cities", path: "/admin/cities" },
+      { icon: KeyRound, labelKey: "adminMenu.permissions", path: "/admin/permissions" },
+      { icon: Fingerprint, labelKey: "adminMenu.kyc", path: "/admin/kyc" },
+      { icon: Plug, labelKey: "adminMenu.integrations", path: "/admin/integrations" },
+      { icon: ToggleLeft, labelKey: "adminMenu.featureFlags", path: "/admin/feature-flags" },
+      { icon: Shield, labelKey: "adminMenu.hardening", path: "/admin/hardening" },
+      { icon: FileText, labelKey: "adminMenu.auditLog", path: "/admin/audit-log" },
+      { icon: Database, labelKey: "adminMenu.dbStatus", path: "/admin/db-status" },
+      { icon: Settings, labelKey: "adminMenu.settings", path: "/admin/settings" },
+    ],
+  },
 ];
+
+// Flat list for active-item lookup (used in top bar title)
+const menuItems: MenuItem[] = menuSections.flatMap(s => s.items);
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 280;
@@ -263,25 +301,39 @@ function DashboardLayoutContent({
 
           <SidebarContent className="gap-0">
             <SidebarMenu className="px-2 py-1">
-              {menuItems.map(item => {
-                const isActive = location === item.path;
-                const label = t(item.labelKey as any);
-                return (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      isActive={isActive}
-                      onClick={() => setLocation(item.path)}
-                      tooltip={label}
-                      className={`h-10 transition-all font-normal`}
-                    >
-                      <item.icon
-                        className={`h-4 w-4 ${isActive ? "text-[#3ECFC0]" : ""}`}
-                      />
-                      <span>{label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+              {menuSections.map((section, sIdx) => (
+                <div key={sIdx}>
+                  {section.titleKey && !isCollapsed && (
+                    <div className="px-3 pt-4 pb-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                        {t(section.titleKey as any)}
+                      </span>
+                    </div>
+                  )}
+                  {section.titleKey && isCollapsed && (
+                    <div className="my-1.5 mx-2 h-px bg-border/50" />
+                  )}
+                  {section.items.map(item => {
+                    const isActive = location === item.path;
+                    const label = t(item.labelKey as any);
+                    return (
+                      <SidebarMenuItem key={item.path}>
+                        <SidebarMenuButton
+                          isActive={isActive}
+                          onClick={() => setLocation(item.path)}
+                          tooltip={label}
+                          className={`h-10 transition-all font-normal`}
+                        >
+                          <item.icon
+                            className={`h-4 w-4 ${isActive ? "text-[#3ECFC0]" : ""}`}
+                          />
+                          <span>{label}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </div>
+              ))}
             </SidebarMenu>
           </SidebarContent>
 

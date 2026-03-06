@@ -27,15 +27,15 @@ import {
 } from "@/components/ui/select";
 import {
   Users, Building2, Calendar, CreditCard, BarChart3,
-  Loader2, CheckCircle, XCircle, Shield, TrendingUp, BookOpen,
-  Package, AlertTriangle, Star, Bot, Clock, Send, BanknoteIcon,
-  FileText, Eye, HelpCircle, MessageSquare, Search, UserCog
+  Loader2, CheckCircle, XCircle, Shield, TrendingUp,
+  AlertTriangle, Clock, Send, BanknoteIcon,
+  FileText, Search, UserCog
 } from "lucide-react";
 import { Link } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
 import { useState } from "react";
-import { HardDrive, MessageCircle } from "lucide-react";
+import { HardDrive } from "lucide-react";
 
 // Storage warning banner
 function StorageWarningBanner({ lang }: { lang: string }) {
@@ -245,71 +245,6 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
-
-        {/* Quick Actions */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          <Link href="/admin/whatsapp">
-            <Button variant="outline" className="gap-2 border-green-600 text-green-600 hover:bg-green-600/10">
-              <MessageCircle className="h-4 w-4" />
-              {lang === "ar" ? "واتساب" : "WhatsApp"}
-            </Button>
-          </Link>
-          <Link href="/admin/cities">
-            <Button variant="outline" className="gap-2">
-              <Building2 className="h-4 w-4" />
-              {lang === "ar" ? "إدارة المدن والأحياء" : "Cities & Districts"}
-            </Button>
-          </Link>
-          <Link href="/admin/managers">
-            <Button variant="outline" className="gap-2">
-              <Users className="h-4 w-4" />
-              {lang === "ar" ? "مدراء العقارات" : "Property Managers"}
-            </Button>
-          </Link>
-          <Link href="/admin/services">
-            <Button variant="outline" className="gap-2">
-              <Package className="h-4 w-4" />
-              {lang === "ar" ? "إدارة الخدمات" : "Services Management"}
-            </Button>
-          </Link>
-          <Link href="/admin/emergency-maintenance">
-            <Button variant="outline" className="gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              {lang === "ar" ? "طوارئ الصيانة" : "Emergency Maintenance"}
-            </Button>
-          </Link>
-          <Link href="/admin/analytics">
-            <Button variant="outline" className="gap-2 border-[#3ECFC0] text-[#3ECFC0] hover:bg-[#3ECFC0]/10">
-              <BarChart3 className="h-4 w-4" />
-              {lang === "ar" ? "التحليلات" : "Analytics"}
-            </Button>
-          </Link>
-          <Link href="/admin/settings">
-            <Button variant="outline" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              {lang === "ar" ? "إعدادات المنصة" : "Platform Settings"}
-            </Button>
-          </Link>
-          <Link href="/admin/permissions">
-            <Button variant="outline" className="gap-2 border-amber-500 text-amber-500 hover:bg-amber-500/10">
-              <Shield className="h-4 w-4" />
-              {lang === "ar" ? "الأدوار والصلاحيات" : "Roles & Permissions"}
-            </Button>
-          </Link>
-
-          <Link href="/admin/payments">
-            <Button variant="outline" className="gap-2 border-emerald-600 text-emerald-600 hover:bg-emerald-600/10">
-              <CreditCard className="h-4 w-4" />
-              {lang === "ar" ? "سجل المدفوعات" : "Payments Registry"}
-            </Button>
-          </Link>
-          <Link href="/admin/buildings">
-            <Button variant="outline" className="gap-2 border-sky-600 text-sky-600 hover:bg-sky-600/10">
-              <Building2 className="h-4 w-4" />
-              {lang === "ar" ? "نظرة عامة على المباني" : "Building Overview"}
-            </Button>
-          </Link>
-        </div>
 
         {/* Operational Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
