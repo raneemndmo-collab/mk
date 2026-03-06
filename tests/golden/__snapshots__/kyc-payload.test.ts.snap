@@ -1,0 +1,57 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Golden Tests — KYC Payload Structure > Basic Level Submission > snapshot: basic submission payload shape 1`] = `
+{
+  "documents": [
+    {
+      "documentType": "saudi_national_id",
+      "fileSizeBytes": 245000,
+      "mimeType": "image/jpeg",
+      "originalFilename": "هوية_وطنية.jpg",
+      "storageKey": "kyc/user-101/saudi-id-front.jpg",
+    },
+  ],
+  "level": "basic",
+  "metadata": {
+    "locale": "ar-SA",
+    "submittedAt": "2026-03-07T10:00:00Z",
+  },
+  "userId": 101,
+}
+`;
+
+exports[`Golden Tests — KYC Payload Structure > Enhanced Level Submission > snapshot: enhanced submission payload shape 1`] = `
+{
+  "documents": [
+    {
+      "documentType": "saudi_national_id",
+      "fileSizeBytes": 245000,
+      "mimeType": "image/jpeg",
+      "originalFilename": "هوية_وطنية.jpg",
+      "storageKey": "kyc/user-101/saudi-id-front.jpg",
+    },
+    {
+      "documentType": "commercial_register",
+      "fileSizeBytes": 1200000,
+      "mimeType": "application/pdf",
+      "originalFilename": "سجل_تجاري.pdf",
+      "storageKey": "kyc/user-103/cr.pdf",
+    },
+  ],
+  "level": "enhanced",
+  "metadata": {
+    "businessName": "شركة المفتاح الشهري",
+    "crNumber": "1010123456",
+  },
+  "userId": 103,
+}
+`;
+
+exports[`Golden Tests — KYC Payload Structure > KYC Result Structure > successful result shape 1`] = `
+{
+  "message": "تم استلام طلب التحقق بنجاح",
+  "requestId": "kyc-req-2026-001",
+  "status": "pending_review",
+  "success": true,
+}
+`;

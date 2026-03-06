@@ -1,0 +1,101 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Golden Tests — Pricing Engine > Full Snapshot — Regression Lock > locks full output for 4500 SAR × 1 month standard scenario 1`] = `
+{
+  "amountHalalah": 595100,
+  "appliedRates": {
+    "hideInsuranceFromTenant": false,
+    "insuranceMode": "percentage",
+    "insuranceRate": 10,
+    "serviceFeeRate": 5,
+    "vatRate": 15,
+  },
+  "baseRentTotal": 4500,
+  "currency": "SAR",
+  "displayInsurance": 450,
+  "displayRentTotal": 4500,
+  "displaySubtotal": 5175,
+  "grandTotal": 5951,
+  "hideInsuranceFromTenant": false,
+  "insuranceAmount": 450,
+  "roundingRule": "Math.round",
+  "serviceFeeAmount": 225,
+  "subtotal": 5175,
+  "vatAmount": 776,
+}
+`;
+
+exports[`Golden Tests — Pricing Engine > Full Snapshot — Regression Lock > locks full output for 10000 SAR × 6 months 1`] = `
+{
+  "amountHalalah": 7360000,
+  "appliedRates": {
+    "hideInsuranceFromTenant": false,
+    "insuranceMode": "percentage",
+    "insuranceRate": 10,
+    "serviceFeeRate": 5,
+    "vatRate": 15,
+  },
+  "baseRentTotal": 60000,
+  "currency": "SAR",
+  "displayInsurance": 1000,
+  "displayRentTotal": 60000,
+  "displaySubtotal": 64000,
+  "grandTotal": 73600,
+  "hideInsuranceFromTenant": false,
+  "insuranceAmount": 1000,
+  "roundingRule": "Math.round",
+  "serviceFeeAmount": 3000,
+  "subtotal": 64000,
+  "vatAmount": 9600,
+}
+`;
+
+exports[`Golden Tests — Pricing Engine > Full Snapshot — Regression Lock > locks full output for fixed insurance 500 SAR 1`] = `
+{
+  "amountHalalah": 600900,
+  "appliedRates": {
+    "hideInsuranceFromTenant": false,
+    "insuranceMode": "fixed",
+    "insuranceRate": 10,
+    "serviceFeeRate": 5,
+    "vatRate": 15,
+  },
+  "baseRentTotal": 4500,
+  "currency": "SAR",
+  "displayInsurance": 500,
+  "displayRentTotal": 4500,
+  "displaySubtotal": 5225,
+  "grandTotal": 6009,
+  "hideInsuranceFromTenant": false,
+  "insuranceAmount": 500,
+  "roundingRule": "Math.round",
+  "serviceFeeAmount": 225,
+  "subtotal": 5225,
+  "vatAmount": 784,
+}
+`;
+
+exports[`Golden Tests — Pricing Engine > Full Snapshot — Regression Lock > locks full output for hidden insurance scenario 1`] = `
+{
+  "amountHalalah": 595100,
+  "appliedRates": {
+    "hideInsuranceFromTenant": true,
+    "insuranceMode": "percentage",
+    "insuranceRate": 10,
+    "serviceFeeRate": 5,
+    "vatRate": 15,
+  },
+  "baseRentTotal": 4500,
+  "currency": "SAR",
+  "displayInsurance": 0,
+  "displayRentTotal": 4950,
+  "displaySubtotal": 5175,
+  "grandTotal": 5951,
+  "hideInsuranceFromTenant": true,
+  "insuranceAmount": 450,
+  "roundingRule": "Math.round",
+  "serviceFeeAmount": 225,
+  "subtotal": 5175,
+  "vatAmount": 776,
+}
+`;

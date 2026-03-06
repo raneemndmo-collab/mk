@@ -1,0 +1,72 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Golden Tests — Cache Backend > CACHE_KEYS constants > snapshot: all cache key patterns 1`] = `
+{
+  "allCities": [Function],
+  "analytics": [Function],
+  "bookingCount": [Function],
+  "districts": [Function],
+  "featuredCities": [Function],
+  "homepageStats": [Function],
+  "propertyCount": [Function],
+  "propertyDetail": [Function],
+  "searchResults": [Function],
+  "settings": [Function],
+  "settingsSingle": [Function],
+  "userCount": [Function],
+}
+`;
+
+exports[`Golden Tests — Cache Backend > CACHE_TTL constants > snapshot: all TTL configurations 1`] = `
+{
+  "ANALYTICS": 120000,
+  "CITY_LIST": 300000,
+  "HOMEPAGE_DATA": 60000,
+  "PROPERTY_COUNTS": 30000,
+  "PROPERTY_DETAIL": 15000,
+  "SEARCH_RESULTS": 10000,
+  "SETTINGS": 60000,
+  "USER_COUNT": 60000,
+}
+`;
+
+exports[`Golden Tests — Rate Limiter > RATE_LIMITS configuration > snapshot: all rate limit configurations 1`] = `
+{
+  "ADMIN": {
+    "maxRequests": 100,
+    "windowMs": 60000,
+  },
+  "AI": {
+    "maxRequests": 15,
+    "windowMs": 60000,
+  },
+  "AUTH": {
+    "maxRequests": 10,
+    "windowMs": 300000,
+  },
+  "AUTH_READ": {
+    "maxRequests": 200,
+    "windowMs": 60000,
+  },
+  "LOGIN_PER_USER": {
+    "maxRequests": 5,
+    "windowMs": 900000,
+  },
+  "PASSWORD_RESET": {
+    "maxRequests": 3,
+    "windowMs": 900000,
+  },
+  "PUBLIC_READ": {
+    "maxRequests": 120,
+    "windowMs": 60000,
+  },
+  "UPLOAD": {
+    "maxRequests": 20,
+    "windowMs": 300000,
+  },
+  "WRITE": {
+    "maxRequests": 30,
+    "windowMs": 60000,
+  },
+}
+`;

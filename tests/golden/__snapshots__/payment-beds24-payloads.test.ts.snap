@@ -1,0 +1,176 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Golden Tests — Beds24 Sync Payloads > Booking Push Request > cancelled booking push shape 1`] = `
+{
+  "checkIn": "2026-04-01",
+  "checkOut": "2026-05-01",
+  "currency": "SAR",
+  "externalBookingId": "BK-2026-003",
+  "guestEmail": "fatima@example.com",
+  "guestName": "فاطمة علي",
+  "guestPhone": "+966551234567",
+  "propertyId": 42,
+  "roomId": 1,
+  "source": "monthly_key",
+  "status": "cancelled",
+  "totalAmount": 0,
+}
+`;
+
+exports[`Golden Tests — Beds24 Sync Payloads > Booking Push Request > confirmed booking push shape 1`] = `
+{
+  "checkIn": "2026-04-01",
+  "checkOut": "2026-05-01",
+  "currency": "SAR",
+  "externalBookingId": "BK-2026-001",
+  "guestEmail": "mohammed@example.com",
+  "guestName": "محمد أحمد الغامدي",
+  "guestPhone": "+966501234567",
+  "notes": "حجز شهري — شقة مفروشة",
+  "propertyId": 42,
+  "roomId": 1,
+  "source": "monthly_key",
+  "status": "confirmed",
+  "totalAmount": 5951,
+}
+`;
+
+exports[`Golden Tests — Beds24 Sync Payloads > Sync Response Structure > conflict detection response 1`] = `
+{
+  "conflicts": [
+    {
+      "date": "2026-04-15",
+      "existingBookingId": 555,
+      "source": "airbnb",
+    },
+    {
+      "date": "2026-04-16",
+      "existingBookingId": 555,
+      "source": "airbnb",
+    },
+  ],
+  "error": "Calendar conflict detected for 2 dates",
+  "success": false,
+}
+`;
+
+exports[`Golden Tests — Moyasar Payment Payloads > Payment Initiation Request > Apple Pay payment request shape 1`] = `
+{
+  "amount": 1681900,
+  "callback_url": "https://monthlykey.com/payment/callback",
+  "currency": "SAR",
+  "description": "Monthly Key — حجز فيلا في جدة (3 أشهر)",
+  "metadata": {
+    "bookingId": "BK-2026-002",
+    "userId": "102",
+  },
+  "source": {
+    "token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "type": "applepay",
+  },
+}
+`;
+
+exports[`Golden Tests — Moyasar Payment Payloads > Payment Initiation Request > mada card payment request shape 1`] = `
+{
+  "amount": 595100,
+  "callback_url": "https://monthlykey.com/payment/callback",
+  "currency": "SAR",
+  "description": "Monthly Key — حجز شقة مفروشة في الرياض (1 شهر)",
+  "metadata": {
+    "bookingId": "BK-2026-001",
+    "durationMonths": "1",
+    "propertyId": "42",
+    "userId": "101",
+  },
+  "source": {
+    "cvc": "100",
+    "month": "03",
+    "name": "محمد أحمد الغامدي",
+    "number": "5588000000000669",
+    "type": "creditcard",
+    "year": "2027",
+  },
+}
+`;
+
+exports[`Golden Tests — Moyasar Payment Payloads > Payment Response Structure > successful payment response shape 1`] = `
+{
+  "amount": 595100,
+  "amount_format": "5,951.00 SAR",
+  "callback_url": "https://monthlykey.com/payment/callback",
+  "captured": 595100,
+  "captured_at": "2026-03-07T10:30:00Z",
+  "created_at": "2026-03-07T10:29:00Z",
+  "currency": "SAR",
+  "description": "Monthly Key — حجز شقة مفروشة في الرياض (1 شهر)",
+  "fee": 14878,
+  "fee_format": "148.78 SAR",
+  "id": "pay_abc123def456",
+  "invoice_id": null,
+  "ip": "185.70.40.1",
+  "metadata": {
+    "bookingId": "BK-2026-001",
+    "userId": "101",
+  },
+  "refunded": 0,
+  "refunded_at": null,
+  "source": {
+    "company": "mada",
+    "gateway_id": "gw_123",
+    "message": "APPROVED",
+    "name": "محمد أحمد الغامدي",
+    "number": "XXXX-XXXX-XXXX-0669",
+    "reference_number": "REF-001",
+    "token": null,
+    "transaction_url": null,
+    "type": "creditcard",
+  },
+  "status": "paid",
+  "updated_at": "2026-03-07T10:30:00Z",
+  "voided_at": null,
+}
+`;
+
+exports[`Golden Tests — Moyasar Payment Payloads > Webhook Payload Structure > payment_paid webhook shape 1`] = `
+{
+  "created_at": "2026-03-07T10:30:01Z",
+  "data": {
+    "amount": 595100,
+    "amount_format": "5,951.00 SAR",
+    "callback_url": "https://monthlykey.com/payment/callback",
+    "captured": 595100,
+    "captured_at": "2026-03-07T10:30:00Z",
+    "created_at": "2026-03-07T10:29:00Z",
+    "currency": "SAR",
+    "description": "Monthly Key — حجز",
+    "fee": 14878,
+    "fee_format": "148.78 SAR",
+    "id": "pay_abc123def456",
+    "invoice_id": null,
+    "ip": null,
+    "metadata": {
+      "bookingId": "BK-2026-001",
+    },
+    "refunded": 0,
+    "refunded_at": null,
+    "source": {
+      "company": "mada",
+      "gateway_id": "gw_123",
+      "message": "APPROVED",
+      "name": "محمد",
+      "number": "XXXX-0669",
+      "reference_number": "REF-001",
+      "token": null,
+      "transaction_url": null,
+      "type": "creditcard",
+    },
+    "status": "paid",
+    "updated_at": "2026-03-07T10:30:00Z",
+    "voided_at": null,
+  },
+  "id": "evt_abc123",
+  "secret_token": "whsec_test_token_123",
+  "type": "payment_paid",
+}
+`;
