@@ -127,7 +127,7 @@ export default function AdminPropertyEdit() {
     placeId: "",
     geocodeProvider: "",
     bedrooms: 1, bathrooms: 1, sizeSqm: 0,
-    monthlyRent: "", securityDeposit: "",
+    monthlyRent: 0 as number | string, securityDeposit: 0 as number | string,
     pricingSource: "PROPERTY" as string,
     amenities: [] as string[],
     utilitiesIncluded: [] as string[],
@@ -258,8 +258,8 @@ export default function AdminPropertyEdit() {
         bedrooms: property.bedrooms || 1,
         bathrooms: property.bathrooms || 1,
         sizeSqm: property.sizeSqm || 0,
-        monthlyRent: property.monthlyRent || "",
-        securityDeposit: property.securityDeposit || "",
+        monthlyRent: property.monthlyRent ? Number(property.monthlyRent) : 0,
+        securityDeposit: property.securityDeposit ? Number(property.securityDeposit) : 0,
         pricingSource: (property as any).pricingSource || "PROPERTY",
         amenities: (property.amenities as string[]) || [],
         utilitiesIncluded: (property.utilitiesIncluded as string[]) || [],
@@ -286,6 +286,8 @@ export default function AdminPropertyEdit() {
       const validLocationVisibilities = ["EXACT", "APPROXIMATE", "HIDDEN"] as const;
       const sanitized = {
         ...form,
+        monthlyRent: String(Number(form.monthlyRent) || 0),
+        securityDeposit: String(Number(form.securityDeposit) || 0),
         pricingSource: (form.pricingSource || undefined) as "PROPERTY" | "UNIT" | undefined,
         locationSource: validLocationSources.includes(form.locationSource as any)
           ? (form.locationSource as "MANUAL" | "GEOCODE" | "PIN")
@@ -757,8 +759,11 @@ export default function AdminPropertyEdit() {
                   <div>
                     <Label>{isAr ? "الإيجار الشهري (ر.س)" : "Monthly Rent (SAR)"}</Label>
                     <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
                       value={form.monthlyRent}
-                      onChange={e => setForm(p => ({ ...p, monthlyRent: e.target.value }))}
+                      onChange={e => setForm(p => ({ ...p, monthlyRent: e.target.value === '' ? '' : Number(e.target.value) }))}
                       placeholder="0.00"
                       disabled={form.pricingSource === "UNIT"}
                     />
@@ -773,7 +778,7 @@ export default function AdminPropertyEdit() {
                   </div>
                   <div>
                     <Label>{isAr ? "مبلغ التأمين (ر.س)" : "Security Deposit (SAR)"}</Label>
-                    <Input value={form.securityDeposit} onChange={e => setForm(p => ({ ...p, securityDeposit: e.target.value }))} placeholder="0.00" />
+                    <Input type="number" min="0" step="0.01" value={form.securityDeposit} onChange={e => setForm(p => ({ ...p, securityDeposit: e.target.value === '' ? '' : Number(e.target.value) }))} placeholder="0.00" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">

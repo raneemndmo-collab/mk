@@ -350,15 +350,18 @@ function PropertyWizard({ open, onClose, editId, onSuccess }: {
           ...form,
           titleEn: form.titleEn || form.titleAr,
           titleAr: form.titleAr || form.titleEn,
-          monthlyRent: form.monthlyRent || "0",
+          monthlyRent: String(Number(form.monthlyRent) || 0),
         });
         setCreatedId(result.id);
         toast.success(isAr ? `تم إنشاء العقار #${result.id} كمسودة` : `Property #${result.id} created as draft`);
       } else {
         // Update existing property
         const clean: Record<string, any> = { id: createdId, ...form };
+        // Ensure numeric fields are properly formatted
+        clean.monthlyRent = String(Number(clean.monthlyRent) || 0);
+        clean.securityDeposit = String(Number(clean.securityDeposit) || 0);
         // Sanitize empty strings to undefined for optional fields
-        const optionalFields = ['latitude', 'longitude', 'googleMapsUrl', 'securityDeposit'];
+        const optionalFields = ['latitude', 'longitude', 'googleMapsUrl'];
         for (const k of optionalFields) {
           if (clean[k] === '') clean[k] = undefined;
         }
