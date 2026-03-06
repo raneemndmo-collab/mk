@@ -21,7 +21,7 @@ import {
   Phone, UserCog, Clock, Eye, Calculator, X
 } from "lucide-react";
 import { useState, useRef, useMemo, useCallback } from "react";
-import { MediaLightbox } from "@/components/MediaLightbox";
+import { MediaLightbox, type LightboxPropertyInfo } from "@/components/MediaLightbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -456,6 +456,31 @@ export default function PropertyDetail() {
               initialIndex={currentPhoto}
               open={lightboxOpen}
               onClose={() => setLightboxOpen(false)}
+              propertyInfo={{
+                title: title || undefined,
+                bedrooms: prop.bedrooms,
+                bathrooms: prop.bathrooms,
+                sizeSqm: prop.sizeSqm,
+                monthlyRent: prop.monthlyRent ? Number(prop.monthlyRent) : undefined,
+                lang,
+                isFavorite: favCheck.data?.isFavorite ?? false,
+                onToggleFavorite: () => {
+                  if (!isAuthenticated) { toast.error(lang === "ar" ? "يرجى تسجيل الدخول" : "Please sign in"); return; }
+                  toggleFav.mutate({ propertyId: id });
+                },
+                onShare: () => {
+                  if (navigator.share) { navigator.share({ title: document.title, url: window.location.href }).catch(() => {}); }
+                  else { navigator.clipboard.writeText(window.location.href); toast.success(lang === "ar" ? "تم نسخ الرابط" : "Link copied"); }
+                },
+                onWhatsApp: () => {
+                  const t2 = prop?.titleAr || prop?.titleEn || '';
+                  const c = prop?.cityAr || prop?.city || '';
+                  const r = prop?.monthlyRent ? Number(prop.monthlyRent).toLocaleString('ar-SA') : '';
+                  const u = window.location.href;
+                  const msg = `\u{1F3E0} ${t2}\n\u{1F4CD} ${c}\n\u{1F4B0} ${r} ر.س/شهر\n\u{1F517} ${u}`;
+                  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+                },
+              }}
             />
 
             {/* Title & Location */}
