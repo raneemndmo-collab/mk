@@ -1,0 +1,92 @@
+Gathern App Screenshots Analysis - Profile/More Tab
+
+=== Screenshot 1: More Tab (scrolled down) ===
+- Header: Orange circle avatar with "n" + "خالد الرحيلي"
+- Menu items (each with icon + chevron right):
+  - Rate us (thumbs up icon)
+  - Host with us (Register your property) (building icon)
+  - Payment methods (card icon)
+  - Contact Guest Experience (mail icon)
+  - Invite friends (people icon)
+  - FAQ (document icon)
+  - Terms of use (document icon)
+  - Privacy policy (document icon)
+  - Change language (globe icon)
+  - Log out (clock icon)
+- Footer:
+  - Commercial Registration: 7007384501
+  - MOT License: 73102999
+  - Category License: Accommodation Unit Reservation
+  - v 9.13.1 (838)
+- Bottom nav: Search, Favorite, Reservations, Conversations, More (active)
+
+=== Screenshot 2: Gathern splash/loading screen ===
+- Purple background with city skyline illustration
+- رمضان كريم text
+- GatherN logo
+
+=== Screenshot 3: More Tab (top section) ===
+- Header: Same avatar + name
+- Stats section (plain text, no cards):
+  - Reservations: 0
+  - Wallet balance: 0 SAR
+  - Ratings (from hosts): 10 / 0.0 (0)
+  - Hosts who banned you: 0
+- Menu items:
+  - Profile (person icon)
+  - Wallet log (wallet icon)
+  - Rate us
+  - Host with us (Register your property)
+  - Payment methods
+  - Contact Guest Experience
+  - Invite friends
+  - FAQ
+  - Terms of use (cut off)
+
+=== Screenshot 4: Host with us bottom sheet ===
+- Same More tab behind
+- Bottom sheet overlay:
+  "Add your property with gathern, host regularly and increase your income.
+   You will be redirected to gathern business app to register your property"
+- Two buttons: OK (purple) | Cancel (purple outline)
+
+=== Screenshot 5: Profile - Date of birth Hijri picker ===
+- Header: < Profile (trash icon)
+- "Complete the following information to complete reservation"
+- Identity type: Saudi National (selected blue check)
+- Hijri date picker dialog:
+  - 18 Ramadan 1447 | 07 March 2026
+  - Hijri (active) | Gregorian tabs
+  - Scroll picker: month/day/year
+  - OK | Cancel buttons
+
+=== Screenshot 6: Same as 5 (duplicate)
+
+=== Screenshot 7: Profile - Visitor/Tourist with nationality selector ===
+- Visitor/Tourist selected
+- Passport Number field (placeholder: A542817)
+- Nationality field → bottom sheet:
+  - "Select nationality" with X close
+  - List: Somalia, Libya, Egypt, Morocco, Mauritania, Afghanistan, Indonesia
+
+=== Screenshot 8: Profile - Visitor/Tourist passport entry ===
+- Visitor/Tourist selected
+- Passport Number: A542817 (with keyboard shown)
+- Nationality field empty
+
+=== Screenshot 9: Profile - Resident (Non-Saudi) ===
+- Resident (Non-Saudi) selected
+- Resident No. field (placeholder: 106452248)
+- Date of birth field
+- Number keyboard shown
+
+=== Screenshot 10: Profile - Saudi National ===
+- Saudi National selected
+- National ID Number: 106452248
+- Date of birth field
+- Number keyboard shown
+
+=== Screenshot 11: Profile - Empty state ===
+- No identity type selected
+- All three options: Saudi National, Resident (Non-Saudi), Visitor/Tourist
+- Verify button (greyed out/disabled)

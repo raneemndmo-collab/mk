@@ -18,6 +18,9 @@ import {
   Clock, CheckCircle2, XCircle, BellRing, BellOff, Settings,
   SlidersHorizontal, MessageSquare, Send, Trash2, Info,
   ArrowUpDown, ArrowUp, ArrowDown,
+  Wallet, ThumbsUp, Globe, HelpCircle, FileText, Shield,
+  Users, Share2, BarChart3, ShieldCheck, UserCog, Briefcase,
+  Calendar, ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -47,6 +50,9 @@ import {
 // ─── Hero Image (generated) ───
 const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/Qa7Q2PtJqyYVmLJFM69a8Y/hero-riyadh-mrK3PJVdGeLBcb9uR3WKW9.webp";
 
+// ─── MK Logo (SVG, transparent) ───
+const MK_LOGO = "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/Qa7Q2PtJqyYVmLJFM69a8Y/mk-logo_78e14317.svg";
+
 // ─── Fallback placeholder for properties with no photos ───
 const PLACEHOLDER_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/Qa7Q2PtJqyYVmLJFM69a8Y/property-modern-XQ4H9LtYsmuJGgmBS6peYS.webp";
 
@@ -69,7 +75,7 @@ function getPropertyImage(property: ApiProperty, index = 0): string {
 
 // ─── Tab Types ───
 type TabId = "home" | "search" | "favorites" | "bookings" | "profile";
-type ScreenId = "tabs" | "property-detail" | "booking-flow" | "login" | "notifications-settings" | "twilio-setup";
+type ScreenId = "tabs" | "property-detail" | "booking-flow" | "login" | "notifications-settings" | "twilio-setup" | "profile-completion" | "admin-panel";
 type SortOption = "default" | "price_asc" | "price_desc" | "newest" | "rating";
 
 const SORT_OPTIONS: { value: SortOption; label: string; icon: typeof ArrowUpDown }[] = [
@@ -295,7 +301,7 @@ export default function MobileApp() {
 
   const goBack = useCallback(() => {
     if (screen === "booking-flow" && bookingStep > 0) { setBookingStep((s) => s - 1); return; }
-    if (screen === "notifications-settings" || screen === "twilio-setup") { setScreen("tabs"); return; }
+    if (screen === "notifications-settings" || screen === "twilio-setup" || screen === "profile-completion" || screen === "admin-panel") { setScreen("tabs"); return; }
     setScreen("tabs");
     setSelectedPropertyId(null);
     setSelectedPropertyData(null);
@@ -432,6 +438,9 @@ export default function MobileApp() {
                       userName={userDisplayName} userEmail={userEmail} userInitials={userInitials}
                       onOpenNotifications={() => setScreen("notifications-settings")}
                       onOpenTwilioSetup={() => setScreen("twilio-setup")}
+                      onOpenProfile={() => setScreen("profile-completion")}
+                      onOpenAdmin={() => setScreen("admin-panel")}
+                      userBookingsCount={userBookings.length}
                     />
                   )}
                 </div>
@@ -497,6 +506,18 @@ export default function MobileApp() {
             {screen === "twilio-setup" && (
               <motion.div key="twilio" initial={{ x: -100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -100, opacity: 0 }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="h-full">
                 <TwilioSetupGuide onBack={goBack} />
+              </motion.div>
+            )}
+
+            {screen === "profile-completion" && (
+              <motion.div key="profile-completion" initial={{ x: -100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -100, opacity: 0 }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="h-full">
+                <ProfileCompletionScreen onBack={goBack} userId={user?.id} />
+              </motion.div>
+            )}
+
+            {screen === "admin-panel" && (
+              <motion.div key="admin-panel" initial={{ x: -100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -100, opacity: 0 }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="h-full">
+                <AdminPanel onBack={goBack} />
               </motion.div>
             )}
 
@@ -1697,14 +1718,20 @@ function NotificationsSettings({ onBack }: { onBack: () => void }) {
   );
 }
 
-// ─── Profile Tab ───
+// ─── Profile Tab (Gathern-Style) ───
 function ProfileTab({
-  isLoggedIn, onLogin, onLogout, userName, userEmail, userInitials, onOpenNotifications, onOpenTwilioSetup,
+  isLoggedIn, onLogin, onLogout, userName, userEmail, userInitials,
+  onOpenNotifications, onOpenTwilioSetup, onOpenProfile, onOpenAdmin,
+  userBookingsCount,
 }: {
   isLoggedIn: boolean; onLogin: () => void; onLogout: () => void;
   userName: string; userEmail: string; userInitials: string;
   onOpenNotifications: () => void; onOpenTwilioSetup: () => void;
+  onOpenProfile: () => void; onOpenAdmin: () => void;
+  userBookingsCount: number;
 }) {
+  const [showHostSheet, setShowHostSheet] = useState(false);
+
   if (!isLoggedIn) {
     return (
       <div className="pt-12 flex flex-col items-center justify-center h-full px-8">
@@ -1716,33 +1743,491 @@ function ProfileTab({
     );
   }
 
+  const menuItems: { label: string; icon: React.ReactNode; action?: () => void; value?: string; divider?: boolean }[] = [
+    { label: "الملف الشخصي", icon: <User className="w-5 h-5" />, action: onOpenProfile },
+    { label: "سجل المحفظة", icon: <Wallet className="w-5 h-5" />, action: () => toast.info("قريباً") },
+    { label: "قيّمنا", icon: <ThumbsUp className="w-5 h-5" />, action: () => toast.info("قريباً") },
+    { label: "استضف معنا (سجّل عقارك)", icon: <Building2 className="w-5 h-5" />, action: () => setShowHostSheet(true) },
+    { label: "طرق الدفع", icon: <CreditCard className="w-5 h-5" />, action: () => toast.info("قريباً") },
+    { label: "تواصل مع تجربة الضيف", icon: <Mail className="w-5 h-5" />, action: () => toast.info("قريباً") },
+    { label: "دعوة أصدقاء", icon: <Share2 className="w-5 h-5" />, action: () => toast.info("قريباً") },
+    { label: "الأسئلة الشائعة", icon: <HelpCircle className="w-5 h-5" />, action: () => toast.info("قريباً") },
+    { label: "شروط الاستخدام", icon: <FileText className="w-5 h-5" />, action: () => toast.info("قريباً") },
+    { label: "سياسة الخصوصية", icon: <Shield className="w-5 h-5" />, action: () => toast.info("قريباً") },
+    { label: "تغيير اللغة", icon: <Globe className="w-5 h-5" />, action: () => toast.info("قريباً") },
+    { label: "الإشعارات", icon: <Bell className="w-5 h-5" />, action: onOpenNotifications },
+    { label: "إعداد SMS (Twilio)", icon: <Phone className="w-5 h-5" />, action: onOpenTwilioSetup },
+    { label: "لوحة التحكم", icon: <ShieldCheck className="w-5 h-5" />, action: onOpenAdmin },
+    { label: "تسجيل الخروج", icon: <Clock className="w-5 h-5" />, action: onLogout },
+  ];
+
   return (
-    <div className="pt-12 px-4">
-      <div className="pt-4 pb-6">
+    <div className="pt-12 h-full overflow-y-auto pb-24">
+      {/* Header with avatar */}
+      <div className="px-4 pt-4 pb-3">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white" style={{ background: "linear-gradient(135deg, #2563EB, #7C3AED)" }}>{userInitials}</div>
-          <div><h2 className="text-lg font-bold">{userName}</h2><p className="text-sm text-muted-foreground">{userEmail}</p></div>
+          <div className="w-14 h-14 rounded-full flex items-center justify-center overflow-hidden" style={{ background: "linear-gradient(135deg, #6B21A8, #7C3AED)" }}>
+              <img src={MK_LOGO} alt="MK" className="w-10 h-10 object-contain" />
+            </div>
+          <h2 className="text-lg font-bold">{userName}</h2>
         </div>
       </div>
-      <div className="space-y-2">
-        {[
-          { label: "الإعدادات", icon: "⚙️", action: undefined },
-          { label: "اللغة", icon: "🌐", value: "العربية", action: undefined },
-          { label: "المظهر", icon: "🌙", value: "داكن", action: undefined },
-          { label: "الإشعارات", icon: "🔔", action: onOpenNotifications },
-          { label: "إعداد SMS (Twilio)", icon: "📨", action: onOpenTwilioSetup },
-          { label: "المساعدة", icon: "❓", action: undefined },
-        ].map((item) => (
-          <button key={item.label} onClick={item.action} className="w-full flex items-center justify-between glass rounded-xl p-4 transition-all hover:bg-card/80">
-            <div className="flex items-center gap-3"><span className="text-lg">{item.icon}</span><span className="text-sm font-medium">{item.label}</span></div>
-            <div className="flex items-center gap-2">
-              {item.value && <span className="text-xs text-muted-foreground">{item.value}</span>}
-              <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+
+      {/* Stats Section */}
+      <div className="px-4 py-3 space-y-3">
+        <div className="flex items-center justify-between py-2 border-b border-border/30">
+          <span className="text-sm text-muted-foreground">الحجوزات</span>
+          <span className="text-sm font-semibold">{userBookingsCount}</span>
+        </div>
+        <div className="flex items-center justify-between py-2 border-b border-border/30">
+          <span className="text-sm text-muted-foreground">رصيد المحفظة</span>
+          <span className="text-sm font-semibold">0 ر.س</span>
+        </div>
+        <div className="flex items-center justify-between py-2 border-b border-border/30">
+          <span className="text-sm text-muted-foreground">التقييمات (من المضيفين)</span>
+          <span className="text-sm font-semibold">10 / 0.0 (0)</span>
+        </div>
+        <div className="flex items-center justify-between py-2 border-b border-border/30">
+          <span className="text-sm text-muted-foreground">المضيفون الذين حظروك</span>
+          <span className="text-sm font-semibold">0</span>
+        </div>
+      </div>
+
+      {/* Menu Items */}
+      <div className="px-4 mt-2">
+        {menuItems.map((item) => (
+          <button
+            key={item.label}
+            onClick={item.action}
+            className={`w-full flex items-center justify-between py-4 border-b border-border/20 transition-all active:bg-card/50 ${
+              item.label === "تسجيل الخروج" ? "text-muted-foreground" : ""
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-muted-foreground">{item.icon}</span>
+              <span className="text-sm">{item.label}</span>
             </div>
+            <ChevronLeft className="w-4 h-4 text-muted-foreground" />
           </button>
         ))}
       </div>
-      <button onClick={onLogout} className="w-full mt-6 py-3 rounded-xl text-sm font-bold text-destructive glass transition-all hover:bg-destructive/10">تسجيل الخروج</button>
+
+      {/* Footer - Commercial Info */}
+      <div className="px-4 mt-6 mb-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">السجل التجاري</span>
+          <span className="text-xs font-medium">7007384501</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">رخصة وزارة السياحة</span>
+          <span className="text-xs font-medium">73102999</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">تصنيف الرخصة</span>
+          <span className="text-xs font-medium">حجز وحدات سكنية</span>
+        </div>
+        <p className="text-center text-xs text-muted-foreground/60 mt-4">v 9.13.1 (838)</p>
+      </div>
+
+      {/* Host With Us Bottom Sheet */}
+      <AnimatePresence>
+        {showHostSheet && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 z-50"
+              onClick={() => setShowHostSheet(false)}
+            />
+            <motion.div
+              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-background rounded-t-2xl p-6"
+            >
+              <div className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-4" />
+              <p className="text-center text-sm leading-relaxed mb-6">
+                أضف عقارك مع المفتاح الشهري، واستضف بانتظام وزد دخلك.
+                سيتم توجيهك إلى تطبيق المفتاح الشهري للأعمال لتسجيل عقارك.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { window.open("https://monthlykey.com", "_blank"); setShowHostSheet(false); }}
+                  className="flex-1 py-3 rounded-xl font-bold text-white text-sm" style={{ background: "#6B21A8" }}
+                >
+                  موافق
+                </button>
+                <button
+                  onClick={() => setShowHostSheet(false)}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm border-2" style={{ borderColor: "#6B21A8", color: "#6B21A8" }}
+                >
+                  إلغاء
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Profile Completion Screen (Identity Verification) ───
+const NATIONALITIES = [
+  "السعودية", "الإمارات", "الكويت", "البحرين", "قطر", "عُمان",
+  "مصر", "الأردن", "لبنان", "سوريا", "العراق", "فلسطين",
+  "اليمن", "ليبيا", "تونس", "الجزائر", "المغرب", "السودان",
+  "موريتانيا", "الصومال", "جيبوتي", "جزر القمر",
+  "أفغانستان", "إندونيسيا", "باكستان", "بنغلاديش", "الهند",
+  "تركيا", "إيران", "ماليزيا", "الفلبين", "نيجيريا",
+  "إثيوبيا", "كينيا", "جنوب أفريقيا",
+  "المملكة المتحدة", "فرنسا", "ألمانيا", "الولايات المتحدة", "كندا",
+  "أستراليا", "اليابان", "الصين", "كوريا الجنوبية",
+];
+
+const HIJRI_MONTHS = [
+  "محرم", "صفر", "ربيع الأول", "ربيع الثاني", "جمادى الأولى", "جمادى الثانية",
+  "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة",
+];
+
+type IdentityType = "saudi" | "resident" | "visitor" | null;
+
+function ProfileCompletionScreen({ onBack, userId }: { onBack: () => void; userId?: string }) {
+  const [identityType, setIdentityType] = useState<IdentityType>(null);
+  const [nationalId, setNationalId] = useState("");
+  const [residentNo, setResidentNo] = useState("");
+  const [passportNo, setPassportNo] = useState("");
+  const [nationality, setNationality] = useState("");
+  const [dobGregorian, setDobGregorian] = useState("");
+  const [dobHijriMonth, setDobHijriMonth] = useState(9); // Ramadan
+  const [dobHijriDay, setDobHijriDay] = useState(18);
+  const [dobHijriYear, setDobHijriYear] = useState(1447);
+  const [calendarMode, setCalendarMode] = useState<"hijri" | "gregorian">("hijri");
+  const [showNationalitySheet, setShowNationalitySheet] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const isFormValid = useMemo(() => {
+    if (!identityType) return false;
+    if (identityType === "saudi") return nationalId.length >= 9 && (calendarMode === "gregorian" ? dobGregorian.length > 0 : true);
+    if (identityType === "resident") return residentNo.length >= 9 && (calendarMode === "gregorian" ? dobGregorian.length > 0 : true);
+    if (identityType === "visitor") return passportNo.length >= 4 && nationality.length > 0;
+    return false;
+  }, [identityType, nationalId, residentNo, passportNo, nationality, dobGregorian, calendarMode]);
+
+  const handleVerify = async () => {
+    if (!isFormValid) return;
+    setSaving(true);
+    try {
+      const profileData: Record<string, unknown> = { identityType };
+      if (identityType === "saudi") {
+        profileData.nationalId = nationalId;
+        profileData.dateOfBirth = calendarMode === "gregorian" ? dobGregorian : `${dobHijriDay}/${dobHijriMonth}/${dobHijriYear}`;
+        profileData.calendarMode = calendarMode;
+      } else if (identityType === "resident") {
+        profileData.residentNo = residentNo;
+        profileData.dateOfBirth = calendarMode === "gregorian" ? dobGregorian : `${dobHijriDay}/${dobHijriMonth}/${dobHijriYear}`;
+        profileData.calendarMode = calendarMode;
+      } else {
+        profileData.passportNo = passportNo;
+        profileData.nationality = nationality;
+      }
+
+      // Save to localStorage for persistence
+      localStorage.setItem("mk_profile_data", JSON.stringify({ ...profileData, userId, updatedAt: Date.now() }));
+
+      // Also attempt to save via API
+      try {
+        const res = await fetch("/api/trpc/profile.save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(profileData),
+        });
+        if (!res.ok) throw new Error("API save failed");
+      } catch {
+        // API save is best-effort, localStorage is primary
+      }
+
+      toast.success("تم حفظ الملف الشخصي بنجاح");
+      onBack();
+    } catch {
+      toast.error("حدث خطأ في حفظ البيانات");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Load saved profile data on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("mk_profile_data");
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.identityType) setIdentityType(data.identityType);
+        if (data.nationalId) setNationalId(data.nationalId);
+        if (data.residentNo) setResidentNo(data.residentNo);
+        if (data.passportNo) setPassportNo(data.passportNo);
+        if (data.nationality) setNationality(data.nationality);
+        if (data.calendarMode) setCalendarMode(data.calendarMode);
+        if (data.dateOfBirth && data.calendarMode === "gregorian") setDobGregorian(data.dateOfBirth);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  return (
+    <div className="h-full flex flex-col bg-background">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 pt-14 pb-3">
+        <button onClick={onBack} className="p-2 -ml-2">
+          <ChevronRight className="w-5 h-5" />
+        </button>
+        <h1 className="text-base font-bold" style={{ color: "#6B21A8" }}>الملف الشخصي</h1>
+        <button onClick={() => toast.info("حذف الحساب — قريباً")} className="p-2 -mr-2">
+          <Trash2 className="w-5 h-5 text-muted-foreground" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 pb-32">
+        {/* Instructions */}
+        <p className="text-sm font-semibold mb-4">أكمل المعلومات التالية لإتمام الحجز</p>
+
+        {/* Identity Type Selection */}
+        <div className="space-y-3 mb-6">
+          {([
+            { type: "saudi" as IdentityType, label: "سعودي" },
+            { type: "resident" as IdentityType, label: "مقيم (غير سعودي)" },
+            { type: "visitor" as IdentityType, label: "زائر / سائح" },
+          ]).map((opt) => (
+            <button
+              key={opt.type}
+              onClick={() => setIdentityType(opt.type)}
+              className="flex items-center gap-3 w-full text-right"
+            >
+              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                identityType === opt.type ? "border-[#6B21A8] bg-[#6B21A8]" : "border-muted-foreground/40"
+              }`}>
+                {identityType === opt.type && <Check className="w-4 h-4 text-white" />}
+              </div>
+              <span className="text-sm">{opt.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Saudi National Fields */}
+        {identityType === "saudi" && (
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block" style={{ color: "#6B21A8" }}>رقم الهوية الوطنية</label>
+              <input
+                type="tel" inputMode="numeric" value={nationalId}
+                onChange={(e) => setNationalId(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                placeholder="106452248"
+                className="w-full px-4 py-3 rounded-lg border border-border/40 bg-transparent text-sm focus:outline-none focus:border-[#6B21A8]"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block" style={{ color: "#6B21A8" }}>تاريخ الميلاد</label>
+              <button
+                onClick={() => setShowDatePicker(true)}
+                className="w-full px-4 py-3 rounded-lg border border-border/40 bg-transparent text-sm text-right"
+              >
+                {calendarMode === "gregorian" && dobGregorian ? dobGregorian : calendarMode === "hijri" ? `${dobHijriDay} ${HIJRI_MONTHS[dobHijriMonth - 1]} ${dobHijriYear}` : "تاريخ الميلاد"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Resident Fields */}
+        {identityType === "resident" && (
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block" style={{ color: "#6B21A8" }}>رقم الإقامة</label>
+              <input
+                type="tel" inputMode="numeric" value={residentNo}
+                onChange={(e) => setResidentNo(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                placeholder="106452248"
+                className="w-full px-4 py-3 rounded-lg border border-border/40 bg-transparent text-sm focus:outline-none focus:border-[#6B21A8]"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block" style={{ color: "#6B21A8" }}>تاريخ الميلاد</label>
+              <button
+                onClick={() => setShowDatePicker(true)}
+                className="w-full px-4 py-3 rounded-lg border border-border/40 bg-transparent text-sm text-right"
+              >
+                {calendarMode === "gregorian" && dobGregorian ? dobGregorian : calendarMode === "hijri" ? `${dobHijriDay} ${HIJRI_MONTHS[dobHijriMonth - 1]} ${dobHijriYear}` : "تاريخ الميلاد"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Visitor Fields */}
+        {identityType === "visitor" && (
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block" style={{ color: "#6B21A8" }}>رقم جواز السفر</label>
+              <input
+                type="text" value={passportNo}
+                onChange={(e) => setPassportNo(e.target.value.slice(0, 20))}
+                placeholder="A542817"
+                className="w-full px-4 py-3 rounded-lg border border-border/40 bg-transparent text-sm focus:outline-none focus:border-[#6B21A8]"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block" style={{ color: "#6B21A8" }}>الجنسية</label>
+              <button
+                onClick={() => setShowNationalitySheet(true)}
+                className="w-full px-4 py-3 rounded-lg border border-border/40 bg-transparent text-sm text-right"
+              >
+                {nationality || "الجنسية"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Verify Button */}
+      <div className="absolute bottom-0 left-0 right-0 p-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 8px) + 16px)" }}>
+        <button
+          onClick={handleVerify}
+          disabled={!isFormValid || saving}
+          className={`w-full py-4 rounded-xl font-bold text-sm transition-all ${
+            isFormValid ? "text-white" : "text-muted-foreground"
+          }`}
+          style={{ background: isFormValid ? "#6B21A8" : "#9CA3AF" }}
+        >
+          {saving ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "تحقق"}
+        </button>
+      </div>
+
+      {/* Nationality Bottom Sheet */}
+      <AnimatePresence>
+        {showNationalitySheet && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 z-50" onClick={() => setShowNationalitySheet(false)} />
+            <motion.div
+              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-background rounded-t-2xl max-h-[60vh] flex flex-col"
+            >
+              <div className="p-4 flex items-center justify-between border-b border-border/30">
+                <h3 className="text-base font-bold" style={{ color: "#6B21A8" }}>اختر الجنسية</h3>
+                <button onClick={() => setShowNationalitySheet(false)}><X className="w-5 h-5" /></button>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {NATIONALITIES.map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => { setNationality(n); setShowNationalitySheet(false); }}
+                    className={`w-full text-right px-4 py-3 border-b border-border/10 text-sm transition-all ${
+                      nationality === n ? "bg-[#6B21A8]/10 font-bold" : ""
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Date Picker Bottom Sheet */}
+      <AnimatePresence>
+        {showDatePicker && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 z-50" onClick={() => setShowDatePicker(false)} />
+            <motion.div
+              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-background rounded-t-2xl p-4"
+            >
+              {/* Calendar Mode Toggle */}
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs text-muted-foreground">
+                  {calendarMode === "hijri" ? `${dobHijriDay} ${HIJRI_MONTHS[dobHijriMonth - 1]} ${dobHijriYear}` : dobGregorian || "اختر التاريخ"}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {calendarMode === "gregorian" ? dobGregorian || "" : ""}
+                </span>
+              </div>
+              <div className="flex rounded-lg overflow-hidden border border-border/40 mb-4">
+                <button
+                  onClick={() => setCalendarMode("hijri")}
+                  className={`flex-1 py-2 text-sm font-medium transition-all ${
+                    calendarMode === "hijri" ? "bg-white text-black" : "bg-transparent text-muted-foreground"
+                  }`}
+                >هجري</button>
+                <button
+                  onClick={() => setCalendarMode("gregorian")}
+                  className={`flex-1 py-2 text-sm font-medium transition-all ${
+                    calendarMode === "gregorian" ? "bg-white text-black" : "bg-transparent text-muted-foreground"
+                  }`}
+                >ميلادي</button>
+              </div>
+
+              {calendarMode === "hijri" ? (
+                <div className="flex gap-2 mb-4">
+                  {/* Hijri Month Picker */}
+                  <div className="flex-1">
+                    <label className="text-xs text-muted-foreground mb-1 block">الشهر</label>
+                    <select
+                      value={dobHijriMonth}
+                      onChange={(e) => setDobHijriMonth(Number(e.target.value))}
+                      className="w-full px-2 py-2 rounded-lg border border-border/40 bg-transparent text-sm"
+                    >
+                      {HIJRI_MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+                    </select>
+                  </div>
+                  {/* Hijri Day Picker */}
+                  <div className="w-20">
+                    <label className="text-xs text-muted-foreground mb-1 block">اليوم</label>
+                    <select
+                      value={dobHijriDay}
+                      onChange={(e) => setDobHijriDay(Number(e.target.value))}
+                      className="w-full px-2 py-2 rounded-lg border border-border/40 bg-transparent text-sm"
+                    >
+                      {Array.from({ length: 30 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+                    </select>
+                  </div>
+                  {/* Hijri Year Picker */}
+                  <div className="w-24">
+                    <label className="text-xs text-muted-foreground mb-1 block">السنة</label>
+                    <select
+                      value={dobHijriYear}
+                      onChange={(e) => setDobHijriYear(Number(e.target.value))}
+                      className="w-full px-2 py-2 rounded-lg border border-border/40 bg-transparent text-sm"
+                    >
+                      {Array.from({ length: 80 }, (_, i) => {
+                        const year = 1400 + i;
+                        return <option key={year} value={year}>{year} هـ</option>;
+                      })}
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-4">
+                  <input
+                    type="date"
+                    value={dobGregorian}
+                    onChange={(e) => setDobGregorian(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border border-border/40 bg-transparent text-sm"
+                  />
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDatePicker(false)}
+                  className="flex-1 py-3 rounded-xl font-bold text-white text-sm" style={{ background: "#6B21A8" }}
+                >موافق</button>
+                <button
+                  onClick={() => setShowDatePicker(false)}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm border-2" style={{ borderColor: "#6B21A8", color: "#6B21A8" }}
+                >إلغاء</button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -1883,6 +2368,306 @@ function TwilioSetupGuide({ onBack }: { onBack: () => void }) {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Admin Panel (Control Panel for Website & App) ───
+function AdminPanel({ onBack }: { onBack: () => void }) {
+  const [activeSection, setActiveSection] = useState<"dashboard" | "properties" | "users" | "bookings" | "settings">("dashboard");
+  const [stats, setStats] = useState({ totalProperties: 0, totalUsers: 0, totalBookings: 0, revenue: 0, loading: true });
+  const [properties, setProperties] = useState<ApiProperty[]>([]);
+  const [propertiesLoading, setPropertiesLoading] = useState(false);
+
+  // Fetch dashboard stats from the real API
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const [featured, searchResult] = await Promise.all([
+          getFeaturedProperties(),
+          searchProperties({ limit: 1 }),
+        ]);
+        setStats({
+          totalProperties: searchResult.total || featured.length,
+          totalUsers: 0, // Will be populated when user management API is available
+          totalBookings: 0,
+          revenue: 0,
+          loading: false,
+        });
+      } catch {
+        setStats(prev => ({ ...prev, loading: false }));
+      }
+    };
+    loadStats();
+  }, []);
+
+  // Load properties for management
+  useEffect(() => {
+    if (activeSection === "properties") {
+      setPropertiesLoading(true);
+      searchProperties({ limit: 20 })
+        .then(res => setProperties(res.items))
+        .catch(() => toast.error("فشل تحميل العقارات"))
+        .finally(() => setPropertiesLoading(false));
+    }
+  }, [activeSection]);
+
+  const sections: { id: typeof activeSection; label: string; icon: React.ReactNode }[] = [
+    { id: "dashboard", label: "لوحة المعلومات", icon: <BarChart3 className="w-5 h-5" /> },
+    { id: "properties", label: "إدارة العقارات", icon: <Building2 className="w-5 h-5" /> },
+    { id: "users", label: "إدارة المستخدمين", icon: <Users className="w-5 h-5" /> },
+    { id: "bookings", label: "إدارة الحجوزات", icon: <CalendarDays className="w-5 h-5" /> },
+    { id: "settings", label: "إعدادات النظام", icon: <Settings className="w-5 h-5" /> },
+  ];
+
+  return (
+    <div className="h-full flex flex-col bg-background">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 pt-14 pb-3 border-b border-border/30">
+        <button onClick={onBack} className="p-2 -ml-2">
+          <ChevronRight className="w-5 h-5" />
+        </button>
+        <h1 className="text-base font-bold" style={{ color: "#6B21A8" }}>لوحة التحكم</h1>
+        <div className="w-9" />
+      </div>
+
+      {/* Section Tabs */}
+      <div className="flex overflow-x-auto gap-1 px-3 py-2 border-b border-border/20 no-scrollbar">
+        {sections.map(sec => (
+          <button
+            key={sec.id}
+            onClick={() => setActiveSection(sec.id)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+              activeSection === sec.id
+                ? "text-white"
+                : "text-muted-foreground bg-card/50"
+            }`}
+            style={activeSection === sec.id ? { background: "linear-gradient(135deg, #6B21A8, #7C3AED)" } : {}}
+          >
+            {sec.icon}
+            {sec.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+        {/* Dashboard Section */}
+        {activeSection === "dashboard" && (
+          <div className="space-y-4">
+            <h2 className="text-sm font-bold mb-3">نظرة عامة</h2>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: "إجمالي العقارات", value: stats.loading ? "..." : stats.totalProperties.toString(), icon: <Building2 className="w-5 h-5" />, color: "#6B21A8" },
+                { label: "المستخدمون", value: stats.loading ? "..." : stats.totalUsers.toString(), icon: <Users className="w-5 h-5" />, color: "#2563EB" },
+                { label: "الحجوزات", value: stats.loading ? "..." : stats.totalBookings.toString(), icon: <CalendarDays className="w-5 h-5" />, color: "#059669" },
+                { label: "الإيرادات (ر.س)", value: stats.loading ? "..." : stats.revenue.toLocaleString(), icon: <Wallet className="w-5 h-5" />, color: "#D97706" },
+              ].map(stat => (
+                <div key={stat.label} className="rounded-xl p-4 border border-border/30 bg-card/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${stat.color}20`, color: stat.color }}>
+                      {stat.icon}
+                    </div>
+                  </div>
+                  <p className="text-xl font-bold">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Quick Actions */}
+            <h2 className="text-sm font-bold mt-6 mb-3">إجراءات سريعة</h2>
+            <div className="space-y-2">
+              {[
+                { label: "إضافة عقار جديد", desc: "أضف عقاراً جديداً للمنصة", icon: <Building2 className="w-5 h-5" />, action: () => window.open("https://monthlykey.com/admin/properties/new", "_blank") },
+                { label: "مراجعة الحجوزات المعلقة", desc: "عرض الحجوزات التي تنتظر الموافقة", icon: <CalendarDays className="w-5 h-5" />, action: () => window.open("https://monthlykey.com/admin/bookings", "_blank") },
+                { label: "إدارة المستخدمين", desc: "عرض وإدارة حسابات المستخدمين", icon: <Users className="w-5 h-5" />, action: () => window.open("https://monthlykey.com/admin/users", "_blank") },
+                { label: "فتح لوحة تحكم الموقع", desc: "الانتقال إلى لوحة تحكم monthlykey.com", icon: <Globe className="w-5 h-5" />, action: () => window.open("https://monthlykey.com/admin", "_blank") },
+              ].map(action => (
+                <button
+                  key={action.label}
+                  onClick={action.action}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border/30 bg-card/50 transition-all active:scale-[0.98]"
+                >
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "#6B21A820", color: "#6B21A8" }}>
+                    {action.icon}
+                  </div>
+                  <div className="flex-1 text-right">
+                    <p className="text-sm font-medium">{action.label}</p>
+                    <p className="text-xs text-muted-foreground">{action.desc}</p>
+                  </div>
+                  <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Properties Management Section */}
+        {activeSection === "properties" && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold">العقارات ({properties.length})</h2>
+              <button
+                onClick={() => window.open("https://monthlykey.com/admin/properties/new", "_blank")}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-white" style={{ background: "#6B21A8" }}
+              >
+                + إضافة عقار
+              </button>
+            </div>
+            {propertiesLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : properties.length === 0 ? (
+              <div className="text-center py-12">
+                <Building2 className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">لا توجد عقارات</p>
+              </div>
+            ) : (
+              properties.map(prop => (
+                <div key={prop.id} className="rounded-xl border border-border/30 bg-card/50 p-3">
+                  <div className="flex gap-3">
+                    <img
+                      src={prop.photos?.[0] || PLACEHOLDER_IMG}
+                      alt={prop.titleAr}
+                      className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{prop.titleAr}</p>
+                      <p className="text-xs text-muted-foreground">{prop.cityAr} - {prop.districtAr}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs font-bold" style={{ color: "#6B21A8" }}>{formatPrice(Number(prop.monthlyRent))} ر.س/شهر</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                          prop.status === "active" ? "bg-green-500/10 text-green-600" :
+                          prop.status === "pending" ? "bg-yellow-500/10 text-yellow-600" :
+                          "bg-red-500/10 text-red-600"
+                        }`}>
+                          {prop.status === "active" ? "نشط" : prop.status === "pending" ? "معلق" : prop.status}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => window.open(`https://monthlykey.com/admin/properties/${prop.id}`, "_blank")}
+                      className="p-2 self-center"
+                    >
+                      <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Users Management Section */}
+        {activeSection === "users" && (
+          <div className="space-y-4">
+            <h2 className="text-sm font-bold mb-3">إدارة المستخدمين</h2>
+            <div className="space-y-2">
+              {[
+                { label: "عرض جميع المستخدمين", desc: "قائمة بجميع المستخدمين المسجلين", icon: <Users className="w-5 h-5" />, url: "https://monthlykey.com/admin/users" },
+                { label: "المضيفون", desc: "إدارة حسابات الملاك والمضيفين", icon: <UserCog className="w-5 h-5" />, url: "https://monthlykey.com/admin/landlords" },
+                { label: "التحقق من الهوية", desc: "مراجعة طلبات التحقق المعلقة", icon: <ShieldCheck className="w-5 h-5" />, url: "https://monthlykey.com/admin/verification" },
+                { label: "المستخدمون المحظورون", desc: "عرض وإدارة الحسابات المحظورة", icon: <Shield className="w-5 h-5" />, url: "https://monthlykey.com/admin/banned" },
+              ].map(item => (
+                <button
+                  key={item.label}
+                  onClick={() => window.open(item.url, "_blank")}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border/30 bg-card/50 transition-all active:scale-[0.98]"
+                >
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "#2563EB20", color: "#2563EB" }}>
+                    {item.icon}
+                  </div>
+                  <div className="flex-1 text-right">
+                    <p className="text-sm font-medium">{item.label}</p>
+                    <p className="text-xs text-muted-foreground">{item.desc}</p>
+                  </div>
+                  <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Bookings Management Section */}
+        {activeSection === "bookings" && (
+          <div className="space-y-4">
+            <h2 className="text-sm font-bold mb-3">إدارة الحجوزات</h2>
+            <div className="space-y-2">
+              {[
+                { label: "الحجوزات المعلقة", desc: "حجوزات تنتظر الموافقة أو التأكيد", icon: <Clock className="w-5 h-5" />, color: "#D97706", url: "https://monthlykey.com/admin/bookings?status=pending" },
+                { label: "الحجوزات المؤكدة", desc: "حجوزات تم تأكيدها ونشطة حالياً", icon: <CheckCircle2 className="w-5 h-5" />, color: "#059669", url: "https://monthlykey.com/admin/bookings?status=confirmed" },
+                { label: "الحجوزات الملغاة", desc: "حجوزات تم إلغاؤها", icon: <XCircle className="w-5 h-5" />, color: "#DC2626", url: "https://monthlykey.com/admin/bookings?status=cancelled" },
+                { label: "تقارير الحجوزات", desc: "إحصائيات وتقارير مفصلة", icon: <BarChart3 className="w-5 h-5" />, color: "#6B21A8", url: "https://monthlykey.com/admin/reports" },
+              ].map(item => (
+                <button
+                  key={item.label}
+                  onClick={() => window.open(item.url, "_blank")}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border/30 bg-card/50 transition-all active:scale-[0.98]"
+                >
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${item.color}20`, color: item.color }}>
+                    {item.icon}
+                  </div>
+                  <div className="flex-1 text-right">
+                    <p className="text-sm font-medium">{item.label}</p>
+                    <p className="text-xs text-muted-foreground">{item.desc}</p>
+                  </div>
+                  <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* System Settings Section */}
+        {activeSection === "settings" && (
+          <div className="space-y-4">
+            <h2 className="text-sm font-bold mb-3">إعدادات النظام</h2>
+            <div className="space-y-2">
+              {[
+                { label: "إعدادات الحاسبة", desc: "تعديل نسب التأمين والرسوم والضريبة", icon: <Settings className="w-5 h-5" />, url: "https://monthlykey.com/admin/settings/calculator" },
+                { label: "إدارة المدن", desc: "إضافة أو تعديل المدن المتاحة", icon: <MapPin className="w-5 h-5" />, url: "https://monthlykey.com/admin/settings/cities" },
+                { label: "إعدادات الإشعارات", desc: "تكوين إشعارات النظام والمستخدمين", icon: <Bell className="w-5 h-5" />, url: "https://monthlykey.com/admin/settings/notifications" },
+                { label: "إعدادات الدفع", desc: "إدارة بوابات الدفع والعملات", icon: <CreditCard className="w-5 h-5" />, url: "https://monthlykey.com/admin/settings/payment" },
+                { label: "Supabase Dashboard", desc: "إدارة قاعدة البيانات والمصادقة", icon: <Globe className="w-5 h-5" />, url: "https://supabase.com/dashboard" },
+              ].map(item => (
+                <button
+                  key={item.label}
+                  onClick={() => window.open(item.url, "_blank")}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border/30 bg-card/50 transition-all active:scale-[0.98]"
+                >
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "#6B21A820", color: "#6B21A8" }}>
+                    {item.icon}
+                  </div>
+                  <div className="flex-1 text-right">
+                    <p className="text-sm font-medium">{item.label}</p>
+                    <p className="text-xs text-muted-foreground">{item.desc}</p>
+                  </div>
+                  <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+                </button>
+              ))}
+            </div>
+
+            {/* Admin Access Info */}
+            <div className="mt-6 p-4 rounded-xl border border-border/30 bg-card/30">
+              <div className="flex items-center gap-2 mb-2">
+                <Info className="w-4 h-4" style={{ color: "#6B21A8" }} />
+                <p className="text-sm font-bold">الوصول كمسؤول</p>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                للوصول كمسؤول رئيسي (Root Admin) إلى التطبيق والموقع، قم بتسجيل الدخول عبر monthlykey.com/admin باستخدام بيانات المسؤول.
+                يمكنك إدارة جميع العقارات والمستخدمين والحجوزات من لوحة التحكم هذه أو من لوحة تحكم الموقع مباشرة.
+              </p>
+              <button
+                onClick={() => window.open("https://monthlykey.com/admin", "_blank")}
+                className="mt-3 w-full py-2.5 rounded-lg text-xs font-bold text-white" style={{ background: "linear-gradient(135deg, #6B21A8, #7C3AED)" }}
+              >
+                فتح لوحة تحكم الموقع
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

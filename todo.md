@@ -86,3 +86,54 @@
 - [x] Deduplicate entries (most recent view wins, updates data + timestamp)
 - [x] Clear all button with trash icon
 - [x] Write vitest tests for recently viewed logic (31 tests passing)
+
+## Feature: Gathern-Style ProfileTab Rebuild
+- [x] User header with MK logo avatar and name
+- [x] Stats section (Reservations count, Wallet balance, Ratings from hosts, Hosts who banned you)
+- [x] Profile menu item → opens Profile completion screen
+- [x] Wallet log menu item
+- [x] Rate us menu item
+- [x] Host with us (Register your property) menu item with bottom sheet redirect
+- [x] Payment methods menu item
+- [x] Contact Guest Experience menu item
+- [x] Invite friends menu item
+- [x] FAQ menu item
+- [x] Terms of use menu item
+- [x] Privacy policy menu item
+- [x] Change language menu item
+- [x] Log out menu item
+- [x] Commercial Registration footer (7007384501)
+- [x] MOT License footer (73102999)
+- [x] Category License footer (حجز وحدات سكنية)
+- [x] Version number footer (v 9.13.1)
+
+## Feature: Profile Completion Screen (Identity Verification)
+- [x] Identity type selector (Saudi National / Resident Non-Saudi / Visitor Tourist)
+- [x] Saudi National: National ID Number + Date of birth (Hijri/Gregorian)
+- [x] Resident: Resident No. (Iqama) + Date of birth
+- [x] Visitor/Tourist: Passport Number + Nationality selector (44 nationalities)
+- [x] Date of birth picker with Hijri/Gregorian toggle (12 Hijri months)
+- [x] Nationality bottom sheet selector with search
+- [x] Verify button to submit profile data (localStorage persistence)
+- [x] Connect to monthlykey.com backend API (via proxy)
+- [x] Delete account button (trash icon)
+
+## Feature: Admin Panel
+- [x] Admin panel screen accessible from ProfileTab (لوحة التحكم)
+- [x] Admin dashboard with 4 key metrics (properties, users, bookings, revenue)
+- [x] User management section (4 items: all users, landlords, verification, banned)
+- [x] Property management section (real properties from API, status badges)
+- [x] Booking management section (pending, confirmed, cancelled filters)
+- [x] System settings section (calculator, cities, notifications, payment, Supabase)
+- [x] Quick actions (add property, review bookings, manage users, open website admin)
+- [x] Admin access info with link to monthlykey.com/admin
+
+## Feature: Write Tests
+- [x] Write vitest tests for ProfileTab rebuild (45 tests)
+- [x] Write vitest tests for Profile completion screen
+- [x] Write vitest tests for Admin panel
+- [x] All 214 tests passing across 6 test files
+
+## Feature: Logo Blending in Profile Header
+- [x] Upload MK logo SVG to CDN (CloudFront)
+- [x] Blend logo into ProfileTab header (transparent background, rounded avatar style)
