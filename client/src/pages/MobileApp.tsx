@@ -44,6 +44,12 @@ import {
 } from "@/lib/reviews";
 import { getRecentlyViewed, addRecentlyViewed, clearRecentlyViewed, type RecentlyViewedEntry } from "@/lib/recentlyViewed";
 import { isRootAdmin } from "@/lib/adminConfig";
+import {
+  getPaymentConfig, getWalletBalance, getWalletTransactions,
+  initiateWalletTopup, initiateBookingPayment,
+  type PaymentConfig, type WalletBalance, type WalletTransaction, type WalletTransactionsResponse,
+} from "@/lib/payments";
+import MoyasarPaymentForm from "@/components/MoyasarPaymentForm";
 
 // ─── Hero Image (generated) ───
 const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/Qa7Q2PtJqyYVmLJFM69a8Y/hero-riyadh-mrK3PJVdGeLBcb9uR3WKW9.webp";
@@ -73,7 +79,7 @@ function getPropertyImage(property: ApiProperty, index = 0): string {
 
 // ─── Tab Types ───
 type TabId = "home" | "search" | "favorites" | "bookings" | "profile";
-type ScreenId = "tabs" | "property-detail" | "booking-flow" | "login" | "notifications-settings" | "twilio-setup" | "profile-completion" | "admin-panel";
+type ScreenId = "tabs" | "property-detail" | "booking-flow" | "login" | "notifications-settings" | "twilio-setup" | "profile-completion" | "admin-panel" | "wallet-log" | "wallet-topup";
 type SortOption = "default" | "price_asc" | "price_desc" | "newest" | "rating";
 
 const SORT_OPTIONS: { value: SortOption; label: string; icon: typeof ArrowUpDown }[] = [
@@ -169,6 +175,11 @@ export default function MobileApp() {
   const [favoritesLoading, setFavoritesLoading] = useState(false);
   const [recentlyViewed, setRecentlyViewed] = useState<RecentlyViewedEntry[]>([]);
 
+  // Wallet & Payment state
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [walletLoading, setWalletLoading] = useState(false);
+  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig | null>(null);
+
   // Load recently viewed on mount
   useEffect(() => {
     setRecentlyViewed(getRecentlyViewed());
@@ -207,6 +218,29 @@ export default function MobileApp() {
       setFavorites(new Set(localFavs));
     }
   }, [isLoggedIn, user?.id]);
+
+  // Fetch wallet balance when logged in
+  const refreshWalletBalance = useCallback(async () => {
+    if (!isLoggedIn) { setWalletBalance(0); return; }
+    setWalletLoading(true);
+    try {
+      const { balance } = await getWalletBalance();
+      setWalletBalance(balance);
+    } catch (err) {
+      console.error("Failed to fetch wallet balance:", err);
+    } finally {
+      setWalletLoading(false);
+    }
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    refreshWalletBalance();
+  }, [refreshWalletBalance]);
+
+  // Fetch payment config on mount
+  useEffect(() => {
+    getPaymentConfig().then(setPaymentConfig).catch(console.error);
+  }, []);
 
   // Fetch featured properties on mount
   useEffect(() => {
@@ -299,7 +333,7 @@ export default function MobileApp() {
 
   const goBack = useCallback(() => {
     if (screen === "booking-flow" && bookingStep > 0) { setBookingStep((s) => s - 1); return; }
-    if (screen === "notifications-settings" || screen === "twilio-setup" || screen === "profile-completion" || screen === "admin-panel") { setScreen("tabs"); return; }
+    if (screen === "notifications-settings" || screen === "twilio-setup" || screen === "profile-completion" || screen === "admin-panel" || screen === "wallet-log" || screen === "wallet-topup") { setScreen("tabs"); return; }
     setScreen("tabs");
     setSelectedPropertyId(null);
     setSelectedPropertyData(null);
@@ -439,8 +473,12 @@ export default function MobileApp() {
                       onOpenTwilioSetup={() => setScreen("twilio-setup")}
                       onOpenProfile={() => setScreen("profile-completion")}
                       onOpenAdmin={() => setScreen("admin-panel")}
+                      onOpenWalletLog={() => setScreen("wallet-log")}
+                      onOpenWalletTopup={() => setScreen("wallet-topup")}
                       userBookingsCount={userBookings.length}
                       isAdmin={isAdmin}
+                      walletBalance={walletBalance}
+                      walletLoading={walletLoading}
                     />
                   )}
                 </div>
@@ -493,6 +531,7 @@ export default function MobileApp() {
                     }
                   }}
                   onBack={goBack} confirmed={bookingConfirmed}
+                  paymentConfig={paymentConfig}
                 />
               </motion.div>
             )}
@@ -518,6 +557,18 @@ export default function MobileApp() {
             {screen === "admin-panel" && (
               <motion.div key="admin-panel" initial={{ x: -100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -100, opacity: 0 }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="h-full">
                 <AdminPanel onBack={goBack} />
+              </motion.div>
+            )}
+
+            {screen === "wallet-log" && (
+              <motion.div key="wallet-log" initial={{ x: -100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -100, opacity: 0 }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="h-full">
+                <WalletLogScreen onBack={goBack} walletBalance={walletBalance} walletLoading={walletLoading} onTopup={() => setScreen("wallet-topup")} />
+              </motion.div>
+            )}
+
+            {screen === "wallet-topup" && (
+              <motion.div key="wallet-topup" initial={{ x: -100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -100, opacity: 0 }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="h-full">
+                <WalletTopupScreen onBack={goBack} paymentConfig={paymentConfig} onSuccess={refreshWalletBalance} />
               </motion.div>
             )}
 
@@ -1393,10 +1444,10 @@ function PropertyDetail({
 
 // ─── Booking Flow ───
 function BookingFlow({
-  property, step, months, onMonthsChange, onNext, onBack, confirmed,
+  property, step, months, onMonthsChange, onNext, onBack, confirmed, paymentConfig,
 }: {
   property: ApiProperty; step: number; months: number; onMonthsChange: (m: number) => void;
-  onNext: () => void; onBack: () => void; confirmed: boolean;
+  onNext: () => void; onBack: () => void; confirmed: boolean; paymentConfig: PaymentConfig | null;
 }) {
   const rent = parseFloat(property.monthlyRent);
   const allowedMonths = useMemo(() => {
@@ -1473,19 +1524,29 @@ function BookingFlow({
           {step === 2 && (
             <motion.div key="payment" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
               <h3 className="text-lg font-bold mb-4">طريقة الدفع</h3>
-              <div className="space-y-3">
-                {[
-                  { id: "bank", label: "تحويل بنكي", icon: Building2, desc: "تحويل مباشر لحساب المالك" },
-                  { id: "card", label: "بطاقة ائتمان", icon: CreditCard, desc: "فيزا أو ماستركارد" },
-                  { id: "mada", label: "مدى", icon: CreditCard, desc: "بطاقة مدى المحلية" },
-                ].map((method, i) => (
-                  <motion.button key={method.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} onClick={onNext} className="w-full flex items-center gap-3 glass rounded-xl p-4 text-right transition-all hover:bg-card/80 active:scale-[0.98]">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, rgba(37,99,235,0.15), rgba(124,58,237,0.15))" }}><method.icon className="w-5 h-5 text-primary" /></div>
-                    <div className="flex-1"><span className="text-sm font-bold block">{method.label}</span><span className="text-[11px] text-muted-foreground">{method.desc}</span></div>
-                    <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-                  </motion.button>
-                ))}
+              <div className="glass rounded-xl p-4 mb-4 flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">المبلغ المطلوب</span>
+                <span className="text-lg font-bold gradient-text">{formatPrice(breakdown.grandTotal)}</span>
               </div>
+              <MoyasarPaymentForm
+                amount={Math.round(breakdown.grandTotal * 100)}
+                currency="SAR"
+                description={`حجز ${property.titleAr} - ${months} ${months === 1 ? "شهر" : "أشهر"}`}
+                publishableKey={paymentConfig?.publishable_key || ""}
+                callbackUrl={`${window.location.origin}/payment/callback`}
+                metadata={{ property_id: String(property.id), months: String(months) }}
+                onCompleted={() => onNext()}
+                onFailure={() => toast.error("فشلت عملية الدفع. يرجى المحاولة مرة أخرى.")}
+                isConfigured={!!paymentConfig?.is_configured}
+              />
+              {/* Fallback: manual proceed button when Moyasar not configured */}
+              {!paymentConfig?.is_configured && (
+                <div className="mt-4">
+                  <button onClick={onNext} className="w-full h-12 rounded-xl font-bold text-white text-base transition-all active:scale-[0.98]" style={{ background: "linear-gradient(135deg, #2563EB, #7C3AED)" }}>
+                    متابعة بدون دفع إلكتروني
+                  </button>
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -1722,13 +1783,16 @@ function NotificationsSettings({ onBack }: { onBack: () => void }) {
 function ProfileTab({
   isLoggedIn, onLogin, onLogout, userName, userEmail, userInitials,
   onOpenNotifications, onOpenTwilioSetup, onOpenProfile, onOpenAdmin,
-  userBookingsCount, isAdmin,
+  onOpenWalletLog, onOpenWalletTopup,
+  userBookingsCount, isAdmin, walletBalance, walletLoading,
 }: {
   isLoggedIn: boolean; onLogin: () => void; onLogout: () => void;
   userName: string; userEmail: string; userInitials: string;
   onOpenNotifications: () => void; onOpenTwilioSetup: () => void;
   onOpenProfile: () => void; onOpenAdmin: () => void;
+  onOpenWalletLog: () => void; onOpenWalletTopup: () => void;
   userBookingsCount: number; isAdmin: boolean;
+  walletBalance: number; walletLoading: boolean;
 }) {
   const [showHostSheet, setShowHostSheet] = useState(false);
 
@@ -1835,10 +1899,10 @@ function ProfileTab({
 
   const menuItems: { label: string; icon: React.ReactNode; action?: () => void; value?: string; divider?: boolean }[] = [
     { label: "الملف الشخصي", icon: <User className="w-5 h-5" />, action: onOpenProfile },
-    { label: "سجل المحفظة", icon: <Wallet className="w-5 h-5" />, action: () => toast.info("قريباً") },
+    { label: "سجل المحفظة", icon: <Wallet className="w-5 h-5" />, action: onOpenWalletLog },
     { label: "قيّمنا", icon: <ThumbsUp className="w-5 h-5" />, action: () => toast.info("قريباً") },
     { label: "استضف معنا (سجّل عقارك)", icon: <Building2 className="w-5 h-5" />, action: () => setShowHostSheet(true) },
-    { label: "طرق الدفع", icon: <CreditCard className="w-5 h-5" />, action: () => toast.info("قريباً") },
+    { label: "شحن المحفظة", icon: <CreditCard className="w-5 h-5" />, action: onOpenWalletTopup },
     { label: "تواصل مع تجربة الضيف", icon: <Mail className="w-5 h-5" />, action: () => toast.info("قريباً") },
     { label: "دعوة أصدقاء", icon: <Share2 className="w-5 h-5" />, action: () => toast.info("قريباً") },
     { label: "الأسئلة الشائعة", icon: <HelpCircle className="w-5 h-5" />, action: () => toast.info("قريباً") },
@@ -1869,10 +1933,13 @@ function ProfileTab({
           <span className="text-sm text-muted-foreground">الحجوزات</span>
           <span className="text-sm font-semibold">{userBookingsCount}</span>
         </div>
-        <div className="flex items-center justify-between py-2 border-b border-border/30">
+        <button onClick={onOpenWalletTopup} className="w-full flex items-center justify-between py-2 border-b border-border/30">
           <span className="text-sm text-muted-foreground">رصيد المحفظة</span>
-          <span className="text-sm font-semibold">0 ر.س</span>
-        </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold">{walletLoading ? "..." : formatPrice(walletBalance)}</span>
+            <span className="text-[10px] text-primary font-medium">شحن +</span>
+          </div>
+        </button>
         <div className="flex items-center justify-between py-2 border-b border-border/30">
           <span className="text-sm text-muted-foreground">التقييمات (من المضيفين)</span>
           <span className="text-sm font-semibold">10 / 0.0 (0)</span>
@@ -2759,6 +2826,240 @@ function AdminPanel({ onBack }: { onBack: () => void }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ─── Wallet Log Screen ───
+function WalletLogScreen({ onBack, walletBalance, walletLoading, onTopup }: {
+  onBack: () => void; walletBalance: number; walletLoading: boolean; onTopup: () => void;
+}) {
+  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    getWalletTransactions(50, 0)
+      .then((res) => { setTransactions(res.transactions); })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const typeLabels: Record<string, { label: string; color: string }> = {
+    topup: { label: "شحن", color: "#10B981" },
+    payment: { label: "دفع", color: "#EF4444" },
+    refund: { label: "استرداد", color: "#3B82F6" },
+  };
+
+  const statusLabels: Record<string, { label: string; color: string }> = {
+    pending: { label: "قيد المعالجة", color: "#F59E0B" },
+    completed: { label: "مكتمل", color: "#10B981" },
+    failed: { label: "فشل", color: "#EF4444" },
+    refunded: { label: "مسترد", color: "#3B82F6" },
+  };
+
+  return (
+    <div className="h-full flex flex-col">
+      <div className="pt-12 px-4 pb-3 glass-strong">
+        <div className="flex items-center justify-between mb-2">
+          <button onClick={onBack} className="w-9 h-9 rounded-full glass flex items-center justify-center"><ChevronRight className="w-5 h-5" /></button>
+          <h2 className="text-base font-bold">سجل المحفظة</h2>
+          <div className="w-9" />
+        </div>
+      </div>
+
+      {/* Balance Card */}
+      <div className="px-4 py-4">
+        <div className="rounded-2xl p-5 text-center" style={{ background: "linear-gradient(135deg, #1E3A5F, #2563EB)" }}>
+          <p className="text-xs text-white/70 mb-1">رصيدك الحالي</p>
+          <p className="text-3xl font-bold text-white">{walletLoading ? "..." : formatPrice(walletBalance)}</p>
+          <button onClick={onTopup} className="mt-3 px-6 py-2 rounded-xl text-sm font-bold text-white transition-all active:scale-[0.98]" style={{ background: "linear-gradient(135deg, #7C3AED, #6B21A8)" }}>
+            شحن المحفظة
+          </button>
+        </div>
+      </div>
+
+      {/* Transactions List */}
+      <div className="flex-1 overflow-y-auto px-4 pb-24" style={{ scrollbarWidth: "none" }}>
+        <h3 className="text-sm font-bold mb-3">المعاملات</h3>
+        {loading ? (
+          <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+        ) : transactions.length === 0 ? (
+          <div className="text-center py-12">
+            <Wallet className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">لا توجد معاملات بعد</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">اشحن محفظتك للبدء</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {transactions.map((tx) => {
+              const typeInfo = typeLabels[tx.type] || { label: tx.type, color: "#888" };
+              const statusInfo = statusLabels[tx.status] || { label: tx.status, color: "#888" };
+              const isCredit = tx.type === "topup" || tx.type === "refund";
+              return (
+                <div key={tx.id} className="glass rounded-xl p-3 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: `${typeInfo.color}20` }}>
+                    {tx.type === "topup" ? <ArrowDown className="w-5 h-5" style={{ color: typeInfo.color }} /> :
+                     tx.type === "refund" ? <RefreshCw className="w-5 h-5" style={{ color: typeInfo.color }} /> :
+                     <ArrowUp className="w-5 h-5" style={{ color: typeInfo.color }} />}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{typeInfo.label}</span>
+                      <span className={`text-sm font-bold ${isCredit ? "text-green-400" : "text-red-400"}`}>
+                        {isCredit ? "+" : "-"}{formatPrice(parseFloat(tx.amount))}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-[10px] text-muted-foreground">{new Date(tx.created_at).toLocaleDateString("ar-SA", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: `${statusInfo.color}20`, color: statusInfo.color }}>{statusInfo.label}</span>
+                    </div>
+                    {tx.description && <p className="text-[10px] text-muted-foreground/70 mt-1">{tx.description}</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Wallet Top-up Screen ───
+function WalletTopupScreen({ onBack, paymentConfig, onSuccess }: {
+  onBack: () => void; paymentConfig: PaymentConfig | null; onSuccess: () => void;
+}) {
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [customAmount, setCustomAmount] = useState("");
+  const [step, setStep] = useState<"amount" | "payment">("amount");
+  const [paymentData, setPaymentData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  const presetAmounts = [50, 100, 200, 500, 1000, 2000];
+  const finalAmount = selectedAmount || (customAmount ? parseFloat(customAmount) : 0);
+
+  const handleProceedToPayment = async () => {
+    if (finalAmount < 10) {
+      toast.error("الحد الأدنى للشحن 10 ر.س");
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await initiateWalletTopup(finalAmount);
+      if (result.pending_configuration) {
+        // Moyasar not configured yet — show the placeholder
+        setStep("payment");
+        setPaymentData(null);
+      } else if (result.payment_data) {
+        setPaymentData(result.payment_data);
+        setStep("payment");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "فشل في إنشاء عملية الشحن");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePaymentCompleted = (payment: any) => {
+    toast.success("تم شحن المحفظة بنجاح!");
+    onSuccess();
+    onBack();
+  };
+
+  const handlePaymentFailure = (error: any) => {
+    toast.error("فشلت عملية الدفع. يرجى المحاولة مرة أخرى.");
+    setStep("amount");
+  };
+
+  return (
+    <div className="h-full flex flex-col">
+      <div className="pt-12 px-4 pb-3 glass-strong">
+        <div className="flex items-center justify-between mb-2">
+          <button onClick={step === "payment" ? () => setStep("amount") : onBack} className="w-9 h-9 rounded-full glass flex items-center justify-center">
+            <ChevronRight className="w-5 h-5" />
+          </button>
+          <h2 className="text-base font-bold">شحن المحفظة</h2>
+          <div className="w-9" />
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 py-4" style={{ scrollbarWidth: "none" }}>
+        {step === "amount" && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <h3 className="text-lg font-bold mb-4">اختر مبلغ الشحن</h3>
+
+            {/* Preset amounts */}
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              {presetAmounts.map((amount) => (
+                <button
+                  key={amount}
+                  onClick={() => { setSelectedAmount(amount); setCustomAmount(""); }}
+                  className={`py-4 rounded-xl text-center transition-all ${selectedAmount === amount ? "text-white font-bold" : "glass"}`}
+                  style={selectedAmount === amount ? { background: "linear-gradient(135deg, #2563EB, #7C3AED)" } : {}}
+                >
+                  <span className="text-lg font-bold block">{amount}</span>
+                  <span className="text-[10px]">ر.س</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Custom amount */}
+            <div className="glass rounded-xl p-4 mb-4">
+              <label className="text-xs text-muted-foreground block mb-2">أو أدخل مبلغ مخصص</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={customAmount}
+                  onChange={(e) => { setCustomAmount(e.target.value); setSelectedAmount(null); }}
+                  placeholder="0"
+                  min="10"
+                  className="flex-1 bg-transparent text-xl font-bold text-right outline-none placeholder:text-muted-foreground/30"
+                />
+                <span className="text-sm text-muted-foreground">ر.س</span>
+              </div>
+            </div>
+
+            {/* Min amount note */}
+            <p className="text-[10px] text-muted-foreground text-center mb-4">الحد الأدنى للشحن: 10 ر.س</p>
+          </motion.div>
+        )}
+
+        {step === "payment" && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="glass rounded-xl p-4 mb-4 flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">مبلغ الشحن</span>
+              <span className="text-lg font-bold gradient-text">{formatPrice(finalAmount)}</span>
+            </div>
+
+            <MoyasarPaymentForm
+              amount={finalAmount * 100} // Convert to halalas
+              currency="SAR"
+              description={`شحن محفظة - ${finalAmount} ر.س`}
+              publishableKey={paymentData?.publishable_key || paymentConfig?.publishable_key || ""}
+              callbackUrl={paymentData?.callback_url || `${window.location.origin}/payment/callback`}
+              metadata={paymentData?.metadata || {}}
+              onCompleted={handlePaymentCompleted}
+              onFailure={handlePaymentFailure}
+              isConfigured={!!(paymentConfig?.is_configured && paymentData)}
+            />
+          </motion.div>
+        )}
+      </div>
+
+      {step === "amount" && (
+        <div className="p-4 glass-strong">
+          <button
+            onClick={handleProceedToPayment}
+            disabled={finalAmount < 10 || loading}
+            className="w-full h-12 rounded-xl font-bold text-white text-base transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+            style={{ background: "linear-gradient(135deg, #2563EB, #7C3AED)" }}
+          >
+            {loading ? <><Loader2 className="w-5 h-5 animate-spin" /><span>جاري التحميل...</span></> : <span>متابعة الدفع — {finalAmount > 0 ? formatPrice(finalAmount) : "0 ر.س"}</span>}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

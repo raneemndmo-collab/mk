@@ -7,6 +7,7 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import { registerMkProxy } from "../mk-proxy";
+import { registerMoyasarRoutes } from "../moyasar-routes";
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -38,6 +39,9 @@ async function startServer() {
 
   // Proxy for monthlykey.com API (avoids CORS)
   registerMkProxy(app);
+
+  // Moyasar payment routes
+  registerMoyasarRoutes(app);
 
   // Development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {

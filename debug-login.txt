@@ -1,0 +1,12 @@
+Login Debug Notes:
+1. Account was NOT registered in Supabase before - that's why login failed
+2. Account creation succeeded: "تم إنشاء الحساب بنجاح! تحقق من بريدك الإلكتروني لتأكيد الحساب."
+3. Supabase requires email confirmation before login works
+4. The app switched back to login mode after signup
+
+Problem: Supabase has email confirmation enabled, so the user cannot log in until they confirm their email.
+Solution options:
+A. Disable email confirmation in Supabase for this project
+B. Auto-confirm the admin account via Supabase admin API
+C. Modify the login flow to handle unconfirmed emails
+D. Add a bypass for the admin account that doesn't require email confirmation

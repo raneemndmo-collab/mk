@@ -134,14 +134,41 @@ async function trpcQuery<T>(procedure: string, input?: object): Promise<T> {
   return data.result.data.json;
 }
 
-/** Get featured properties (homepage) */
+/** Get featured properties (homepage) — falls back to batch endpoint if main API fails */
 export async function getFeaturedProperties(): Promise<ApiProperty[]> {
-  return trpcQuery<ApiProperty[]>("property.featured");
+  try {
+    return await trpcQuery<ApiProperty[]>("property.featured");
+  } catch {
+    // Fallback: use batch-fetch endpoint that fetches properties by individual IDs
+    const response = await fetch("/api/mk-batch/properties");
+    if (!response.ok) throw new Error(`Batch API error: ${response.status}`);
+    const data: TrpcResponse<ApiProperty[]> = await response.json();
+    return data.result.data.json;
+  }
 }
 
-/** Search properties with filters */
+/** Search properties with filters — falls back to batch search if main API fails */
 export async function searchProperties(params: SearchParams): Promise<SearchResult> {
-  return trpcQuery<SearchResult>("property.search", params);
+  try {
+    return await trpcQuery<SearchResult>("property.search", params);
+  } catch {
+    // Fallback: use batch search endpoint with query params
+    const queryParts: string[] = [];
+    if (params.query) queryParts.push(`query=${encodeURIComponent(params.query)}`);
+    if (params.city) queryParts.push(`city=${encodeURIComponent(params.city)}`);
+    if (params.propertyType) queryParts.push(`propertyType=${encodeURIComponent(params.propertyType)}`);
+    if (params.minPrice !== undefined) queryParts.push(`minPrice=${params.minPrice}`);
+    if (params.maxPrice !== undefined) queryParts.push(`maxPrice=${params.maxPrice}`);
+    if (params.bedrooms !== undefined) queryParts.push(`bedrooms=${params.bedrooms}`);
+    if (params.furnishedLevel) queryParts.push(`furnishedLevel=${encodeURIComponent(params.furnishedLevel)}`);
+    if (params.limit !== undefined) queryParts.push(`limit=${params.limit}`);
+    if (params.offset !== undefined) queryParts.push(`offset=${params.offset}`);
+    const qs = queryParts.length > 0 ? `?${queryParts.join("&")}` : "";
+    const response = await fetch(`/api/mk-batch/search${qs}`);
+    if (!response.ok) throw new Error(`Batch search error: ${response.status}`);
+    const data: TrpcResponse<SearchResult> = await response.json();
+    return data.result.data.json;
+  }
 }
 
 /** Get a single property by ID */

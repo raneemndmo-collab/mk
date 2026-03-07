@@ -151,3 +151,30 @@
 - [x] Case-insensitive email matching, phone normalization (spaces, dashes, parentheses)
 - [x] No manual Supabase metadata setup required
 - [x] Write vitest tests for admin detection logic (20 tests, 234 total passing)
+
+## Bug: Cannot Access Admin Panel
+- [x] Investigate why user cannot access admin panel after login
+- [x] Check if More tab is rendering correctly
+- [x] Check if admin detection works with actual Supabase auth
+- [x] Fix Supabase email confirmation redirect (localhost:3000 → deployed URL)
+- [x] Disable email confirmation or auto-confirm admin account
+- [x] Ensure login works for hobarti@protonmail.com
+- [x] Verify admin panel (لوحة التحكم) appears in More tab after login
+
+## Feature: Moyasar Payment Integration
+- [x] Research Moyasar API (payment creation, webhooks, card tokenization)
+- [ ] Set up Moyasar API keys (publishable + secret) — ready for user to add keys
+- [x] Create Supabase tables for wallet transactions and payment records
+- [x] Build backend payment creation endpoint (server-side Moyasar API)
+- [x] Build backend webhook handler for payment status updates
+- [x] Implement wallet top-up flow with Moyasar payment form (Apple Pay, mada, Visa/MC)
+- [x] Implement booking payment flow with Moyasar
+- [x] Connect wallet balance updates to Supabase after successful payment
+- [x] Connect booking payment confirmation to Supabase
+- [x] Add payment history to wallet log screen
+- [x] Write vitest tests for Moyasar payment integration (17 tests, 251 total passing)
+
+## Bug: Properties Not Loading on Home Page
+- [x] Investigate "تعذر تحميل العقارات" error on home tab — monthlykey.com property.search/featured returning 500
+- [x] Fix API proxy with batch-fetch fallback (fetches individual properties by ID)
+- [x] Verify properties load correctly after fix
