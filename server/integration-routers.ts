@@ -22,6 +22,7 @@ const DEFAULT_INTEGRATIONS = [
   { integrationKey: 'whatsapp', displayName: 'WhatsApp Cloud API', displayNameAr: 'واتساب كلاود API' },
   { integrationKey: 'storage', displayName: 'File Storage (S3/R2)', displayNameAr: 'تخزين الملفات (S3/R2)' },
   { integrationKey: 'ga4', displayName: 'Google Analytics (GA4)', displayNameAr: 'تحليلات جوجل (GA4)' },
+  { integrationKey: 'shomoos', displayName: 'Shomoos (شموس)', displayNameAr: 'شموس - وزارة الداخلية' },
 ];
 
 // Mask a secret string: show first 4 and last 4 chars
@@ -120,6 +121,15 @@ function getConfigFields(key: string): { name: string; label: string; labelAr: s
         { name: 'measurementId', label: 'Measurement ID (G-XXXXXXX)', labelAr: 'معرف القياس (G-XXXXXXX)', isSecret: false },
         { name: 'propertyId', label: 'GA4 Property ID (numeric)', labelAr: 'معرف الموقع (GA4)', isSecret: false },
         { name: 'serviceAccountJson', label: 'Service Account JSON (full key)', labelAr: 'مفتاح حساب الخدمة (JSON)', isSecret: true },
+      ];
+    case 'shomoos':
+      return [
+        { name: 'baseUrl', label: 'Shomoos API Base URL', labelAr: 'رابط API شموس', isSecret: false },
+        { name: 'apiKey', label: 'API Key / Token', labelAr: 'مفتاح API / رمز الوصول', isSecret: true },
+        { name: 'facilityId', label: 'Facility ID (رقم المنشأة)', labelAr: 'رقم المنشأة في شموس', isSecret: false },
+        { name: 'facilityLicense', label: 'Facility License Number', labelAr: 'رقم ترخيص المنشأة', isSecret: false },
+        { name: 'commercialReg', label: 'Commercial Registration (السجل التجاري)', labelAr: 'رقم السجل التجاري', isSecret: false },
+        { name: 'moiNumber', label: 'MOI Number (optional, for large companies)', labelAr: 'رقم وزارة الداخلية (اختياري)', isSecret: false },
       ];
     default:
       return [];
@@ -367,6 +377,15 @@ export const integrationRouter = router({
             }
             break;
           }
+          case 'shomoos': {
+            try {
+              const { testConnection: testShomoos } = await import('./shomoos');
+              testResult = await testShomoos();
+            } catch (e: any) {
+              testResult = { success: false, message: `Shomoos test error: ${e.message}` };
+            }
+            break;
+          }
           default:
             testResult = { success: false, message: `No test available for ${item.integrationKey}` };
         }
@@ -477,6 +496,123 @@ export const integrationRouter = router({
           reason: input.reason,
           reasonCode: input.reasonCode,
         });
+      }),
+  }),
+
+  // ─── Shomoos (شموس) Admin Routes ────────────────────────────────────
+  shomoos: router({
+    /** List Shomoos submissions with optional filters */
+    submissions: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .input(z.object({
+        bookingId: z.number().optional(),
+        tenantId: z.number().optional(),
+        propertyId: z.number().optional(),
+        status: z.string().optional(),
+        submissionType: z.string().optional(),
+        limit: z.number().optional(),
+        offset: z.number().optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        const { getSubmissions } = await import('./shomoos');
+        return getSubmissions(input as any || undefined);
+      }),
+
+    /** Get submission stats for dashboard */
+    stats: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .query(async () => {
+        const { getSubmissionStats } = await import('./shomoos');
+        return getSubmissionStats();
+      }),
+
+    /** Manually submit check-in to Shomoos */
+    checkIn: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .input(z.object({
+        bookingId: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { submitCheckIn, buildGuestDataFromBooking } = await import('./shomoos');
+        const { getUserById } = await import('./db');
+        const dbModule = await import('./db');
+
+        // Get booking with tenant and property data
+        const pool = dbModule.getPool();
+        if (!pool) return { success: false, error: 'Database unavailable' };
+
+        const [bookingRows] = await pool.query<any[]>(
+          'SELECT b.*, p.title as propertyTitle, p.titleAr as propertyTitleAr, p.unitNumber, p.buildingName FROM bookings b LEFT JOIN properties p ON b.propertyId = p.id WHERE b.id = ? LIMIT 1',
+          [input.bookingId]
+        );
+        if (bookingRows.length === 0) return { success: false, error: 'Booking not found' };
+        const booking = bookingRows[0];
+
+        const tenant = await getUserById(booking.tenantId);
+        if (!tenant) return { success: false, error: 'Tenant not found' };
+
+        const guestData = buildGuestDataFromBooking({
+          user: tenant,
+          booking: { moveInDate: booking.moveInDate, moveOutDate: booking.moveOutDate },
+          property: { title: booking.propertyTitle, unitNumber: booking.unitNumber, buildingName: booking.buildingName },
+        });
+
+        if (!guestData) return { success: false, error: 'Tenant identity data incomplete. Please ensure the tenant has completed identity verification.' };
+
+        return submitCheckIn({
+          guest: guestData,
+          bookingId: input.bookingId,
+          tenantId: booking.tenantId,
+          propertyId: booking.propertyId,
+          submittedBy: ctx.user.id,
+          submittedByName: ctx.user.displayName || ctx.user.email || 'admin',
+        });
+      }),
+
+    /** Manually submit check-out to Shomoos */
+    checkOut: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .input(z.object({
+        submissionId: z.number(),
+        checkOutDate: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { submitCheckOut } = await import('./shomoos');
+        const pool = (await import('./db')).getPool();
+        if (!pool) return { success: false, error: 'Database unavailable' };
+
+        const [rows] = await pool.query<any[]>(
+          'SELECT * FROM shomoos_submissions WHERE id = ? AND submissionType = "check_in" LIMIT 1',
+          [input.submissionId]
+        );
+        if (rows.length === 0) return { success: false, error: 'Check-in submission not found' };
+        const sub = rows[0];
+        if (!sub.shomoosRefId) return { success: false, error: 'No Shomoos reference ID. Check-in may not have been accepted.' };
+
+        return submitCheckOut({
+          shomoosRefId: sub.shomoosRefId,
+          checkOutDate: input.checkOutDate,
+          bookingId: sub.bookingId,
+          tenantId: sub.tenantId,
+          propertyId: sub.propertyId,
+          submittedBy: ctx.user.id,
+          submittedByName: ctx.user.displayName || ctx.user.email || 'admin',
+        });
+      }),
+
+    /** Retry a failed submission */
+    retry: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .input(z.object({ submissionId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const { retrySubmission } = await import('./shomoos');
+        return retrySubmission(
+          input.submissionId,
+          ctx.user.id,
+          ctx.user.displayName || ctx.user.email || 'admin'
+        );
+      }),
+
+    /** Check if Shomoos is enabled */
+    isEnabled: adminWithPermission(PERMISSIONS.MANAGE_SETTINGS)
+      .query(async () => {
+        const { isShomoosEnabled } = await import('./shomoos');
+        return { enabled: await isShomoosEnabled() };
       }),
   }),
 

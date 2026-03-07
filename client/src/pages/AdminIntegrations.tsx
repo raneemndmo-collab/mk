@@ -30,6 +30,7 @@ const INTEGRATION_ICONS: Record<string, string> = {
   email: "📧",
   maps: "🗺️",
   storage: "☁️",
+  shomoos: "🏛️",
 };
 
 const LOG_STATUS_COLORS: Record<string, string> = {

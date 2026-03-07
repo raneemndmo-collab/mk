@@ -28,7 +28,7 @@ import {
   AlertTriangle, BarChart3, Settings, MapPin, KeyRound,
   BookOpen, UserCog, Shield, MessageCircle, Database,
   Building2, Inbox, Plug, CalendarCheck, CreditCard, Hotel,
-  Sun, Moon, Languages, FileText, Newspaper, Fingerprint, ToggleLeft,
+  Sun, Moon, Languages, FileText, Newspaper, Fingerprint, ToggleLeft, Landmark,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -92,6 +92,7 @@ const menuSections: MenuSection[] = [
       { icon: KeyRound, labelKey: "adminMenu.permissions", path: "/admin/permissions" },
       { icon: Fingerprint, labelKey: "adminMenu.kyc", path: "/admin/kyc" },
       { icon: Plug, labelKey: "adminMenu.integrations", path: "/admin/integrations" },
+      { icon: Landmark, labelKey: "adminMenu.shomoos", path: "/admin/shomoos" },
       { icon: ToggleLeft, labelKey: "adminMenu.featureFlags", path: "/admin/feature-flags" },
       { icon: Shield, labelKey: "adminMenu.hardening", path: "/admin/hardening" },
       { icon: FileText, labelKey: "adminMenu.auditLog", path: "/admin/audit-log" },
