@@ -51,10 +51,10 @@ export async function getBuildings(filters?: { isActive?: boolean; includeArchiv
   const offset = filters?.offset || 0;
   let where = "1=1";
   const params: any[] = [];
-  if (!filters?.includeArchived) { where += " AND isArchived = false"; }
-  if (filters?.isActive !== undefined) { where += " AND isActive = ?"; params.push(filters.isActive); }
-  const [rows] = await pool.query<RowDataPacket[]>(`SELECT * FROM buildings WHERE ${where} ORDER BY createdAt DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);
-  const [countResult] = await pool.query<RowDataPacket[]>(`SELECT COUNT(*) as total FROM buildings WHERE ${where}`, params);
+  if (!filters?.includeArchived) { where += " AND b.isArchived = false"; }
+  if (filters?.isActive !== undefined) { where += " AND b.isActive = ?"; params.push(filters.isActive); }
+  const [rows] = await pool.query<RowDataPacket[]>(`SELECT b.*, COALESCE(uc.unitCount, 0) as totalUnits FROM buildings b LEFT JOIN (SELECT buildingId, COUNT(*) as unitCount FROM units WHERE isArchived = false GROUP BY buildingId) uc ON b.id = uc.buildingId WHERE ${where} ORDER BY b.createdAt DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);
+  const [countResult] = await pool.query<RowDataPacket[]>(`SELECT COUNT(*) as total FROM buildings b WHERE ${where}`, params);
   return { items: rows, total: (countResult[0] as any)?.total || 0 };
 }
 
