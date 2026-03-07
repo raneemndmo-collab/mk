@@ -77,3 +77,12 @@
 - [x] Sort by user ratings (highest first)
 - [x] Persist selected sort across searches (state persists in parent component)
 - [x] Write vitest tests for sorting logic (32 tests passing)
+
+## Feature: Recently Viewed Properties
+- [x] Create recentlyViewed localStorage service (add, get, clear, remove, max 10 items)
+- [x] Track property views when user opens PropertyDetail (openProperty callback)
+- [x] Add "شوهدت مؤخراً" section on HomeTab with horizontal scroll cards
+- [x] Show property thumbnail, title, price, city + relative time (الآن/دقيقة/ساعة/أمس/أيام)
+- [x] Deduplicate entries (most recent view wins, updates data + timestamp)
+- [x] Clear all button with trash icon
+- [x] Write vitest tests for recently viewed logic (31 tests passing)

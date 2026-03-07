@@ -39,6 +39,10 @@ import {
   fetchReviews, submitReview, getAverageRating, generateDemoReviews, getDemoAverageRating,
   type Review,
 } from "@/lib/reviews";
+import {
+  getRecentlyViewed, addRecentlyViewed, clearRecentlyViewed,
+  type RecentlyViewedEntry,
+} from "@/lib/recentlyViewed";
 
 // ─── Hero Image (generated) ───
 const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663340926600/Qa7Q2PtJqyYVmLJFM69a8Y/hero-riyadh-mrK3PJVdGeLBcb9uR3WKW9.webp";
@@ -159,6 +163,12 @@ export default function MobileApp() {
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [userBookings, setUserBookings] = useState<UserBooking[]>([]);
   const [favoritesLoading, setFavoritesLoading] = useState(false);
+  const [recentlyViewed, setRecentlyViewed] = useState<RecentlyViewedEntry[]>([]);
+
+  // Load recently viewed on mount
+  useEffect(() => {
+    setRecentlyViewed(getRecentlyViewed());
+  }, []);
 
   // API data state
   const [featuredProperties, setFeaturedProperties] = useState<ApiProperty[]>([]);
@@ -258,9 +268,17 @@ export default function MobileApp() {
     setSelectedPropertyData(property);
     setScreen("property-detail");
     setLoadingDetail(true);
+    // Track in recently viewed
+    addRecentlyViewed(property);
+    setRecentlyViewed(getRecentlyViewed());
     try {
       const full = await getPropertyById(property.id);
-      if (full) setSelectedPropertyData(full);
+      if (full) {
+        setSelectedPropertyData(full);
+        // Update recently viewed with full data
+        addRecentlyViewed(full);
+        setRecentlyViewed(getRecentlyViewed());
+      }
     } catch (err) {
       console.error("Failed to fetch property detail:", err);
     } finally {
@@ -375,6 +393,8 @@ export default function MobileApp() {
                     <HomeTab
                       properties={featuredProperties} loading={loadingFeatured} error={errorFeatured}
                       onOpenProperty={openProperty} favorites={favorites} onToggleFavorite={toggleFavorite}
+                      recentlyViewed={recentlyViewed}
+                      onClearRecentlyViewed={() => { clearRecentlyViewed(); setRecentlyViewed([]); }}
                       onRetry={() => {
                         setLoadingFeatured(true); setErrorFeatured(null);
                         getFeaturedProperties().then(setFeaturedProperties).catch(() => setErrorFeatured("تعذر تحميل العقارات")).finally(() => setLoadingFeatured(false));
@@ -495,13 +515,28 @@ export default function MobileApp() {
 // ─── Home Tab ───
 function HomeTab({
   properties, loading, error, onOpenProperty, favorites, onToggleFavorite, onRetry,
+  recentlyViewed, onClearRecentlyViewed,
 }: {
   properties: ApiProperty[]; loading: boolean; error: string | null;
   onOpenProperty: (p: ApiProperty) => void; favorites: Set<number>;
   onToggleFavorite: (id: number) => void; onRetry: () => void;
+  recentlyViewed: RecentlyViewedEntry[]; onClearRecentlyViewed: () => void;
 }) {
   const recent = useMemo(() => [...properties].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 4), [properties]);
   const popular = useMemo(() => [...properties].sort((a, b) => b.viewCount - a.viewCount), [properties]);
+
+  // Format relative time for recently viewed
+  const formatViewedTime = (viewedAt: number): string => {
+    const diff = Date.now() - viewedAt;
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return "الآن";
+    if (minutes < 60) return `منذ ${minutes} دقيقة`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `منذ ${hours} ساعة`;
+    const days = Math.floor(hours / 24);
+    if (days === 1) return "أمس";
+    return `منذ ${days} أيام`;
+  };
 
   return (
     <div className="pt-12">
@@ -525,6 +560,58 @@ function HomeTab({
           ))}
         </div>
       </div>
+
+      {/* Recently Viewed Section */}
+      {recentlyViewed.length > 0 && (
+        <div className="px-4 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-primary" />
+              <h2 className="text-base font-bold">شوهدت مؤخراً</h2>
+            </div>
+            <button onClick={onClearRecentlyViewed} className="text-[11px] text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1">
+              <Trash2 className="w-3 h-3" />
+              مسح
+            </button>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+            {recentlyViewed.map((entry, i) => (
+              <motion.div
+                key={`rv-${entry.property.id}`}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.08 }}
+                className="min-w-[180px] max-w-[180px] flex-shrink-0"
+              >
+                <button
+                  onClick={() => onOpenProperty(entry.property)}
+                  className="w-full glass rounded-2xl overflow-hidden text-right transition-all hover:bg-card/80 active:scale-[0.97]"
+                >
+                  <div className="relative h-[110px] overflow-hidden">
+                    <img
+                      src={getPropertyImage(entry.property)}
+                      alt={entry.property.titleAr}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER_IMG; }}
+                    />
+                    <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 50%, rgba(11,20,38,0.7) 100%)" }} />
+                    <div className="absolute bottom-2 right-2 left-2">
+                      <p className="text-[10px] text-white/70 truncate">{entry.property.cityAr} - {entry.property.districtAr}</p>
+                    </div>
+                  </div>
+                  <div className="p-2.5">
+                    <h3 className="text-xs font-bold leading-tight mb-1 truncate">{entry.property.titleAr}</h3>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-primary">{formatPrice(parseFloat(entry.property.monthlyRent))}</span>
+                      <span className="text-[9px] text-muted-foreground">{formatViewedTime(entry.viewedAt)}</span>
+                    </div>
+                  </div>
+                </button>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {loading && (
         <div className="flex flex-col items-center py-12">
