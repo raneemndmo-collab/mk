@@ -303,6 +303,19 @@ export async function handleWhatsAppVerification(req: Request, res: Response) {
  * POST /api/webhooks/whatsapp — Incoming messages + delivery status updates
  */
 export async function handleWhatsAppWebhook(req: Request, res: Response) {
+  // Verify HMAC signature from Meta (x-hub-signature-256 header)
+  const appSecret = process.env.WHATSAPP_APP_SECRET;
+  if (appSecret) {
+    const signature = req.headers["x-hub-signature-256"] as string | undefined;
+    const rawBody = JSON.stringify(req.body);
+    if (!verifyWebhookSignature(rawBody, signature, appSecret)) {
+      console.warn("[WhatsApp Webhook] Invalid signature — rejecting");
+      return res.status(401).json({ error: "Invalid signature" });
+    }
+  } else {
+    console.warn("[WhatsApp Webhook] WHATSAPP_APP_SECRET not configured — skipping signature verification");
+  }
+
   // Always respond 200 quickly to avoid Meta retries
   res.status(200).json({ status: "ok" });
 

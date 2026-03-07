@@ -206,12 +206,13 @@ export function registerAuthRoutes(app: Express) {
         return;
       }
 
-      // Check if userId already exists
+      // Check if userId already exists — use generic message to mitigate enumeration
       const existing = await db.getUserByUserId(userId);
       if (existing) {
-        res.status(409).json({
-          error: "User ID already exists",
-          errorAr: "معرف المستخدم موجود مسبقاً",
+        logAuthEvent("REGISTER_DUPLICATE", { userId, ip });
+        res.status(400).json({
+          error: "Registration failed. Please check your details and try again.",
+          errorAr: "فشل التسجيل. يرجى التحقق من بياناتك والمحاولة مرة أخرى.",
         });
         return;
       }
@@ -619,33 +620,35 @@ export function registerAuthRoutes(app: Express) {
         return;
       }
 
-      // Check if userId already exists
+      // Check if userId already exists — use generic message to mitigate enumeration
       const existing = await db.getUserByUserId(userId);
       if (existing) {
-        res.status(409).json({
-          error: "User ID already exists",
-          errorAr: "معرف المستخدم موجود مسبقاً",
+        logAuthEvent("REGISTER_DUPLICATE", { userId, ip });
+        res.status(400).json({
+          error: "Registration failed. Please check your details and try again.",
+          errorAr: "فشل التسجيل. يرجى التحقق من بياناتك والمحاولة مرة أخرى.",
         });
         return;
       }
 
-      // Check if phone already exists
+      // Check if phone already exists — generic message to mitigate enumeration
       const existingPhone = await db.getUserByPhone(phone);
       if (existingPhone) {
-        res.status(409).json({
-          error: "Phone number already registered",
-          errorAr: "رقم الهاتف مسجل مسبقاً",
+        logAuthEvent("REGISTER_DUPLICATE_PHONE", { phone, ip });
+        res.status(400).json({
+          error: "Registration failed. Please check your details and try again.",
+          errorAr: "فشل التسجيل. يرجى التحقق من بياناتك والمحاولة مرة أخرى.",
         });
         return;
       }
-
-      // Check if email already exists
+      // Check if email already exists — generic message to mitigate enumeration
       const existingEmail = await db.getUserByEmail(email);
       if (existingEmail) {
-        res.status(409).json({
-          error: "Email already registered",
-          errorAr: "البريد الإلكتروني مسجل مسبقاً",
-        });
+        logAuthEvent("REGISTER_DUPLICATE_EMAIL", { email, ip });
+        res.status(400).json({
+          error: "Registration failed. Please check your details and try again.",
+          errorAr: "فشل التسجيل. يرجى التحقق من بياناتك والمحاولة مرة أخرى.",
+        });;
         return;
       }
 

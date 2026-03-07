@@ -162,11 +162,18 @@ export const adminRouterDefs = {
 
     updateUserRole: adminWithPermission(PERMISSIONS.MANAGE_USERS)
       .input(z.object({ userId: z.number(), role: z.enum(["user", "admin", "landlord", "tenant"]) }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         // Protect root admin from being demoted
         const targetPerms = await db.getAdminPermissions(input.userId);
         if (targetPerms?.isRootAdmin && input.role !== "admin") {
           throw new TRPCError({ code: 'FORBIDDEN', message: 'Cannot change root admin role' });
+        }
+        // Only root admin can promote to admin
+        if (input.role === 'admin') {
+          const callerPerms = await db.getAdminPermissions(ctx.user!.id);
+          if (!callerPerms?.isRootAdmin) {
+            throw new TRPCError({ code: 'FORBIDDEN', message: 'Only root admin can promote users to admin role' });
+          }
         }
         await db.updateUserRole(input.userId, input.role);
         return { success: true };

@@ -57,7 +57,7 @@ export const ALLOWED_IMAGE_TYPES = [
   'image/png',
   'image/gif',
   'image/webp',
-  'image/svg+xml',
+  // 'image/svg+xml', // Removed: SVG files can contain embedded JavaScript (XSS vector)
 ];
 
 /** Allowed document MIME types */
@@ -98,7 +98,7 @@ export function validateFileExtension(filename: string, contentType: string): bo
     'png': ['image/png'],
     'gif': ['image/gif'],
     'webp': ['image/webp'],
-    'svg': ['image/svg+xml'],
+    // 'svg': ['image/svg+xml'], // Removed: SVG XSS vector
     'pdf': ['application/pdf'],
     'doc': ['application/msword'],
     'docx': ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],

@@ -16,9 +16,14 @@ const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
 
+let _keyWarningLogged = false;
 function getKey(): Buffer | null {
   const hex = process.env.SETTINGS_ENCRYPTION_KEY;
   if (!hex || hex.length !== 64) {
+    if (!_keyWarningLogged) {
+      console.warn("[Encryption] \u26a0\ufe0f SETTINGS_ENCRYPTION_KEY is missing or invalid (must be 64 hex chars). Integration credentials will be stored in PLAINTEXT. Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"");
+      _keyWarningLogged = true;
+    }
     return null;
   }
   try {

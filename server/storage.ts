@@ -209,7 +209,19 @@ export function reloadS3Client(): void {
 // ─── Core Storage Operations ────────────────────────────────────────────────
 
 function normalizeKey(relKey: string): string {
-  return relKey.replace(/^\/+/, "");
+  // Strip path traversal sequences, null bytes, absolute path prefixes, and backslashes
+  let key = relKey
+    .replace(/\0/g, "")           // Remove null bytes
+    .replace(/\\/g, "/")          // Normalize backslashes to forward slashes
+    .replace(/\.\.\//g, "")       // Strip ../ sequences
+    .replace(/\.\.\\/g, "")      // Strip ..\ sequences
+    .replace(/^\/+/, "");          // Strip leading slashes
+  // Double-check: resolve and verify the key doesn't escape
+  // Only allow alphanumeric, hyphens, underscores, dots, and forward slashes
+  key = key.replace(/[^a-zA-Z0-9\-_.\/]/g, "");
+  // Ensure no remaining traversal after cleanup
+  if (key.includes("..")) key = key.replace(/\.\.+/g, "");
+  return key;
 }
 
 // Local filesystem helpers

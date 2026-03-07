@@ -107,9 +107,9 @@ async function startServer() {
   // ─── Compression (Gzip/Brotli) ────────────────────────────────────
   app.use(compressionMiddleware);
 
-  // Configure body parser with larger size limit for file uploads
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  // Configure body parser with size limit (10mb covers base64 images, prevents DoS)
+  app.use(express.json({ limit: "10mb" }));
+  app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
   // Serve uploaded files from local storage
   const uploadDir = path.resolve(process.env.UPLOAD_DIR || "uploads");
@@ -231,6 +231,7 @@ async function startServer() {
 
   // ─── Debug Proof Endpoint (acceptance testing) ─────────────────────
   app.get("/api/debug-proof", async (req, res) => {
+    if (process.env.NODE_ENV === "production") return res.status(404).end();
     try {
       const { getPool } = await import("../db");
       const pool = getPool();
@@ -321,6 +322,7 @@ async function startServer() {
 
   // ─── Backfill coordinates for properties missing lat/lng ──────────
   app.get("/api/backfill-coordinates", async (_req, res) => {
+    if (process.env.NODE_ENV === "production") return res.status(404).end();
     try {
       const { getPool } = await import("../db");
       const pool = getPool();
@@ -375,6 +377,7 @@ async function startServer() {
 
   // ─── Backfill ledger for old bookings ─────────────────────────────
   app.get("/api/backfill-ledger", async (req, res) => {
+    if (process.env.NODE_ENV === "production") return res.status(404).end();
     try {
       const { getPool } = await import("../db");
       const pool = getPool();
@@ -447,14 +450,63 @@ async function startServer() {
     }
   });
 
-  // Admin: invalidate OG cache
-  app.post("/api/og/invalidate", (req, res) => {
+  // Admin: invalidate OG cache (requires admin session or OG_INVALIDATE_SECRET header)
+  const ogInvalidateRateMap = new Map<string, { count: number; resetAt: number }>();
+  app.post("/api/og/invalidate", async (req, res) => {
+    // Rate limit: 10 requests per minute per IP
+    const clientIp = (req.headers["x-forwarded-for"] as string || req.socket.remoteAddress || "unknown").split(",")[0].trim();
+    const now = Date.now();
+    const entry = ogInvalidateRateMap.get(clientIp);
+    if (entry && now < entry.resetAt) {
+      entry.count++;
+      if (entry.count > 10) return res.status(429).json({ error: "Too many requests" });
+    } else {
+      ogInvalidateRateMap.set(clientIp, { count: 1, resetAt: now + 60_000 });
+    }
+    // Auth: require OG_INVALIDATE_SECRET header or admin session
+    const secret = req.headers["x-og-secret"] as string;
+    const envSecret = process.env.OG_INVALIDATE_SECRET;
+    let authorized = false;
+    if (envSecret && secret === envSecret) {
+      authorized = true;
+    } else {
+      // Try to authenticate via session cookie
+      try {
+        const { sdk: sdkAuth } = await import("./sdk");
+        const user = await sdkAuth.authenticateRequest(req);
+        if (user && user.role === "admin") authorized = true;
+      } catch { /* not authenticated */ }
+    }
+    if (!authorized) return res.status(401).json({ error: "Unauthorized" });
     const key = req.body?.key as string | undefined;
     invalidateOGCache(key);
     res.json({ success: true, message: key ? `Cache invalidated for: ${key}` : "All OG cache cleared" });
   });
 
   // Image proxy: serve external CDN images through our domain to avoid CORS/CSP issues
+  // SSRF protection: strict domain allowlist + private IP blocking
+  const IMG_PROXY_ALLOWED_DOMAINS = [
+    "images.unsplash.com",
+    "plus.unsplash.com",
+    "pub-38c4c6d7eb714a07a24cd2d4c7870282.r2.dev",
+    "maps.gstatic.com",
+    "maps.googleapis.com",
+    "lh3.googleusercontent.com",
+    "beds24.com",
+    "www.beds24.com",
+    "api.beds24.com",
+  ];
+  // Also allow any *.r2.dev subdomain
+  function isAllowedProxyDomain(hostname: string): boolean {
+    if (IMG_PROXY_ALLOWED_DOMAINS.includes(hostname)) return true;
+    if (hostname.endsWith(".r2.dev")) return true;
+    // Allow the configured S3 public base URL domain
+    const s3Base = process.env.S3_PUBLIC_BASE_URL;
+    if (s3Base) {
+      try { if (new URL(s3Base).hostname === hostname) return true; } catch {}
+    }
+    return false;
+  }
   app.get("/api/img-proxy", async (req, res) => {
     try {
       const url = req.query.url as string;
@@ -462,12 +514,27 @@ async function startServer() {
         res.status(400).json({ error: "Invalid URL" });
         return;
       }
+      // Parse and validate domain against allowlist
+      let parsedUrl: URL;
+      try { parsedUrl = new URL(url); } catch { return res.status(400).json({ error: "Malformed URL" }); }
+      if (!isAllowedProxyDomain(parsedUrl.hostname)) {
+        return res.status(403).json({ error: "Domain not allowed" });
+      }
+      // Block private/internal IP ranges (defense in depth against DNS rebinding)
+      const blockedPatterns = [/^127\./, /^10\./, /^172\.(1[6-9]|2[0-9]|3[01])\./, /^192\.168\./, /^169\.254\./, /^0\./, /^localhost$/i, /^\[::1\]$/];
+      if (blockedPatterns.some(p => p.test(parsedUrl.hostname))) {
+        return res.status(403).json({ error: "Blocked address" });
+      }
       const response = await fetch(url);
       if (!response.ok) {
         res.status(response.status).json({ error: "Upstream error" });
         return;
       }
       const contentType = response.headers.get("content-type") || "image/jpeg";
+      // Only allow image content types
+      if (!contentType.startsWith("image/")) {
+        return res.status(403).json({ error: "Non-image content type" });
+      }
       res.setHeader("Content-Type", contentType);
       res.setHeader("Cache-Control", "public, max-age=604800, immutable");
       const buffer = Buffer.from(await response.arrayBuffer());

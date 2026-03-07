@@ -1,25 +1,70 @@
 /**
  * Payment Webhook Handlers
  * 
- * Stubs for PSP webhooks (Moyasar, Tabby, Tamara).
+ * Handles PSP webhooks (Moyasar, Tabby, Tamara).
  * These update the payment_ledger and booking_extensions when payments complete.
  * 
- * Keys can be empty now — webhooks will only process if keys are configured.
+ * SECURITY: All webhooks require HMAC signature verification.
+ * If the webhook secret is not configured, the webhook rejects with 503.
  */
+import crypto from "crypto";
 import { getPool } from "./db";
 import { updateLedgerStatusSafe } from "./finance-registry";
 import { activateExtension } from "./renewal";
 import type { RowDataPacket } from "mysql2";
 import type { Request, Response } from "express";
 
+// ─── Shared HMAC Verification ──────────────────────────────────────
+function verifyHmacSha256(
+  rawBody: string | Buffer,
+  signature: string | undefined,
+  secret: string
+): boolean {
+  if (!signature || !secret) return false;
+  try {
+    // Strip "sha256=" prefix if present (Meta/Moyasar style)
+    const sig = signature.startsWith("sha256=") ? signature.slice(7) : signature;
+    const expected = crypto
+      .createHmac("sha256", secret)
+      .update(rawBody)
+      .digest("hex");
+    return crypto.timingSafeEqual(
+      Buffer.from(sig),
+      Buffer.from(expected)
+    );
+  } catch {
+    return false;
+  }
+}
+
+// Helper: activate renewal extension if payment was for a renewal
+async function tryActivateRenewalExtension(pool: any, ledgerEntryId: number) {
+  const [extRows] = await pool.query<RowDataPacket[]>(
+    "SELECT id FROM booking_extensions WHERE ledgerEntryId = ? AND status = 'PAYMENT_PENDING'",
+    [ledgerEntryId]
+  );
+  if (extRows[0]) {
+    await activateExtension(extRows[0].id);
+  }
+}
+
 // ─── Moyasar Webhook (mada + Apple Pay + Google Pay) ────────────────
 export async function handleMoyasarWebhook(req: Request, res: Response) {
   try {
+    // Verify HMAC signature — MANDATORY
+    const webhookSecret = process.env.MOYASAR_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      console.error("[Moyasar Webhook] MOYASAR_WEBHOOK_SECRET not configured — rejecting request");
+      return res.status(503).json({ error: "Webhook not configured" });
+    }
+    const signature = req.headers["x-moyasar-signature"] as string | undefined;
+    const rawBody = JSON.stringify(req.body);
+    if (!verifyHmacSha256(rawBody, signature, webhookSecret)) {
+      console.warn("[Moyasar Webhook] Invalid signature — rejecting");
+      return res.status(401).json({ error: "Invalid signature" });
+    }
+
     const { id, status, amount, source, metadata } = req.body;
-    
-    // Verify webhook signature (TODO: implement when keys are configured)
-    // const signature = req.headers['x-moyasar-signature'];
-    
     if (!id || !status) {
       return res.status(400).json({ error: "Missing required fields" });
     }
@@ -27,7 +72,6 @@ export async function handleMoyasarWebhook(req: Request, res: Response) {
     const pool = getPool();
     if (!pool) return res.status(500).json({ error: "Database not available" });
 
-    // Find ledger entry by providerRef
     const [rows] = await pool.query<RowDataPacket[]>(
       "SELECT * FROM payment_ledger WHERE providerRef = ? AND provider = 'moyasar'", [id]
     );
@@ -54,7 +98,6 @@ export async function handleMoyasarWebhook(req: Request, res: Response) {
         newStatus = "PENDING";
     }
 
-    // Determine payment method from source type
     let paymentMethod = "MADA_CARD";
     if (source?.type === "applepay") paymentMethod = "APPLE_PAY";
     else if (source?.type === "googlepay") paymentMethod = "GOOGLE_PAY";
@@ -67,15 +110,8 @@ export async function handleMoyasarWebhook(req: Request, res: Response) {
       webhookVerified: true,
     });
 
-    // If this was a renewal payment, activate the extension
     if (newStatus === "PAID") {
-      const [extRows] = await pool.query<RowDataPacket[]>(
-        "SELECT id FROM booking_extensions WHERE ledgerEntryId = ? AND status = 'PAYMENT_PENDING'",
-        [ledgerEntry.id]
-      );
-      if (extRows[0]) {
-        await activateExtension(extRows[0].id);
-      }
+      await tryActivateRenewalExtension(pool, ledgerEntry.id);
     }
 
     console.log(`[Moyasar Webhook] Updated ledger #${ledgerEntry.id} to ${newStatus}`);
@@ -89,8 +125,20 @@ export async function handleMoyasarWebhook(req: Request, res: Response) {
 // ─── Tabby Webhook ──────────────────────────────────────────────────
 export async function handleTabbyWebhook(req: Request, res: Response) {
   try {
+    // Verify HMAC signature — MANDATORY
+    const webhookSecret = process.env.TABBY_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      console.error("[Tabby Webhook] TABBY_WEBHOOK_SECRET not configured — rejecting request");
+      return res.status(503).json({ error: "Webhook not configured" });
+    }
+    const signature = req.headers["x-tabby-signature"] as string | undefined;
+    const rawBody = JSON.stringify(req.body);
+    if (!verifyHmacSha256(rawBody, signature, webhookSecret)) {
+      console.warn("[Tabby Webhook] Invalid signature — rejecting");
+      return res.status(401).json({ error: "Invalid signature" });
+    }
+
     const { id, status, payment } = req.body;
-    
     if (!id || !status) {
       return res.status(400).json({ error: "Missing required fields" });
     }
@@ -134,13 +182,8 @@ export async function handleTabbyWebhook(req: Request, res: Response) {
       webhookVerified: true,
     });
 
-    // Activate extension if renewal payment
     if (newStatus === "PAID") {
-      const [extRows] = await pool.query<RowDataPacket[]>(
-        "SELECT id FROM booking_extensions WHERE ledgerEntryId = ? AND status = 'PAYMENT_PENDING'",
-        [ledgerEntry.id]
-      );
-      if (extRows[0]) await activateExtension(extRows[0].id);
+      await tryActivateRenewalExtension(pool, ledgerEntry.id);
     }
 
     console.log(`[Tabby Webhook] Updated ledger #${ledgerEntry.id} to ${newStatus}`);
@@ -154,8 +197,20 @@ export async function handleTabbyWebhook(req: Request, res: Response) {
 // ─── Tamara Webhook ─────────────────────────────────────────────────
 export async function handleTamaraWebhook(req: Request, res: Response) {
   try {
+    // Verify HMAC signature — MANDATORY
+    const webhookSecret = process.env.TAMARA_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      console.error("[Tamara Webhook] TAMARA_WEBHOOK_SECRET not configured — rejecting request");
+      return res.status(503).json({ error: "Webhook not configured" });
+    }
+    const signature = req.headers["x-tamara-signature"] as string | undefined;
+    const rawBody = JSON.stringify(req.body);
+    if (!verifyHmacSha256(rawBody, signature, webhookSecret)) {
+      console.warn("[Tamara Webhook] Invalid signature — rejecting");
+      return res.status(401).json({ error: "Invalid signature" });
+    }
+
     const { order_id, event_type, data } = req.body;
-    
     if (!order_id || !event_type) {
       return res.status(400).json({ error: "Missing required fields" });
     }
@@ -199,13 +254,8 @@ export async function handleTamaraWebhook(req: Request, res: Response) {
       webhookVerified: true,
     });
 
-    // Activate extension if renewal payment
     if (newStatus === "PAID") {
-      const [extRows] = await pool.query<RowDataPacket[]>(
-        "SELECT id FROM booking_extensions WHERE ledgerEntryId = ? AND status = 'PAYMENT_PENDING'",
-        [ledgerEntry.id]
-      );
-      if (extRows[0]) await activateExtension(extRows[0].id);
+      await tryActivateRenewalExtension(pool, ledgerEntry.id);
     }
 
     console.log(`[Tamara Webhook] Updated ledger #${ledgerEntry.id} to ${newStatus}`);

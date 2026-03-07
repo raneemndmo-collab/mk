@@ -300,7 +300,7 @@ export const cmsRouterDefs = {
         if (input.folder) { conditions.push('folder = ?'); params.push(input.folder); }
         const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
         const offset = (input.page - 1) * input.limit;
-        const [rows] = await pool.execute(`SELECT * FROM cms_media ${where} ORDER BY createdAt DESC LIMIT ${input.limit} OFFSET ${offset}`, params);
+        const [rows] = await pool.execute(`SELECT * FROM cms_media ${where} ORDER BY createdAt DESC LIMIT ? OFFSET ?`, [...params, input.limit, offset]);
         const [countRows] = await pool.execute(`SELECT COUNT(*) as total FROM cms_media ${where}`, params);
         return { items: rows as any[], total: (countRows as any[])[0]?.total ?? 0 };
       }),

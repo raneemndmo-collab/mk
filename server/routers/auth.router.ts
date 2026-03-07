@@ -33,9 +33,16 @@ import {
 // Domain: auth
 // Extracted from server/routers.ts — DO NOT modify procedure names/shapes
 
+/** Strip passwordHash (and any other sensitive fields) before returning user to client */
+function sanitizeUser<T extends Record<string, any>>(user: T | null): Omit<T, 'passwordHash'> | null {
+  if (!user) return null;
+  const { passwordHash, ...safe } = user;
+  return safe as Omit<T, 'passwordHash'>;
+}
+
 export const authRouterDefs = {
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query(opts => sanitizeUser(opts.ctx.user)),
     logout: publicProcedure.mutation(async ({ ctx }) => {
       // Blacklist the current JWT so it cannot be reused after logout
       const cookies = ctx.req.headers.cookie;
@@ -75,7 +82,7 @@ export const authRouterDefs = {
         preferredLang: z.enum(["ar", "en"]).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const profileData: any = { ...input };
+        const profileData: any = sanitizeObject({ ...input });
         if (input.dateOfBirth) profileData.dateOfBirth = new Date(input.dateOfBirth);
         // Calculate profile completion
         const fields = ['name','phone','whatsapp','nationalId','nationality','address','emergencyContact','avatarUrl'];
@@ -87,11 +94,24 @@ export const authRouterDefs = {
         return { success: true };
       }),
     getFullProfile: protectedProcedure.query(async ({ ctx }) => {
-      return await db.getUserById(ctx.user.id);
+      const user = await db.getUserById(ctx.user.id);
+      return sanitizeUser(user);
     }),
     switchRole: protectedProcedure
       .input(z.object({ role: z.enum(["tenant", "landlord"]) }))
       .mutation(async ({ ctx, input }) => {
+        // Prevent admin from downgrading themselves via self-service
+        if (ctx.user.role === 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Admin users cannot switch roles via self-service. Use admin panel.' });
+        }
+        // Log role change for audit trail
+        logAudit({
+          userId: ctx.user.id,
+          action: 'role_switch',
+          entityType: 'user',
+          entityId: ctx.user.id,
+          details: { from: ctx.user.role, to: input.role },
+        });
         await db.updateUserRole(ctx.user.id, input.role);
         return { success: true };
       }),

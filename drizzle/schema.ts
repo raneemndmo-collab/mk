@@ -460,6 +460,7 @@ export const propertyManagers = mysqlTable("propertyManagers", {
   title: varchar("title", { length: 100 }).default("Property Manager"),
   titleAr: varchar("titleAr", { length: 100 }).default("مدير العقار"),
   editToken: varchar("editToken", { length: 64 }).unique(),
+  editTokenExpiresAt: timestamp("editTokenExpiresAt"),
   isActive: boolean("isActive").default(true),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

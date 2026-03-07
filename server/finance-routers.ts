@@ -14,6 +14,7 @@ import * as finance from "./finance-registry";
 import * as occupancy from "./occupancy";
 import * as renewal from "./renewal";
 import { isBreakglassAdmin } from "./breakglass";
+import { isBookingParticipant } from "./security";
 import { isFlagOn } from "./feature-flags";
 import { logAudit, computeChanges, getAuditLog } from "./audit-log";
 
@@ -401,7 +402,12 @@ export const financeRouter = router({
   renewals: router({
     checkEligibility: protectedProcedure
       .input(z.object({ bookingId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
+        // Verify the user is a participant in this booking (tenant/landlord) or admin
+        const booking = await finance.getLedgerEntryByBookingId(input.bookingId);
+        if (booking && !isBookingParticipant(ctx.user!, { tenantId: (booking as any).tenantId || 0, landlordId: (booking as any).landlordId || 0 }) && ctx.user!.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'You are not authorized to check this booking\'s renewal eligibility' });
+        }
         return renewal.checkRenewalEligibility(input.bookingId);
       }),
     request: protectedProcedure

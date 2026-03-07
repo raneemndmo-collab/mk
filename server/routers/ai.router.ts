@@ -48,14 +48,22 @@ export const aiRouterDefs = {
 
     deleteConversation: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        // Verify ownership: user can only delete their own conversations
+        const conversations = await db.getAiConversations(ctx.user.id);
+        const owns = conversations.some((c: any) => c.id === input.id);
+        if (!owns) throw new TRPCError({ code: "FORBIDDEN", message: "Cannot delete another user's conversation" });
         await db.deleteAiConversation(input.id);
         return { success: true };
       }),
 
     messages: protectedProcedure
       .input(z.object({ conversationId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
+        // Verify ownership: user can only view their own conversations
+        const conversations = await db.getAiConversations(ctx.user.id);
+        const owns = conversations.some((c: any) => c.id === input.conversationId);
+        if (!owns) throw new TRPCError({ code: "FORBIDDEN", message: "Cannot view another user's conversation" });
         return db.getAiMessages(input.conversationId);
       }),
 

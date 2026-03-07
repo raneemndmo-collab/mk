@@ -10,7 +10,41 @@
  */
 import type { Request, Response, NextFunction } from "express";
 
+/** Allowed CORS origins — add your production domains here */
+const ALLOWED_ORIGINS = new Set([
+  "https://monthlykey.com",
+  "https://www.monthlykey.com",
+  "https://mk.monthlykey.com",
+]);
+
+function isAllowedOrigin(origin: string | undefined): boolean {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  // Allow Railway preview deployments
+  if (origin.endsWith(".up.railway.app")) return true;
+  // Allow localhost in development
+  if (process.env.NODE_ENV !== "production") {
+    if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) return true;
+  }
+  return false;
+}
+
 export function securityHeaders(req: Request, res: Response, next: NextFunction): void {
+  // ─── CORS ─────────────────────────────────────────────────────────
+  const origin = req.headers.origin;
+  if (isAllowedOrigin(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin!);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+    res.setHeader("Access-Control-Max-Age", "86400");
+  }
+  // Handle preflight
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
+
   // ─── HSTS: Force HTTPS for 1 year ─────────────────────────────────
   if (process.env.NODE_ENV === "production") {
     res.setHeader(
@@ -40,8 +74,8 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
   // ─── Content Security Policy (Enforcing mode) ─────────────────────
   const csp = [
     "default-src 'self'",
-    // Scripts: self + Google Maps + Analytics + CDNs
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://cdn.jsdelivr.net https://unpkg.com",
+    // Scripts: self + Google Maps + Analytics + CDNs (removed unsafe-eval)
+    "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://cdn.jsdelivr.net https://unpkg.com",
     // Styles: self + Google Fonts + Leaflet CDN + inline (needed for React)
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
     // Fonts: self + Google Fonts
@@ -62,6 +96,8 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
     "worker-src 'self' blob:",
     // Manifest
     "manifest-src 'self'",
+    // Upgrade insecure requests in production
+    ...(process.env.NODE_ENV === "production" ? ["upgrade-insecure-requests"] : []),
   ].join("; ");
 
   // Use enforcing CSP in production, report-only in development

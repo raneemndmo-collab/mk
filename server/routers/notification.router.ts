@@ -398,8 +398,16 @@ export const notificationRouterDefs = {
         subject: z.string().min(3),
         message: z.string().min(10),
       }))
-      .mutation(async ({ input }) => {
-        const id = await db.createContactMessage(input);
+      .mutation(async ({ ctx, input }) => {
+        // Rate limit: 5 contact messages per IP per hour
+        const ip = getClientIP(ctx.req);
+        const allowed = await rateLimiter(ip, 'contact_submit', 5, 3600);
+        if (!allowed) {
+          throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Too many contact messages. Please try again later.' });
+        }
+        // Sanitize input
+        const sanitized = sanitizeObject(input);
+        const id = await db.createContactMessage(sanitized);
         // Notify owner about new contact message
         try {
           await notifyOwner({

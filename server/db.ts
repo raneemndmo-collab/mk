@@ -561,6 +561,14 @@ export async function getDb() {
           }
         }
       }
+      // Auto-migrate: property_managers editTokenExpiresAt (security fix)
+      try {
+        await _pool.execute("ALTER TABLE `property_managers` ADD COLUMN `editTokenExpiresAt` timestamp NULL DEFAULT NULL");
+        console.log("[Database] Added editTokenExpiresAt to property_managers");
+      } catch (e: any) {
+        if (e?.code === 'ER_DUP_FIELDNAME' || e?.errno === 1060) { /* already exists */ }
+        else console.warn("[Database] editTokenExpiresAt migration note:", e?.message?.substring(0, 120));
+      }
       // Auto-migrate: extend audit_log enums (migration 0025)
       try {
         await _pool.execute(`ALTER TABLE audit_log MODIFY COLUMN action ENUM('CREATE','UPDATE','ARCHIVE','RESTORE','DELETE','LINK_BEDS24','UNLINK_BEDS24','PUBLISH','UNPUBLISH','CONVERT','TEST','ENABLE','DISABLE','SEND','APPROVE','REJECT','REVIEW') NOT NULL`);
@@ -1809,7 +1817,16 @@ export async function getManagerByToken(token: string) {
   const db = await getDb();
   if (!db) return null;
   const result = await db.select().from(propertyManagers).where(eq(propertyManagers.editToken, token)).limit(1);
-  return result[0] || null;
+  const manager = result[0] || null;
+  // Check token expiry (24h)
+  if (manager && manager.editTokenExpiresAt) {
+    if (new Date() > new Date(manager.editTokenExpiresAt)) {
+      // Token expired — clear it and return null
+      await db.update(propertyManagers).set({ editToken: null, editTokenExpiresAt: null }).where(eq(propertyManagers.id, manager.id));
+      return null;
+    }
+  }
+  return manager;
 }
 
 export async function getManagerByEmail(email: string) {
@@ -1822,7 +1839,9 @@ export async function getManagerByEmail(email: string) {
 export async function setManagerEditToken(managerId: number, token: string) {
   const db = await getDb();
   if (!db) return;
-  await db.update(propertyManagers).set({ editToken: token }).where(eq(propertyManagers.id, managerId));
+  // Token expires in 24 hours
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  await db.update(propertyManagers).set({ editToken: token, editTokenExpiresAt: expiresAt }).where(eq(propertyManagers.id, managerId));
 }
 
 export async function getManagerWithProperties(managerId: number) {
