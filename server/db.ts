@@ -563,7 +563,7 @@ export async function getDb() {
       }
       // Auto-migrate: property_managers editTokenExpiresAt (security fix)
       try {
-        await _pool.execute("ALTER TABLE `property_managers` ADD COLUMN `editTokenExpiresAt` timestamp NULL DEFAULT NULL");
+        await _pool.execute("ALTER TABLE `propertyManagers` ADD COLUMN `editTokenExpiresAt` timestamp NULL DEFAULT NULL");
         console.log("[Database] Added editTokenExpiresAt to property_managers");
       } catch (e: any) {
         if (e?.code === 'ER_DUP_FIELDNAME' || e?.errno === 1060) { /* already exists */ }

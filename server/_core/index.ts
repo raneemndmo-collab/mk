@@ -129,15 +129,15 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "1mb", extended: true }));
   // Upload-specific routes: 10MB for base64 image/file uploads
   const uploadJsonParser = express.json({ limit: "10mb" });
-  app.use('/trpc/submission.uploadPhoto', uploadJsonParser);
-  app.use('/trpc/submission.create', uploadJsonParser);
-  app.use('/trpc/property.uploadImages', uploadJsonParser);
-  app.use('/trpc/property.update', uploadJsonParser);
-  app.use('/trpc/cms.mediaUpload', uploadJsonParser);
-  app.use('/trpc/manager.uploadPhoto', uploadJsonParser);
-  app.use('/trpc/manager.uploadSelfPhoto', uploadJsonParser);
-  app.use('/trpc/auth.updateProfile', uploadJsonParser);
-  app.use('/trpc/integration.kyc.submit', uploadJsonParser);
+  app.use('/api/trpc/submission.uploadPhoto', uploadJsonParser);
+  app.use('/api/trpc/submission.create', uploadJsonParser);
+  app.use('/api/trpc/property.uploadImages', uploadJsonParser);
+  app.use('/api/trpc/property.update', uploadJsonParser);
+  app.use('/api/trpc/cms.mediaUpload', uploadJsonParser);
+  app.use('/api/trpc/manager.uploadPhoto', uploadJsonParser);
+  app.use('/api/trpc/manager.uploadSelfPhoto', uploadJsonParser);
+  app.use('/api/trpc/auth.updateProfile', uploadJsonParser);
+  app.use('/api/trpc/integration.kyc.submit', uploadJsonParser);
 
   // Serve uploaded files from local storage
   const uploadDir = path.resolve(process.env.UPLOAD_DIR || "uploads");
