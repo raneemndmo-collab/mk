@@ -28,6 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
+import IdentityVerification from "@/components/IdentityVerification";
 
 /* ─── Bilingual status badge helper ─── */
 const statusBadge = (status: string, lang: string) => {
@@ -459,6 +460,11 @@ export default function TenantDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Identity Verification Section */}
+                <IdentityVerification user={user} />
+
+                <Separator />
+
                 {/* Verification Status Badges */}
                 <div className="bg-muted/20 rounded-xl p-4 border">
                   <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm section-header-row">
@@ -576,30 +582,6 @@ export default function TenantDashboard() {
                     <div className="space-y-2 sm:col-span-2">
                       <Label>{isAr ? "العنوان" : "Address"}</Label>
                       <Input value={profileForm.address} onChange={(e) => setProfileForm(p => ({ ...p, address: e.target.value }))} placeholder={isAr ? "العنوان الكامل" : "Full address"} />
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Identity Information */}
-                <div>
-                  <h4 className="font-semibold mb-3 flex items-center gap-2 section-header-row">
-                    <FileText className="h-4 w-4 text-[#3ECFC0] shrink-0" />
-                    {isAr ? "معلومات الهوية" : "Identity Information"}
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>{isAr ? "رقم الهوية / الإقامة" : "National ID / Iqama"}</Label>
-                      <Input dir="ltr" value={profileForm.nationalId} onChange={(e) => setProfileForm(p => ({ ...p, nationalId: e.target.value }))} placeholder="1xxxxxxxxx" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{isAr ? "تاريخ الميلاد" : "Date of Birth"}</Label>
-                      <Input type="date" dir="ltr" value={profileForm.dateOfBirth} onChange={(e) => setProfileForm(p => ({ ...p, dateOfBirth: e.target.value }))} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{isAr ? "الجنسية" : "Nationality"}</Label>
-                      <Input value={profileForm.nationality} onChange={(e) => setProfileForm(p => ({ ...p, nationality: e.target.value }))} placeholder={isAr ? "سعودي" : "Saudi"} />
                     </div>
                   </div>
                 </div>

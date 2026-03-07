@@ -543,6 +543,24 @@ export async function getDb() {
       } catch (e: any) {
         console.warn("[Database] collections tables note:", e?.message?.substring(0, 120));
       }
+      // Auto-migrate: user profile type fields (userType, residentNo, passportNo)
+      const userProfileTypeColumns = [
+        "ALTER TABLE `users` ADD COLUMN `userType` enum('saudi','resident','visitor') DEFAULT NULL",
+        "ALTER TABLE `users` ADD COLUMN `residentNo` varchar(20) DEFAULT NULL",
+        "ALTER TABLE `users` ADD COLUMN `passportNo` varchar(50) DEFAULT NULL",
+      ];
+      for (const sql of userProfileTypeColumns) {
+        try {
+          await _pool.execute(sql);
+          console.log(`[Database] User profile migration applied: ${sql.substring(0, 60)}...`);
+        } catch (e: any) {
+          if (e?.code === 'ER_DUP_FIELDNAME' || e?.errno === 1060) {
+            // Column already exists
+          } else {
+            console.warn(`[Database] User profile migration note:`, e?.message?.substring(0, 120));
+          }
+        }
+      }
       // Auto-migrate: extend audit_log enums (migration 0025)
       try {
         await _pool.execute(`ALTER TABLE audit_log MODIFY COLUMN action ENUM('CREATE','UPDATE','ARCHIVE','RESTORE','DELETE','LINK_BEDS24','UNLINK_BEDS24','PUBLISH','UNPUBLISH','CONVERT','TEST','ENABLE','DISABLE','SEND','APPROVE','REJECT','REVIEW') NOT NULL`);
