@@ -46,14 +46,21 @@ const getArabicRejectionReason = (reason: string) =>
 const statusBadge = (status: string, lang: string) => {
   const map: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string; labelAr: string }> = {
     pending: { variant: "secondary", label: "Pending Review", labelAr: "بانتظار المراجعة" },
+    pending_payment: { variant: "outline", label: "Pending Payment", labelAr: "بانتظار الدفع" },
     approved: { variant: "outline", label: "Awaiting Payment", labelAr: "بانتظار الدفع" },
     active: { variant: "default", label: "Active", labelAr: "نشط" },
     rejected: { variant: "destructive", label: "Rejected", labelAr: "مرفوض" },
     cancelled: { variant: "destructive", label: "Cancelled", labelAr: "ملغي" },
+    refunded: { variant: "destructive", label: "Refunded", labelAr: "مسترد" },
     completed: { variant: "outline", label: "Completed", labelAr: "مكتمل" },
     submitted: { variant: "secondary", label: "Submitted", labelAr: "تم الإرسال" },
     acknowledged: { variant: "secondary", label: "Acknowledged", labelAr: "تم الاستلام" },
     in_progress: { variant: "default", label: "In Progress", labelAr: "قيد التنفيذ" },
+    paid: { variant: "default", label: "Paid", labelAr: "مدفوع" },
+    open: { variant: "destructive", label: "Open", labelAr: "مفتوح" },
+    assigned: { variant: "secondary", label: "Assigned", labelAr: "تم التعيين" },
+    resolved: { variant: "default", label: "Resolved", labelAr: "تم الحل" },
+    closed: { variant: "secondary", label: "Closed", labelAr: "مغلق" },
   };
   const s = map[status] || { variant: "secondary" as const, label: status, labelAr: status };
   return <Badge variant={s.variant}>{lang === "ar" ? s.labelAr : s.label}</Badge>;
@@ -168,19 +175,26 @@ export default function TenantDashboard() {
         </div>
 
         <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); window.history.replaceState(null, "", `/tenant?tab=${val}`); }} className="space-y-6">
-          {/* ─── Tab Navigation ─── */}
+          {/* ─── Tab Navigation — Grouped logically ─── */}
           <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-            <TabsList className="inline-flex h-auto gap-1 p-1 w-max min-w-full sm:min-w-0 sm:flex-wrap">
+            <TabsList className="inline-flex h-auto gap-0.5 p-1 w-max min-w-full sm:min-w-0 sm:flex-wrap">
+              {/* Group 1: Rental & Financial */}
               <TabsTrigger value="bookings" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><Calendar className="h-4 w-4 shrink-0" />{t("dashboard.myBookings")}</TabsTrigger>
               <TabsTrigger value="payments" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><CreditCard className="h-4 w-4 shrink-0" />{t("dashboard.myPayments")}</TabsTrigger>
-              <TabsTrigger value="favorites" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><Heart className="h-4 w-4 shrink-0" />{t("dashboard.favorites")}</TabsTrigger>
+              <TabsTrigger value="inspections" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><Eye className="h-4 w-4 shrink-0" />{isAr ? "المعاينة" : "Inspections"}</TabsTrigger>
+              <span className="w-px h-6 bg-border/60 mx-1 self-center shrink-0 hidden sm:block" />
+              {/* Group 2: Property Services & Maintenance */}
               <TabsTrigger value="maintenance" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><Wrench className="h-4 w-4 shrink-0" />{t("dashboard.maintenance")}</TabsTrigger>
-              <TabsTrigger value="notifications" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><Bell className="h-4 w-4 shrink-0" />{t("nav.notifications")}</TabsTrigger>
-              <TabsTrigger value="profile" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><User className="h-4 w-4 shrink-0" />{isAr ? "الملف الشخصي" : "Profile"}</TabsTrigger>
-              <TabsTrigger value="inspections" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><Eye className="h-4 w-4 shrink-0" />{isAr ? "طلبات المعاينة" : "Inspections"}</TabsTrigger>
+              <TabsTrigger value="emergency" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><AlertCircle className="h-4 w-4 shrink-0" />{isAr ? "طوارئ" : "Emergency"}</TabsTrigger>
               <TabsTrigger value="services" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><Building2 className="h-4 w-4 shrink-0" />{isAr ? "الخدمات" : "Services"}</TabsTrigger>
-              <TabsTrigger value="emergency" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><AlertCircle className="h-4 w-4 shrink-0" />{isAr ? "طوارئ الصيانة" : "Emergency"}</TabsTrigger>
+              <span className="w-px h-6 bg-border/60 mx-1 self-center shrink-0 hidden sm:block" />
+              {/* Group 3: Communication */}
+              <TabsTrigger value="notifications" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><Bell className="h-4 w-4 shrink-0" />{t("nav.notifications")}</TabsTrigger>
               <TabsTrigger value="enquiries" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><MessageSquare className="h-4 w-4 shrink-0" />{isAr ? "الاستفسارات" : "Enquiries"}</TabsTrigger>
+              <span className="w-px h-6 bg-border/60 mx-1 self-center shrink-0 hidden sm:block" />
+              {/* Group 4: Account & Preferences */}
+              <TabsTrigger value="profile" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><User className="h-4 w-4 shrink-0" />{isAr ? "الملف الشخصي" : "Profile"}</TabsTrigger>
+              <TabsTrigger value="favorites" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><Heart className="h-4 w-4 shrink-0" />{t("dashboard.favorites")}</TabsTrigger>
               <TabsTrigger value="hidden" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap"><EyeOff className="h-4 w-4 shrink-0" />{isAr ? "المخفية" : "Hidden"}</TabsTrigger>
             </TabsList>
           </div>
@@ -377,7 +391,8 @@ export default function TenantDashboard() {
             ) : payments.data && payments.data.length > 0 ? (
               <div className="space-y-3">
                 {payments.data.map((p) => (
-                  <Card key={p.id}>
+                  <Card key={p.id} className={`${ /* UI Fix [5] — Visually dim cancelled/refunded payments */
+                    p.status === 'cancelled' || p.status === 'refunded' ? 'opacity-60 border-red-900/40 bg-red-950/10' : ''}`}>
                     <CardContent className="p-4 flex items-center justify-between payment-row">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap badge-row">
@@ -388,7 +403,8 @@ export default function TenantDashboard() {
                           {new Date(p.createdAt).toLocaleDateString(isAr ? "ar-SA" : "en-US")}
                         </div>
                       </div>
-                      <div className="font-bold text-primary shrink-0 ms-4"><span className="currency-amount">{Number(p.amount).toLocaleString()}</span> {t("payment.sar")}</div>
+                      <div className={`font-bold shrink-0 ms-4 ${ /* UI Fix [2] — Strikethrough for cancelled/refunded */
+                        p.status === 'cancelled' || p.status === 'refunded' ? 'text-zinc-500 line-through text-sm' : 'text-primary'}`}><span className="currency-amount">{Number(p.amount).toLocaleString()}</span> {t("payment.sar")}</div>
                     </CardContent>
                   </Card>
                 ))}
@@ -429,7 +445,9 @@ export default function TenantDashboard() {
             ) : maintenance.data && maintenance.data.length > 0 ? (
               <div className="space-y-3">
                 {maintenance.data.map((m) => (
-                  <Card key={m.id}>
+                  <Card key={m.id} className={`${ /* UI Fix [5] — Dim cancelled maintenance */
+                    m.status === 'cancelled' ? 'opacity-60 border-red-900/40 bg-red-950/10' :
+                    m.status === 'completed' ? 'opacity-70 border-green-900/30' : ''}`}>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-2 flex-wrap gap-2 maintenance-row">
                         <div className="flex items-center gap-2 flex-wrap badge-row">
