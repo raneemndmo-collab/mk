@@ -6,6 +6,48 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
 import { prerenderMiddleware } from "../middleware/prerender";
+import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
+import { eq } from "drizzle-orm";
+import { integrationConfigs } from "../../drizzle/schema";
+import { ENV } from "./env";
+
+// ── GA4 measurement ID cache (loaded from DB, refreshed every 5 min) ──
+let ga4MeasurementId: string = '';
+let ga4CacheExpiry = 0;
+
+async function getGA4MeasurementId(): Promise<string> {
+  const now = Date.now();
+  if (ga4MeasurementId && now < ga4CacheExpiry) return ga4MeasurementId;
+  try {
+    const pool = mysql.createPool(ENV.databaseUrl);
+    const db = drizzle(pool);
+    const [row] = await db.select().from(integrationConfigs)
+      .where(eq(integrationConfigs.integrationKey, 'ga4'));
+    await pool.end();
+    if (row?.isEnabled && row.configJson) {
+      const config = JSON.parse(row.configJson);
+      ga4MeasurementId = config.measurementId || '';
+    } else {
+      ga4MeasurementId = '';
+    }
+    ga4CacheExpiry = now + 5 * 60 * 1000; // 5 min cache
+  } catch (err) {
+    console.error('[GA4] Failed to load measurement ID from DB:', err);
+  }
+  return ga4MeasurementId;
+}
+
+// Inject GA4 measurement ID into HTML template, replacing %VITE_GA_MEASUREMENT_ID%
+function injectGA4IntoHtml(html: string, measurementId: string): string {
+  if (!measurementId) {
+    // Remove the GA4 script block entirely if no measurement ID
+    return html
+      .replace(/<!-- Google tag \(gtag\.js\) -->\s*<script[^>]*googletagmanager[^<]*<\/script>\s*<script>[\s\S]*?<\/script>/m, '<!-- GA4 not configured -->')
+      .replace(/%VITE_GA_MEASUREMENT_ID%/g, '');
+  }
+  return html.replace(/%VITE_GA_MEASUREMENT_ID%/g, measurementId);
+}
 
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
@@ -44,7 +86,10 @@ export async function setupVite(app: Express, server: Server) {
         `src="/src/main.tsx?v=${nanoid()}"`
       );
       const page = await vite.transformIndexHtml(url, template);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+      // Inject GA4 measurement ID from DB at runtime
+      const gaId = await getGA4MeasurementId();
+      const finalPage = injectGA4IntoHtml(page, gaId);
+      res.status(200).set({ "Content-Type": "text/html" }).end(finalPage);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
       next(e);
@@ -124,12 +169,15 @@ export function serveStatic(app: Express) {
   });
 
   // SPA fallback: serve index.html for all non-file requests
-  app.use("*", (_req, res) => {
+  app.use("*", async (_req, res) => {
     if (htmlTemplate) {
+      // Inject GA4 measurement ID from DB at runtime
+      const gaId = await getGA4MeasurementId();
+      const finalHtml = injectGA4IntoHtml(htmlTemplate, gaId);
       res.status(200).set({
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
-      }).send(htmlTemplate);
+      }).send(finalHtml);
     } else {
       res.sendFile(indexPath);
     }

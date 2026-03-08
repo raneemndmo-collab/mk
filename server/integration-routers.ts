@@ -428,6 +428,30 @@ export const integrationRouter = router({
             }
             break;
           }
+          case 'ga4': {
+            const measurementId = config.measurementId;
+            if (!measurementId) {
+              testResult = { success: false, message: 'Measurement ID is required' };
+              break;
+            }
+            // Validate measurement ID format (G-XXXXXXXXXX)
+            if (!/^G-[A-Z0-9]+$/i.test(measurementId)) {
+              testResult = { success: false, message: `Invalid Measurement ID format: ${measurementId}. Expected G-XXXXXXXXXX` };
+              break;
+            }
+            // Verify the GA4 gtag.js endpoint is reachable
+            try {
+              const gaResp = await fetch(`https://www.googletagmanager.com/gtag/js?id=${measurementId}`, { method: 'HEAD' });
+              if (gaResp.ok) {
+                testResult = { success: true, message: `GA4 configured: ${measurementId} — gtag.js endpoint reachable` };
+              } else {
+                testResult = { success: false, message: `GA4 gtag.js returned HTTP ${gaResp.status} for ${measurementId}` };
+              }
+            } catch (e: any) {
+              testResult = { success: false, message: `GA4 connectivity test failed: ${e.message}` };
+            }
+            break;
+          }
           default:
             testResult = { success: false, message: `No test available for ${item.integrationKey}` };
         }
