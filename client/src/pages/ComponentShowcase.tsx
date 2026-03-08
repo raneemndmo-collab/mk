@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import {
   Accordion,
   AccordionContent,
@@ -227,6 +228,7 @@ export default function ComponentsShowcase() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <SEOHead title="Component Showcase | المفتاح الشهري - Monthly Key" />
       <main className="container max-w-6xl mx-auto">
         <div className="space-y-2 justify-between flex">
           <h2 className="text-3xl font-bold tracking-tight mb-6">

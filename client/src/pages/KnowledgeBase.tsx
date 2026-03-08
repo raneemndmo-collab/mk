@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
@@ -207,6 +208,7 @@ export default function KnowledgeBase() {
   if (authLoading) {
     return (
     <DashboardLayout>
+      <SEOHead title="Knowledge Base | المفتاح الشهري - Monthly Key" />
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-[#3ECFC0] border-t-transparent rounded-full" />
       </div>

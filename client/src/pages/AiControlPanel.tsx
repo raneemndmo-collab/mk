@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import { useState, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
@@ -24,6 +25,7 @@ export default function AiControlPanel() {
 
   return (
     <div className="min-h-screen bg-background" dir={dir}>
+      <SEOHead title="AI Control Panel | المفتاح الشهري - Monthly Key" />
       {/* Header */}
       <div className="border-b bg-card">
         <div className="container py-4">

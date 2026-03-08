@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import { useLocation, useSearch } from "wouter";
 import { useI18n } from "@/lib/i18n";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +16,7 @@ export default function PaymentCancel() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <SEOHead title="Payment Cancelled | المفتاح الشهري - Monthly Key" />
       <Navbar />
       <div className="flex-1 flex items-center justify-center p-4">
         <Card className="max-w-md w-full">

@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -323,6 +324,7 @@ export default function AdminCMS() {
 
   return (
     <DashboardLayout>
+      <SEOHead title="Content Management | المفتاح الشهري - Monthly Key" />
       <div className="bg-background w-full">
         {/* Header */}
         <div className="bg-card border-b">

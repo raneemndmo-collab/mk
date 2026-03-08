@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
 import Navbar from "@/components/Navbar";
@@ -338,6 +339,7 @@ export default function MapViewPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEOHead title="Map View | المفتاح الشهري - Monthly Key" />
       <Navbar />
 
       {/* Header bar */}

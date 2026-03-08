@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/lib/i18n";
@@ -49,6 +50,7 @@ export default function AdminFeatureFlags() {
   if (isLoading) {
     return (
       <DashboardLayout>
+      <SEOHead title="Feature Flags | المفتاح الشهري - Monthly Key" />
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>

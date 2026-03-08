@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import DashboardLayout from "@/components/DashboardLayout";
 /**
  * Admin Hardening Knowledge Base
@@ -69,6 +70,7 @@ function SectionCard({ section, onClick }: { section: Section; onClick: () => vo
       className="group cursor-pointer transition-all duration-200 hover:shadow-lg hover:shadow-[#3ECFC0]/5 hover:border-[#3ECFC0]/30 bg-card"
       onClick={onClick}
     >
+      <SEOHead title="Hardening KB | المفتاح الشهري - Monthly Key" />
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

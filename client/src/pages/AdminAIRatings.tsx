@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,7 @@ export default function AdminAIRatings() {
   if (!user || user.role !== "admin") {
     return (
       <div className="min-h-screen flex items-center justify-center">
+      <SEOHead title="AI Ratings | المفتاح الشهري - Monthly Key" />
         <p className="text-muted-foreground">{isAr ? "غير مصرح" : "Unauthorized"}</p>
       </div>
     );

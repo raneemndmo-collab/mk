@@ -532,9 +532,9 @@ export default function Home() {
   };
 
   const stats = [
-    { value: s("stats.properties", "500+"), labelAr: s("stats.propertiesLabelAr", "عقار متاح"), labelEn: s("stats.propertiesLabelEn", "Properties Available") },
-    { value: s("stats.tenants", "1000+"), labelAr: s("stats.tenantsLabelAr", "مستأجر سعيد"), labelEn: s("stats.tenantsLabelEn", "Happy Tenants") },
-    { value: s("stats.cities", "50+"), labelAr: s("stats.citiesLabelAr", "مدينة"), labelEn: s("stats.citiesLabelEn", "Cities") },
+    { value: s("stats.properties", "100+"), labelAr: s("stats.propertiesLabelAr", "عقار متاح"), labelEn: s("stats.propertiesLabelEn", "Properties Available") },
+    { value: s("stats.tenants", "200+"), labelAr: s("stats.tenantsLabelAr", "مستأجر سعيد"), labelEn: s("stats.tenantsLabelEn", "Happy Tenants") },
+    { value: s("stats.cities", "8+"), labelAr: s("stats.citiesLabelAr", "مدينة"), labelEn: s("stats.citiesLabelEn", "Cities") },
     { value: s("stats.satisfaction", "98%"), labelAr: s("stats.satisfactionLabelAr", "رضا العملاء"), labelEn: s("stats.satisfactionLabelEn", "Satisfaction Rate") },
   ];
 

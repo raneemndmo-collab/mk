@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/lib/i18n";
@@ -142,6 +143,7 @@ export default function AdminBookings() {
 
   return (
     <DashboardLayout>
+      <SEOHead title="Bookings Management | المفتاح الشهري - Monthly Key" />
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">

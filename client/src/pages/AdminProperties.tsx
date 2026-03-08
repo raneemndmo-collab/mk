@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import { useState, useRef, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
@@ -31,6 +32,7 @@ function AdminPropertyThumbnail({ photos, propertyType, isAr = true }: { photos?
   if (!primaryUrl) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted gap-1">
+      <SEOHead title="Properties Management | المفتاح الشهري - Monthly Key" />
         <Building2 className="h-6 w-6 text-muted-foreground/40" />
         <span className="text-[10px] text-muted-foreground/60">{isAr ? "لا توجد صور" : "No photos"}</span>
       </div>

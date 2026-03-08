@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -96,6 +97,7 @@ export default function AdminDbStatus() {
 
   return (
     <DashboardLayout>
+      <SEOHead title="Database Status | المفتاح الشهري - Monthly Key" />
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

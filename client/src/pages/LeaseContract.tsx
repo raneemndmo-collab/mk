@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/lib/i18n";
@@ -59,6 +60,7 @@ export default function LeaseContract() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col" dir={lang === "ar" ? "rtl" : "ltr"}>
+      <SEOHead title="Lease Contract | المفتاح الشهري - Monthly Key" />
       <Navbar />
       <main className="flex-1 container py-8">
         <Button

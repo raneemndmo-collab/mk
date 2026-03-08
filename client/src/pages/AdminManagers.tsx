@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
@@ -160,6 +161,7 @@ export default function AdminManagers() {
   if (user?.role !== "admin") {
     return (
     <DashboardLayout>
+      <SEOHead title="Property Managers | المفتاح الشهري - Monthly Key" />
       <div className="min-h-screen flex flex-col">
 <div className="container py-20 text-center">
           <Shield className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />

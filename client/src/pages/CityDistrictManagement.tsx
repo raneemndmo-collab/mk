@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -279,6 +280,7 @@ export default function CityDistrictManagement() {
   if (!user || user.role !== "admin") {
     return (
     <DashboardLayout>
+      <SEOHead title="City & District Management | المفتاح الشهري - Monthly Key" />
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">{isAr ? "غير مصرح" : "Unauthorized"}</p>
       </div>

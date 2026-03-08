@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/lib/i18n";
@@ -112,6 +113,7 @@ export default function AdminShomoos() {
 
   return (
     <DashboardLayout>
+      <SEOHead title="Shomoos Integration | المفتاح الشهري - Monthly Key" />
       <div className="space-y-6 max-w-5xl mx-auto" dir={isAr ? "rtl" : "ltr"}>
         {/* Header */}
         <div className="flex items-center justify-between">

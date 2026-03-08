@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { normalizeImageUrl, BROKEN_IMAGE_PLACEHOLDER } from "@/lib/image-utils";
@@ -54,6 +55,7 @@ export default function AdminSubmissions() {
 
   return (
     <DashboardLayout>
+      <SEOHead title="Submissions | المفتاح الشهري - Monthly Key" />
       <div className="space-y-6">
         {/* Header */}
         <div>

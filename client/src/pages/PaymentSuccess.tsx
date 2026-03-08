@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import { useEffect, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -51,6 +52,7 @@ export default function PaymentSuccess() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <SEOHead title="Payment Successful | المفتاح الشهري - Monthly Key" />
       <Navbar />
       <div className="flex-1 flex items-center justify-center p-4">
         <Card className="max-w-md w-full">

@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
@@ -80,6 +81,7 @@ function PermissionMatrix({ selected, onChange }: { selected: string[]; onChange
 
   return (
     <div className="space-y-2">
+      <SEOHead title="Permissions | المفتاح الشهري - Monthly Key" />
       {ALL_PERMISSIONS.map(group => {
         const isExpanded = expandedGroups.includes(group.group);
         const allSelected = group.items.every(i => selected.includes(i.key));

@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
 import Navbar from "@/components/Navbar";
@@ -42,6 +43,7 @@ export default function AgentProfile() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
+      <SEOHead title="Agent Profile | المفتاح الشهري - Monthly Key" />
         <Navbar />
         <div className="container py-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

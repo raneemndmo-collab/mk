@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/lib/i18n";
@@ -102,6 +103,7 @@ export default function AdminIntegrations() {
   if (isLoading) {
     return (
       <DashboardLayout>
+      <SEOHead title="Integrations | المفتاح الشهري - Monthly Key" />
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>

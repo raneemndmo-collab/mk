@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
@@ -163,6 +164,7 @@ export default function AdminSettings() {
   if (!user || user.role !== "admin") {
     return (
       <div className="min-h-screen flex items-center justify-center">
+      <SEOHead title="Settings | المفتاح الشهري - Monthly Key" />
         <p className="text-lg text-muted-foreground">{lang === "ar" ? "غير مصرح" : "Unauthorized"}</p>
       </div>
     );

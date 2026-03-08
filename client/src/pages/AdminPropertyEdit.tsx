@@ -1,3 +1,4 @@
+import SEOHead from "@/components/SEOHead";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -72,6 +73,7 @@ function SortablePhoto({ id, url, index, onRemove, onSetCover, isAr }: {
 
   return (
     <div ref={setNodeRef} style={style} className="relative group rounded-lg overflow-hidden border aspect-square">
+      <SEOHead title="Edit Property | المفتاح الشهري - Monthly Key" />
       <img loading="lazy" src={normalizeImageUrl(url)} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = BROKEN_IMAGE_PLACEHOLDER; }} />
       {/* Drag handle */}
       <div
