@@ -53,14 +53,12 @@ export default defineConfig({
           if (id.includes('node_modules/lucide-react/')) {
             return 'vendor-icons';
           }
-          // Admin pages chunk
-          if (id.includes('/pages/Admin') || id.includes('/pages/CityDistrict') || id.includes('/pages/AiControl')) {
-            return 'admin';
-          }
-          // Dashboard pages chunk
-          if (id.includes('/pages/TenantDashboard') || id.includes('/pages/LandlordDashboard') || id.includes('/pages/Messages')) {
-            return 'dashboard';
-          }
+          // Admin and dashboard pages are NOT grouped here — they rely on
+          // React.lazy() dynamic imports in App.tsx so Vite produces separate
+          // async chunks that are only fetched when the user navigates to them.
+          // Grouping them into manualChunks caused Vite to add modulepreload
+          // hints in the HTML, forcing every visitor (including mobile homepage
+          // users) to download ~2MB of admin/dashboard JS upfront.
         },
       },
     },
