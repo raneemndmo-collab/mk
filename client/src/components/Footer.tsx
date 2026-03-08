@@ -82,8 +82,8 @@ export default function Footer() {
                   </a>
                 )}
                 {phone && (
-                  <a href={`tel:${phone}`} className="flex items-center gap-2 hover:text-[#3ECFC0] transition-colors" dir="ltr">
-                    <Phone className="h-3.5 w-3.5 shrink-0 text-[#3ECFC0]/50" /> {phone}
+                  <a href={`tel:${phone}`} className="flex items-center gap-2 hover:text-[#3ECFC0] transition-colors">
+                    <Phone className="h-3.5 w-3.5 shrink-0 text-[#3ECFC0]/50" /> <span dir="ltr">{phone}</span>
                   </a>
                 )}
                 {address && (
