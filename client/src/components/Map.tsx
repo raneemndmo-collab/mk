@@ -359,13 +359,13 @@ export function MapView({
         <div className="absolute inset-0 flex items-center justify-center bg-muted/50 rounded-lg">
           <div className="flex flex-col items-center gap-2">
             <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-muted-foreground">جاري تحميل الخريطة...</span>
+            <span className="text-sm text-muted-foreground">{document.documentElement.lang === "ar" ? "جاري تحميل الخريطة..." : "Loading map..."}</span>
           </div>
         </div>
       )}
       {!loading && providerUsed === "leaflet" && !USE_GOOGLE_MAPS && (
         <div className="absolute bottom-2 left-2 bg-background/80 backdrop-blur-sm text-xs text-muted-foreground px-2 py-1 rounded z-[1000]">
-          OpenStreetMap • Google Maps غير مُفعّل حالياً
+          {document.documentElement.lang === "ar" ? "OpenStreetMap • Google Maps غير مُفعّل حالياً" : "OpenStreetMap • Google Maps not activated"}
         </div>
       )}
     </div>

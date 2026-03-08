@@ -160,7 +160,7 @@ export default function PropertyDetail() {
         <div style="display:flex;gap:12px;font-size:12px;color:#555;margin-bottom:8px;">
           ${prop.bedrooms != null ? `<span>🛏 ${prop.bedrooms} ${bedsLabel}</span>` : ""}
           ${prop.bathrooms != null ? `<span>🚿 ${prop.bathrooms} ${bathsLabel}</span>` : ""}
-          ${prop.sizeSqm != null ? `<span>📐 ${prop.sizeSqm} ${sqmLabel}</span>` : ""}
+          ${prop.sizeSqm != null && prop.sizeSqm >= 5 ? `<span>📐 ${prop.sizeSqm} ${sqmLabel}</span>` : ""}
         </div>
         <div style="background:linear-gradient(135deg,#0B1E2D,#132d42);color:#3ECFC0;padding:8px 12px;border-radius:8px;text-align:center;">
           <span style="font-size:18px;font-weight:700;">${rentText}</span>
@@ -232,8 +232,8 @@ export default function PropertyDetail() {
   const _locationStr = [city, district].filter(Boolean).join(lang === "ar" ? " — " : " - ");
   const _priceStr = `${Number(prop.monthlyRent).toLocaleString()} ${lang === "ar" ? "ر.س" : "SAR"}`;
   const _seoDesc = lang === "ar"
-    ? `${_typeLabel} للإيجار الشهري في ${_locationStr || "السعودية"} | ${_priceStr}/شهر${prop.bedrooms ? ` • ${prop.bedrooms} غرف` : ""}${prop.bathrooms ? ` • ${prop.bathrooms} حمامات` : ""}${prop.sizeSqm ? ` • ${prop.sizeSqm} م²` : ""}`
-    : `${_typeLabel} for monthly rent in ${_locationStr || "Saudi Arabia"} | ${_priceStr}/month${prop.bedrooms ? ` • ${prop.bedrooms} beds` : ""}${prop.bathrooms ? ` • ${prop.bathrooms} baths` : ""}${prop.sizeSqm ? ` • ${prop.sizeSqm} sqm` : ""}`;
+    ? `${_typeLabel} للإيجار الشهري في ${_locationStr || "السعودية"} | ${_priceStr}/شهر${prop.bedrooms ? ` • ${prop.bedrooms} غرف` : ""}${prop.bathrooms ? ` • ${prop.bathrooms} حمامات` : ""}${prop.sizeSqm && prop.sizeSqm >= 5 ? ` • ${prop.sizeSqm} م²` : ""}`
+    : `${_typeLabel} for monthly rent in ${_locationStr || "Saudi Arabia"} | ${_priceStr}/month${prop.bedrooms ? ` • ${prop.bedrooms} beds` : ""}${prop.bathrooms ? ` • ${prop.bathrooms} baths` : ""}${prop.sizeSqm && prop.sizeSqm >= 5 ? ` • ${prop.sizeSqm} sqm` : ""}`;
   const _seoDescAr = `${_propertyTypeAr[prop.propertyType] || prop.propertyType} للإيجار الشهري في ${[prop.cityAr, prop.districtAr].filter(Boolean).join(" — ") || "السعودية"} | ${Number(prop.monthlyRent).toLocaleString()} ر.س/شهر`;
   const _ogImage = photos.length > 0 ? photos[0] : `https://monthlykey.com/api/og/property/${prop.id}.png`;
   const _propertyJsonLd = {
@@ -559,7 +559,7 @@ export default function PropertyDetail() {
                   <div><div className="text-sm text-muted-foreground">{t("search.bathrooms")}</div><div className="font-semibold text-foreground">{prop.bathrooms}</div></div>
                 </CardContent></Card>
               )}
-              {prop.sizeSqm != null && (
+              {prop.sizeSqm != null && prop.sizeSqm >= 5 && (
                 <Card><CardContent className="p-4 flex items-center gap-3">
                   <Maximize2 className="h-5 w-5 text-primary" />
                   <div><div className="text-sm text-muted-foreground">{t("property.size")}</div><div className="font-semibold text-foreground">{prop.sizeSqm} {t("property.sqm")}</div></div>
@@ -908,7 +908,7 @@ export default function PropertyDetail() {
                           {` (${calcConfig.data.serviceFeeRate}%)`}
                         </span>
                         <span className="font-medium text-foreground">
-                          {Math.round(Number(prop.monthlyRent) * (calcConfig.data.serviceFeeRate / 100)).toLocaleString()} {t("payment.sar")}
+                          {_serviceFeeAmt.toLocaleString()} {t("payment.sar")}
                         </span>
                       </div>
                     )}
@@ -920,8 +920,8 @@ export default function PropertyDetail() {
                           {lang === "ar" ? (calcConfig.data.labels?.vatAr || "ضريبة القيمة المضافة") : (calcConfig.data.labels?.vatEn || "VAT")}
                           {` (${calcConfig.data.vatRate}%)`}
                         </span>
-                        <span className="font-medium text-muted-foreground text-xs">
-                          {lang === "ar" ? "تُحسب عند الحجز" : "Calculated at booking"}
+                        <span className="font-medium text-foreground">
+                          {_vatAmt.toLocaleString()} {t("payment.sar")}
                         </span>
                       </div>
                     )}

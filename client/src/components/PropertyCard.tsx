@@ -234,7 +234,7 @@ export default function PropertyCard({ property, compact }: PropertyCardProps) {
                   <span className="font-semibold text-gray-700 dark:text-[#d0d6de]">{property.bathrooms}</span>
                 </span>
               )}
-              {property.sizeSqm != null && (
+              {property.sizeSqm != null && property.sizeSqm >= 5 && (
                 <span className="flex items-center gap-1.5 group-hover:text-[#3ECFC0] transition-colors duration-300">
                   <Maximize2 className="h-3.5 w-3.5" />
                   <span className="font-semibold text-gray-700 dark:text-[#d0d6de]">{property.sizeSqm} {t("property.sqm")}</span>

@@ -34,6 +34,36 @@ export default defineConfig({
     chunkSizeWarningLimit: 500,
     cssCodeSplit: true,
     minify: 'esbuild',
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          // Vendor: React core
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/scheduler/')) {
+            return 'vendor-react';
+          }
+          // Vendor: Radix UI (shadcn primitives)
+          if (id.includes('node_modules/@radix-ui/')) {
+            return 'vendor-radix';
+          }
+          // Vendor: tRPC + React Query
+          if (id.includes('node_modules/@trpc/') || id.includes('node_modules/@tanstack/')) {
+            return 'vendor-data';
+          }
+          // Vendor: Lucide icons
+          if (id.includes('node_modules/lucide-react/')) {
+            return 'vendor-icons';
+          }
+          // Admin pages chunk
+          if (id.includes('/pages/Admin') || id.includes('/pages/CityDistrict') || id.includes('/pages/AiControl')) {
+            return 'admin';
+          }
+          // Dashboard pages chunk
+          if (id.includes('/pages/TenantDashboard') || id.includes('/pages/LandlordDashboard') || id.includes('/pages/Messages')) {
+            return 'dashboard';
+          }
+        },
+      },
+    },
   },
   server: {
     host: true,
