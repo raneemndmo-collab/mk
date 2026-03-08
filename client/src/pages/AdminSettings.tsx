@@ -19,7 +19,7 @@ import {
   Settings, Image, Palette, DollarSign, FileText, Users, Shield, BarChart3,
   ArrowRight, ArrowLeft, Save, Upload, RefreshCw, Globe, MapPin, BookOpen, Building2,
   ChevronDown, ChevronUp, Eye, Trash2, Plus, Search, MessageCircle, Phone,
-  CreditCard, LayoutGrid, Home as HomeIcon, Video, Calendar, Clock, HelpCircle, ToggleLeft, ToggleRight
+  CreditCard, LayoutGrid, Home as HomeIcon, Video, Calendar, Clock, HelpCircle, ToggleLeft, ToggleRight, Copy
 } from "lucide-react";
 
 export default function AdminSettings() {
@@ -1171,14 +1171,159 @@ export default function AdminSettings() {
                   </p>
                 </div>
 
-                <Button onClick={saveSettings} disabled={updateMutation.isPending} className="w-full md:w-auto">
+                {/* ─── Bank Transfer Info Section ─── */}
+                <div className="border-t border-border pt-6 mt-6" />
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                  <h3 className="font-semibold text-amber-800 dark:text-amber-200 mb-2 flex items-center gap-2">
+                    <Building2 className="h-5 w-5" />
+                    {lang === "ar" ? "معلومات الحساب البنكي للتحويل" : "Bank Transfer Information"}
+                  </h3>
+                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                    {lang === "ar" 
+                      ? "أدخل معلومات حسابك البنكي لإرسالها للعملاء عند اختيار التحويل البنكي. يمكنك مشاركة بطاقة البنك مع العملاء." 
+                      : "Enter your bank account details to share with clients who choose bank transfer."}
+                  </p>
+                </div>
+                <SettingField 
+                  label={lang === "ar" ? "اسم البنك (عربي)" : "Bank Name (Arabic)"} 
+                  settingKey="bank.nameAr" 
+                  placeholder={lang === "ar" ? "مثال: البنك الأهلي السعودي" : "e.g. Al Ahli Bank"} 
+                />
+                <SettingField 
+                  label={lang === "ar" ? "اسم البنك (إنجليزي)" : "Bank Name (English)"} 
+                  settingKey="bank.nameEn" 
+                  placeholder={lang === "ar" ? "مثال: Saudi National Bank" : "e.g. Saudi National Bank"} 
+                />
+                <SettingField 
+                  label={lang === "ar" ? "اسم صاحب الحساب" : "Account Holder Name"} 
+                  settingKey="bank.accountHolder" 
+                  placeholder={lang === "ar" ? "الاسم كما يظهر في الحساب البنكي" : "Name as it appears on the bank account"} 
+                />
+                <SettingField 
+                  label={lang === "ar" ? "رقم الآيبان (IBAN)" : "IBAN Number"} 
+                  settingKey="bank.iban" 
+                  placeholder="SA0000000000000000000000" 
+                />
+                <SettingField 
+                  label={lang === "ar" ? "رقم الحساب" : "Account Number"} 
+                  settingKey="bank.accountNumber" 
+                  placeholder={lang === "ar" ? "رقم الحساب البنكي" : "Bank account number"} 
+                />
+                <SettingField 
+                  label={lang === "ar" ? "رمز السويفت (SWIFT)" : "SWIFT Code"} 
+                  settingKey="bank.swiftCode" 
+                  placeholder="NCBKSAJE" 
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label>{lang === "ar" ? "تفعيل التحويل البنكي" : "Enable Bank Transfer"}</Label>
+                    <Select 
+                      value={settings["bank.transferEnabled"] || "false"} 
+                      onValueChange={(v) => updateSetting("bank.transferEnabled", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">{lang === "ar" ? "مفعل" : "Enabled"}</SelectItem>
+                        <SelectItem value="false">{lang === "ar" ? "معطل" : "Disabled"}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Bank Card Preview */}
+                {settings["bank.iban"] && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium mb-3">
+                      {lang === "ar" ? "معاينة بطاقة البنك" : "Bank Card Preview"}
+                    </h4>
+                    <div className="max-w-md mx-auto bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 rounded-2xl p-6 text-white shadow-xl border border-slate-700/50">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-6 w-6 text-amber-400" />
+                          <span className="text-xs text-slate-400 uppercase tracking-wider">
+                            {lang === "ar" ? "معلومات التحويل البنكي" : "Bank Transfer Details"}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-500">Monthly Key</div>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">
+                            {lang === "ar" ? "البنك" : "Bank"}
+                          </div>
+                          <div className="text-sm font-semibold">
+                            {(lang === "ar" ? settings["bank.nameAr"] : settings["bank.nameEn"]) || "—"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">
+                            {lang === "ar" ? "اسم المستفيد" : "Beneficiary"}
+                          </div>
+                          <div className="text-sm font-semibold">
+                            {settings["bank.accountHolder"] || "—"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">IBAN</div>
+                          <div className="text-sm font-mono tracking-wider text-amber-300">
+                            {settings["bank.iban"] || "—"}
+                          </div>
+                        </div>
+                        {settings["bank.accountNumber"] && (
+                          <div>
+                            <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">
+                              {lang === "ar" ? "رقم الحساب" : "Account No."}
+                            </div>
+                            <div className="text-sm font-mono">{settings["bank.accountNumber"]}</div>
+                          </div>
+                        )}
+                        {settings["bank.swiftCode"] && (
+                          <div>
+                            <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">SWIFT</div>
+                            <div className="text-sm font-mono">{settings["bank.swiftCode"]}</div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-6 pt-4 border-t border-slate-700/50 flex items-center justify-between">
+                        <span className="text-[10px] text-slate-500">
+                          {lang === "ar" ? "يرجى التحويل ثم إرسال إيصال الدفع" : "Please transfer then send payment receipt"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex justify-center gap-2 mt-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const bankText = [
+                            `${lang === "ar" ? "البنك" : "Bank"}: ${(lang === "ar" ? settings["bank.nameAr"] : settings["bank.nameEn"]) || ""}`,
+                            `${lang === "ar" ? "اسم المستفيد" : "Beneficiary"}: ${settings["bank.accountHolder"] || ""}`,
+                            `IBAN: ${settings["bank.iban"] || ""}`,
+                            settings["bank.accountNumber"] ? `${lang === "ar" ? "رقم الحساب" : "Account No."}: ${settings["bank.accountNumber"]}` : "",
+                            settings["bank.swiftCode"] ? `SWIFT: ${settings["bank.swiftCode"]}` : "",
+                            "",
+                            lang === "ar" ? "يرجى التحويل ثم إرسال إيصال الدفع" : "Please transfer then send payment receipt",
+                          ].filter(Boolean).join("\n");
+                          navigator.clipboard.writeText(bankText);
+                          toast.success(lang === "ar" ? "تم نسخ معلومات البنك" : "Bank info copied to clipboard");
+                        }}
+                      >
+                        <Copy className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
+                        {lang === "ar" ? "نسخ المعلومات" : "Copy Info"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <Button onClick={saveSettings} disabled={updateMutation.isPending} className="w-full md:w-auto mt-4">
                   <Save className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
                   {t("settings.save")}
                 </Button>
               </CardContent>
             </Card>
           </TabsContent>
-
           {/* WhatsApp Settings */}
           <TabsContent value="whatsapp">
             <Card>
