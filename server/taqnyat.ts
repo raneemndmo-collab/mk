@@ -227,16 +227,18 @@ export async function getTaqnyatBalance(bearerToken: string): Promise<{
 
     const data = await resp.json();
 
-    if (resp.ok && data.statusCode === 200) {
+    // Taqnyat may return balance directly or wrapped in statusCode
+    if (resp.ok) {
+      // Success — extract balance from whichever format Taqnyat uses
       return {
         success: true,
-        balance: data.balance,
-        currency: data.currency,
-        accountStatus: data.accountStatus,
+        balance: data.balance ?? data.data?.balance ?? 'N/A',
+        currency: data.currency ?? data.data?.currency ?? 'SAR',
+        accountStatus: data.accountStatus ?? data.status ?? 'active',
       };
     }
 
-    return { success: false, error: data.message || `HTTP ${resp.status}` };
+    return { success: false, error: data.message || data.error || `HTTP ${resp.status}` };
   } catch (err: any) {
     return { success: false, error: err.message };
   }
