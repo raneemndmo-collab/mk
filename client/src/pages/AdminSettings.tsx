@@ -13,13 +13,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import html2canvas from "html2canvas";
 import { Link } from "wouter";
 import {
   Settings, Image, Palette, DollarSign, FileText, Users, Shield, BarChart3,
   ArrowRight, ArrowLeft, Save, Upload, RefreshCw, Globe, MapPin, BookOpen, Building2,
   ChevronDown, ChevronUp, Eye, Trash2, Plus, Search, MessageCircle, Phone,
-  CreditCard, LayoutGrid, Home as HomeIcon, Video, Calendar, Clock, HelpCircle, ToggleLeft, ToggleRight, Copy
+  CreditCard, LayoutGrid, Home as HomeIcon, Video, Calendar, Clock, HelpCircle, ToggleLeft, ToggleRight, Copy, Lock, Download, ImageIcon
 } from "lucide-react";
 
 export default function AdminSettings() {
@@ -122,6 +123,16 @@ export default function AdminSettings() {
 
   const [selectedAdminPerms, setSelectedAdminPerms] = useState<Record<number, string[]>>({});
 
+  // Check if current user is root admin
+  const isCurrentUserRootAdmin = useMemo(() => {
+    if (!user || !permsQuery.data) return false;
+    return (permsQuery.data as any[]).some((p: any) => p.userId === user.id && p.isRootAdmin);
+  }, [user, permsQuery.data]);
+
+  // Bank card refs for copy-as-image
+  const bankCardRef = useRef<HTMLDivElement>(null);
+  const bankCard2Ref = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (permsQuery.data) {
       const map: Record<number, string[]> = {};
@@ -170,7 +181,7 @@ export default function AdminSettings() {
     );
   }
 
-  const SettingField = ({ label, settingKey, type = "text", placeholder }: { label: string; settingKey: string; type?: string; placeholder?: string }) => (
+  const SettingField = ({ label, settingKey, type = "text", placeholder, disabled = false }: { label: string; settingKey: string; type?: string; placeholder?: string; disabled?: boolean }) => (
     <div className="space-y-2">
       <Label className="text-sm font-medium">{label}</Label>
       {type === "textarea" ? (
@@ -180,6 +191,7 @@ export default function AdminSettings() {
           placeholder={placeholder}
           className="min-h-[100px]"
           dir={settingKey.endsWith("Ar") ? "rtl" : settingKey.endsWith("En") ? "ltr" : dir}
+          disabled={disabled}
         />
       ) : type === "color" ? (
         <div className="flex gap-3 items-center">
@@ -188,12 +200,14 @@ export default function AdminSettings() {
             value={settings[settingKey] || "#15803d"}
             onChange={(e) => updateSetting(settingKey, e.target.value)}
             className="w-12 h-10 rounded border cursor-pointer"
+            disabled={disabled}
           />
           <Input
             value={settings[settingKey] || ""}
             onChange={(e) => updateSetting(settingKey, e.target.value)}
             placeholder="#15803d"
             className="flex-1"
+            disabled={disabled}
           />
         </div>
       ) : (
@@ -203,6 +217,7 @@ export default function AdminSettings() {
           onChange={(e) => updateSetting(settingKey, e.target.value)}
           placeholder={placeholder}
           dir={settingKey.endsWith("Ar") ? "rtl" : settingKey.endsWith("En") ? "ltr" : undefined}
+          disabled={disabled}
         />
       )}
     </div>
@@ -1177,42 +1192,61 @@ export default function AdminSettings() {
                   <h3 className="font-semibold text-amber-800 dark:text-amber-200 mb-2 flex items-center gap-2">
                     <Building2 className="h-5 w-5" />
                     {lang === "ar" ? "معلومات الحساب البنكي للتحويل" : "Bank Transfer Information"}
+                    {!isCurrentUserRootAdmin && (
+                      <Badge variant="secondary" className="gap-1"><Lock className="h-3 w-3" />{lang === "ar" ? "للقراءة فقط" : "Read Only"}</Badge>
+                    )}
                   </h3>
                   <p className="text-sm text-amber-700 dark:text-amber-300">
                     {lang === "ar" 
-                      ? "أدخل معلومات حسابك البنكي لإرسالها للعملاء عند اختيار التحويل البنكي. يمكنك مشاركة بطاقة البنك مع العملاء." 
-                      : "Enter your bank account details to share with clients who choose bank transfer."}
+                      ? isCurrentUserRootAdmin 
+                        ? "أدخل معلومات حسابك البنكي لإرسالها للعملاء عند اختيار التحويل البنكي. يمكنك مشاركة بطاقة البنك مع العملاء." 
+                        : "فقط المدير الرئيسي يمكنه تعديل معلومات البنك. يمكنك مشاركة البطاقة فقط."
+                      : isCurrentUserRootAdmin
+                        ? "Enter your bank account details to share with clients who choose bank transfer."
+                        : "Only the root admin can edit bank details. You can share the card only."}
                   </p>
                 </div>
+
+                {/* ─── Bank Account 1 ─── */}
+                <h4 className="text-sm font-semibold mt-4 flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  {lang === "ar" ? "الحساب البنكي الأول" : "Bank Account 1"}
+                </h4>
                 <SettingField 
                   label={lang === "ar" ? "اسم البنك (عربي)" : "Bank Name (Arabic)"} 
                   settingKey="bank.nameAr" 
-                  placeholder={lang === "ar" ? "مثال: البنك الأهلي السعودي" : "e.g. Al Ahli Bank"} 
+                  placeholder={lang === "ar" ? "مثال: البنك الأهلي السعودي" : "e.g. Al Ahli Bank"}
+                  disabled={!isCurrentUserRootAdmin}
                 />
                 <SettingField 
                   label={lang === "ar" ? "اسم البنك (إنجليزي)" : "Bank Name (English)"} 
                   settingKey="bank.nameEn" 
-                  placeholder={lang === "ar" ? "مثال: Saudi National Bank" : "e.g. Saudi National Bank"} 
+                  placeholder={lang === "ar" ? "مثال: Saudi National Bank" : "e.g. Saudi National Bank"}
+                  disabled={!isCurrentUserRootAdmin}
                 />
                 <SettingField 
                   label={lang === "ar" ? "اسم صاحب الحساب" : "Account Holder Name"} 
                   settingKey="bank.accountHolder" 
-                  placeholder={lang === "ar" ? "الاسم كما يظهر في الحساب البنكي" : "Name as it appears on the bank account"} 
+                  placeholder={lang === "ar" ? "الاسم كما يظهر في الحساب البنكي" : "Name as it appears on the bank account"}
+                  disabled={!isCurrentUserRootAdmin}
                 />
                 <SettingField 
                   label={lang === "ar" ? "رقم الآيبان (IBAN)" : "IBAN Number"} 
                   settingKey="bank.iban" 
-                  placeholder="SA0000000000000000000000" 
+                  placeholder="SA0000000000000000000000"
+                  disabled={!isCurrentUserRootAdmin}
                 />
                 <SettingField 
                   label={lang === "ar" ? "رقم الحساب" : "Account Number"} 
                   settingKey="bank.accountNumber" 
-                  placeholder={lang === "ar" ? "رقم الحساب البنكي" : "Bank account number"} 
+                  placeholder={lang === "ar" ? "رقم الحساب البنكي" : "Bank account number"}
+                  disabled={!isCurrentUserRootAdmin}
                 />
                 <SettingField 
                   label={lang === "ar" ? "رمز السويفت (SWIFT)" : "SWIFT Code"} 
                   settingKey="bank.swiftCode" 
-                  placeholder="NCBKSAJE" 
+                  placeholder="NCBKSAJE"
+                  disabled={!isCurrentUserRootAdmin}
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -1220,6 +1254,7 @@ export default function AdminSettings() {
                     <Select 
                       value={settings["bank.transferEnabled"] || "false"} 
                       onValueChange={(v) => updateSetting("bank.transferEnabled", v)}
+                      disabled={!isCurrentUserRootAdmin}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1232,16 +1267,16 @@ export default function AdminSettings() {
                   </div>
                 </div>
 
-                {/* Bank Card Preview */}
+                {/* Bank Card 1 Preview */}
                 {settings["bank.iban"] && (
                   <div className="mt-4">
                     <h4 className="text-sm font-medium mb-3">
-                      {lang === "ar" ? "معاينة بطاقة البنك" : "Bank Card Preview"}
+                      {lang === "ar" ? "معاينة بطاقة البنك الأول" : "Bank Card 1 Preview"}
                     </h4>
-                    <div className="max-w-md mx-auto bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 rounded-2xl p-4 sm:p-6 text-white shadow-xl border border-slate-700/50 overflow-hidden">
+                    <div ref={bankCardRef} className="max-w-md mx-auto bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 rounded-2xl p-4 sm:p-6 text-white shadow-xl border border-slate-700/50 overflow-hidden">
                       <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-2">
-                          <Building2 className="h-6 w-6 text-amber-400" />
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="#fbbf24" strokeWidth="2"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="#fbbf24" strokeWidth="2"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="#fbbf24" strokeWidth="2"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="#fbbf24" strokeWidth="2"/></svg>
                           <span className="text-xs text-slate-400 uppercase tracking-wider">
                             {lang === "ar" ? "معلومات التحويل البنكي" : "Bank Transfer Details"}
                           </span>
@@ -1265,23 +1300,23 @@ export default function AdminSettings() {
                             {settings["bank.accountHolder"] || "—"}
                           </div>
                         </div>
-                        <div>
-                          <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">IBAN</div>
+                        <div className="group/iban cursor-pointer" onClick={() => { navigator.clipboard.writeText(settings["bank.iban"] || ""); toast.success(lang === "ar" ? "تم نسخ الآيبان" : "IBAN copied"); }}>
+                          <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">IBAN <Copy className="h-3 w-3 opacity-0 group-hover/iban:opacity-100 transition-opacity" /></div>
                           <div className="text-xs sm:text-sm font-mono tracking-wider text-amber-300 break-all">
                             {settings["bank.iban"] || "—"}
                           </div>
                         </div>
                         {settings["bank.accountNumber"] && (
-                          <div>
-                            <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">
-                              {lang === "ar" ? "رقم الحساب" : "Account No."}
+                          <div className="group/acc cursor-pointer" onClick={() => { navigator.clipboard.writeText(settings["bank.accountNumber"] || ""); toast.success(lang === "ar" ? "تم نسخ رقم الحساب" : "Account number copied"); }}>
+                            <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                              {lang === "ar" ? "رقم الحساب" : "Account No."} <Copy className="h-3 w-3 opacity-0 group-hover/acc:opacity-100 transition-opacity" />
                             </div>
                             <div className="text-xs sm:text-sm font-mono break-all">{settings["bank.accountNumber"]}</div>
                           </div>
                         )}
                         {settings["bank.swiftCode"] && (
-                          <div>
-                            <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">SWIFT</div>
+                          <div className="group/swift cursor-pointer" onClick={() => { navigator.clipboard.writeText(settings["bank.swiftCode"] || ""); toast.success(lang === "ar" ? "تم نسخ رمز السويفت" : "SWIFT code copied"); }}>
+                            <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">SWIFT <Copy className="h-3 w-3 opacity-0 group-hover/swift:opacity-100 transition-opacity" /></div>
                             <div className="text-sm font-mono">{settings["bank.swiftCode"]}</div>
                           </div>
                         )}
@@ -1311,16 +1346,202 @@ export default function AdminSettings() {
                         }}
                       >
                         <Copy className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
-                        {lang === "ar" ? "نسخ المعلومات" : "Copy Info"}
+                        {lang === "ar" ? "نسخ كنص" : "Copy as Text"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          if (!bankCardRef.current) return;
+                          try {
+                            const canvas = await html2canvas(bankCardRef.current, { backgroundColor: null, scale: 2, useCORS: true });
+                            canvas.toBlob(async (blob) => {
+                              if (!blob) return;
+                              try {
+                                await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+                                toast.success(lang === "ar" ? "تم نسخ البطاقة كصورة" : "Card copied as image");
+                              } catch {
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = url; a.download = "bank-card.png"; a.click();
+                                URL.revokeObjectURL(url);
+                                toast.success(lang === "ar" ? "تم تحميل البطاقة كصورة" : "Card downloaded as image");
+                              }
+                            }, "image/png");
+                          } catch {
+                            toast.error(lang === "ar" ? "فشل نسخ الصورة" : "Failed to copy image");
+                          }
+                        }}
+                      >
+                        <ImageIcon className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
+                        {lang === "ar" ? "نسخ كصورة" : "Copy as Image"}
                       </Button>
                     </div>
                   </div>
                 )}
 
-                <Button onClick={saveSettings} disabled={updateMutation.isPending} className="w-full md:w-auto mt-4">
-                  <Save className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
-                  {t("settings.save")}
-                </Button>
+                {/* ─── Bank Account 2 ─── */}
+                <div className="border-t border-border pt-6 mt-6" />
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  {lang === "ar" ? "الحساب البنكي الثاني (اختياري)" : "Bank Account 2 (Optional)"}
+                </h4>
+                <SettingField 
+                  label={lang === "ar" ? "اسم البنك (عربي)" : "Bank Name (Arabic)"} 
+                  settingKey="bank2.nameAr" 
+                  placeholder={lang === "ar" ? "مثال: بنك الراجحي" : "e.g. Al Rajhi Bank"}
+                  disabled={!isCurrentUserRootAdmin}
+                />
+                <SettingField 
+                  label={lang === "ar" ? "اسم البنك (إنجليزي)" : "Bank Name (English)"} 
+                  settingKey="bank2.nameEn" 
+                  placeholder={lang === "ar" ? "مثال: Al Rajhi Bank" : "e.g. Al Rajhi Bank"}
+                  disabled={!isCurrentUserRootAdmin}
+                />
+                <SettingField 
+                  label={lang === "ar" ? "اسم صاحب الحساب" : "Account Holder Name"} 
+                  settingKey="bank2.accountHolder" 
+                  placeholder={lang === "ar" ? "الاسم كما يظهر في الحساب البنكي" : "Name as it appears on the bank account"}
+                  disabled={!isCurrentUserRootAdmin}
+                />
+                <SettingField 
+                  label={lang === "ar" ? "رقم الآيبان (IBAN)" : "IBAN Number"} 
+                  settingKey="bank2.iban" 
+                  placeholder="SA0000000000000000000000"
+                  disabled={!isCurrentUserRootAdmin}
+                />
+                <SettingField 
+                  label={lang === "ar" ? "رقم الحساب" : "Account Number"} 
+                  settingKey="bank2.accountNumber" 
+                  placeholder={lang === "ar" ? "رقم الحساب البنكي" : "Bank account number"}
+                  disabled={!isCurrentUserRootAdmin}
+                />
+                <SettingField 
+                  label={lang === "ar" ? "رمز السويفت (SWIFT)" : "SWIFT Code"} 
+                  settingKey="bank2.swiftCode" 
+                  placeholder="RJHISARI"
+                  disabled={!isCurrentUserRootAdmin}
+                />
+
+                {/* Bank Card 2 Preview */}
+                {settings["bank2.iban"] && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium mb-3">
+                      {lang === "ar" ? "معاينة بطاقة البنك الثاني" : "Bank Card 2 Preview"}
+                    </h4>
+                    <div ref={bankCard2Ref} className="max-w-md mx-auto bg-gradient-to-br from-emerald-800 via-emerald-900 to-emerald-950 rounded-2xl p-4 sm:p-6 text-white shadow-xl border border-emerald-700/50 overflow-hidden">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-2">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="#34d399" strokeWidth="2"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="#34d399" strokeWidth="2"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="#34d399" strokeWidth="2"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="#34d399" strokeWidth="2"/></svg>
+                          <span className="text-xs text-emerald-400 uppercase tracking-wider">
+                            {lang === "ar" ? "معلومات التحويل البنكي" : "Bank Transfer Details"}
+                          </span>
+                        </div>
+                        <div className="text-xs text-emerald-500">Monthly Key</div>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <div className="text-[10px] text-emerald-500 uppercase tracking-wider mb-1">
+                            {lang === "ar" ? "البنك" : "Bank"}
+                          </div>
+                          <div className="text-xs sm:text-sm font-semibold break-words">
+                            {(lang === "ar" ? settings["bank2.nameAr"] : settings["bank2.nameEn"]) || "—"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-emerald-500 uppercase tracking-wider mb-1">
+                            {lang === "ar" ? "اسم المستفيد" : "Beneficiary"}
+                          </div>
+                          <div className="text-xs sm:text-sm font-semibold break-words">
+                            {settings["bank2.accountHolder"] || "—"}
+                          </div>
+                        </div>
+                        <div className="group/iban2 cursor-pointer" onClick={() => { navigator.clipboard.writeText(settings["bank2.iban"] || ""); toast.success(lang === "ar" ? "تم نسخ الآيبان" : "IBAN copied"); }}>
+                          <div className="text-[10px] text-emerald-500 uppercase tracking-wider mb-1 flex items-center gap-1">IBAN <Copy className="h-3 w-3 opacity-0 group-hover/iban2:opacity-100 transition-opacity" /></div>
+                          <div className="text-xs sm:text-sm font-mono tracking-wider text-emerald-300 break-all">
+                            {settings["bank2.iban"] || "—"}
+                          </div>
+                        </div>
+                        {settings["bank2.accountNumber"] && (
+                          <div className="group/acc2 cursor-pointer" onClick={() => { navigator.clipboard.writeText(settings["bank2.accountNumber"] || ""); toast.success(lang === "ar" ? "تم نسخ رقم الحساب" : "Account number copied"); }}>
+                            <div className="text-[10px] text-emerald-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                              {lang === "ar" ? "رقم الحساب" : "Account No."} <Copy className="h-3 w-3 opacity-0 group-hover/acc2:opacity-100 transition-opacity" />
+                            </div>
+                            <div className="text-xs sm:text-sm font-mono break-all">{settings["bank2.accountNumber"]}</div>
+                          </div>
+                        )}
+                        {settings["bank2.swiftCode"] && (
+                          <div className="group/swift2 cursor-pointer" onClick={() => { navigator.clipboard.writeText(settings["bank2.swiftCode"] || ""); toast.success(lang === "ar" ? "تم نسخ رمز السويفت" : "SWIFT code copied"); }}>
+                            <div className="text-[10px] text-emerald-500 uppercase tracking-wider mb-1 flex items-center gap-1">SWIFT <Copy className="h-3 w-3 opacity-0 group-hover/swift2:opacity-100 transition-opacity" /></div>
+                            <div className="text-sm font-mono">{settings["bank2.swiftCode"]}</div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-6 pt-4 border-t border-emerald-700/50 flex items-center justify-between">
+                        <span className="text-[10px] text-emerald-500">
+                          {lang === "ar" ? "يرجى التحويل ثم إرسال إيصال الدفع" : "Please transfer then send payment receipt"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex justify-center gap-2 mt-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const bankText = [
+                            `${lang === "ar" ? "البنك" : "Bank"}: ${(lang === "ar" ? settings["bank2.nameAr"] : settings["bank2.nameEn"]) || ""}`,
+                            `${lang === "ar" ? "اسم المستفيد" : "Beneficiary"}: ${settings["bank2.accountHolder"] || ""}`,
+                            `IBAN: ${settings["bank2.iban"] || ""}`,
+                            settings["bank2.accountNumber"] ? `${lang === "ar" ? "رقم الحساب" : "Account No."}: ${settings["bank2.accountNumber"]}` : "",
+                            settings["bank2.swiftCode"] ? `SWIFT: ${settings["bank2.swiftCode"]}` : "",
+                            "",
+                            lang === "ar" ? "يرجى التحويل ثم إرسال إيصال الدفع" : "Please transfer then send payment receipt",
+                          ].filter(Boolean).join("\n");
+                          navigator.clipboard.writeText(bankText);
+                          toast.success(lang === "ar" ? "تم نسخ معلومات البنك" : "Bank info copied to clipboard");
+                        }}
+                      >
+                        <Copy className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
+                        {lang === "ar" ? "نسخ كنص" : "Copy as Text"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          if (!bankCard2Ref.current) return;
+                          try {
+                            const canvas = await html2canvas(bankCard2Ref.current, { backgroundColor: null, scale: 2, useCORS: true });
+                            canvas.toBlob(async (blob) => {
+                              if (!blob) return;
+                              try {
+                                await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+                                toast.success(lang === "ar" ? "تم نسخ البطاقة كصورة" : "Card copied as image");
+                              } catch {
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = url; a.download = "bank-card-2.png"; a.click();
+                                URL.revokeObjectURL(url);
+                                toast.success(lang === "ar" ? "تم تحميل البطاقة كصورة" : "Card downloaded as image");
+                              }
+                            }, "image/png");
+                          } catch {
+                            toast.error(lang === "ar" ? "فشل نسخ الصورة" : "Failed to copy image");
+                          }
+                        }}
+                      >
+                        <ImageIcon className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
+                        {lang === "ar" ? "نسخ كصورة" : "Copy as Image"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {isCurrentUserRootAdmin && (
+                  <Button onClick={saveSettings} disabled={updateMutation.isPending} className="w-full md:w-auto mt-4">
+                    <Save className={`h-4 w-4 ${isRtl ? "ml-2" : "mr-2"}`} />
+                    {t("settings.save")}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

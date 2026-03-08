@@ -978,3 +978,10 @@
 - [ ] Every KYC gate calls isBreakglassAdmin before blocking
 - [ ] Migration does not alter root admin isVerified or role
 - [ ] Frontend gates check break-glass status from backend user object
+
+## Dashboard Reorganization (March 2026)
+- [ ] Group sidebar menu items into logical sections with headers
+- [ ] Remove redundant Quick Actions from AdminDashboard (they duplicate sidebar)
+- [ ] Fix wrong icon on Settings quick action (BarChart3 → Settings icon)
+- [ ] Fix awkward Arabic translations (أعلام الميزات → مفاتيح الميزات)
+- [ ] Add section separators/headers in sidebar
