@@ -1238,7 +1238,7 @@ export default function AdminSettings() {
                     <h4 className="text-sm font-medium mb-3">
                       {lang === "ar" ? "معاينة بطاقة البنك" : "Bank Card Preview"}
                     </h4>
-                    <div className="max-w-md mx-auto bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 rounded-2xl p-6 text-white shadow-xl border border-slate-700/50">
+                    <div className="max-w-md mx-auto bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 rounded-2xl p-4 sm:p-6 text-white shadow-xl border border-slate-700/50 overflow-hidden">
                       <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-2">
                           <Building2 className="h-6 w-6 text-amber-400" />
@@ -1253,7 +1253,7 @@ export default function AdminSettings() {
                           <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">
                             {lang === "ar" ? "البنك" : "Bank"}
                           </div>
-                          <div className="text-sm font-semibold">
+                          <div className="text-xs sm:text-sm font-semibold break-words">
                             {(lang === "ar" ? settings["bank.nameAr"] : settings["bank.nameEn"]) || "—"}
                           </div>
                         </div>
@@ -1261,13 +1261,13 @@ export default function AdminSettings() {
                           <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">
                             {lang === "ar" ? "اسم المستفيد" : "Beneficiary"}
                           </div>
-                          <div className="text-sm font-semibold">
+                          <div className="text-xs sm:text-sm font-semibold break-words">
                             {settings["bank.accountHolder"] || "—"}
                           </div>
                         </div>
                         <div>
                           <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">IBAN</div>
-                          <div className="text-sm font-mono tracking-wider text-amber-300">
+                          <div className="text-xs sm:text-sm font-mono tracking-wider text-amber-300 break-all">
                             {settings["bank.iban"] || "—"}
                           </div>
                         </div>
@@ -1276,7 +1276,7 @@ export default function AdminSettings() {
                             <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">
                               {lang === "ar" ? "رقم الحساب" : "Account No."}
                             </div>
-                            <div className="text-sm font-mono">{settings["bank.accountNumber"]}</div>
+                            <div className="text-xs sm:text-sm font-mono break-all">{settings["bank.accountNumber"]}</div>
                           </div>
                         )}
                         {settings["bank.swiftCode"] && (
