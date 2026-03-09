@@ -1,9 +1,5 @@
-import { useState } from "react";
-import SEOHead from "@/components/SEOHead";
+import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
-import { useSiteSettings } from "@/contexts/SiteSettingsContext";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { toast } from "sonner";
 import { Copy, Check, Building2, CreditCard } from "lucide-react";
 
@@ -102,10 +98,7 @@ function BankCard({
   return (
     <div className="mb-8">
       <div className={`bg-gradient-to-br ${cardGradient} rounded-3xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] border ${borderColor} backdrop-blur-xl`}>
-        {/* Decorative top line */}
         <div className={`h-[2px] bg-gradient-to-r ${isGold ? "from-transparent via-amber-500/50 to-transparent" : "from-transparent via-emerald-500/50 to-transparent"}`} />
-
-        {/* Card Header */}
         <div className={`px-6 pt-6 pb-4 ${headerBg}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -127,8 +120,6 @@ function BankCard({
             </div>
           </div>
         </div>
-
-        {/* Beneficiary */}
         <div className="px-6 pb-4">
           <div className={`text-[10px] ${isGold ? "text-amber-500/50" : "text-emerald-500/50"} uppercase tracking-[0.2em] mb-1 font-medium`}>
             {lang === "ar" ? "اسم المستفيد" : "Beneficiary"}
@@ -137,11 +128,7 @@ function BankCard({
             {accountHolder || "—"}
           </div>
         </div>
-
-        {/* Separator */}
         <div className={`mx-6 h-px ${isGold ? "bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" : "bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent"}`} />
-
-        {/* Copyable Fields */}
         <div className="py-2">
           {iban && <CopyableField label="IBAN" value={iban} accent={accent} />}
           {accountNumber && (
@@ -153,8 +140,6 @@ function BankCard({
           )}
           {swiftCode && <CopyableField label="SWIFT / BIC" value={swiftCode} accent={accent} />}
         </div>
-
-        {/* Footer */}
         <div className={`px-6 py-4 ${footerBg} border-t ${footerBorder}`}>
           <p className={`text-[11px] ${isGold ? "text-amber-500/50" : "text-emerald-500/50"} text-center font-medium tracking-wide`}>
             {lang === "ar" ? "يرجى التحويل ثم إرسال إيصال الدفع" : "Please transfer then send payment receipt"}
@@ -165,9 +150,37 @@ function BankCard({
   );
 }
 
+// Lightweight data fetcher — only fetches bank-related settings
+function useBankSettings() {
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/trpc/siteSettings.getAll")
+      .then(res => res.json())
+      .then(data => {
+        const allSettings: Record<string, string> = {};
+        const items = data?.result?.data || [];
+        if (Array.isArray(items)) {
+          items.forEach((item: { key: string; value: string }) => {
+            allSettings[item.key] = item.value;
+          });
+        }
+        setSettings(allSettings);
+        setIsLoading(false);
+      })
+      .catch(() => {
+        setIsLoading(false);
+      });
+  }, []);
+
+  return { settings, isLoading };
+}
+
 export default function BankInfo() {
-  const { lang, dir } = useI18n();
-  const { settings, isLoading } = useSiteSettings();
+  const { lang } = useI18n();
+  const { settings, isLoading } = useBankSettings();
+  const dir = lang === "ar" ? "rtl" : "ltr";
 
   const hasBank1 = !!settings["bank.iban"];
   const hasBank2 = !!settings["bank2.iban"];
@@ -179,122 +192,98 @@ export default function BankInfo() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0c1524]">
-        <div className="animate-pulse text-slate-500">Loading...</div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-amber-500/30 border-t-amber-400 rounded-full animate-spin" />
+          <div className="text-sm text-slate-500 animate-pulse">
+            {lang === "ar" ? "جاري التحميل..." : "Loading..."}
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!bankEnabled && !hasBank1 && !hasBank2) {
     return (
-      <>
-        <Navbar />
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <p className="text-muted-foreground">
-            {lang === "ar" ? "التحويل البنكي غير متاح حالياً" : "Bank transfer is not available at this time"}
-          </p>
-        </div>
-        <Footer />
-      </>
+      <div className="min-h-screen flex items-center justify-center bg-[#0c1524]">
+        <p className="text-slate-500">
+          {lang === "ar" ? "التحويل البنكي غير متاح حالياً" : "Bank transfer is not available at this time"}
+        </p>
+      </div>
     );
   }
 
   return (
-    <>
-      <SEOHead
-        title={lang === "ar" ? "معلومات التحويل البنكي | المفتاح الشهري" : "Bank Transfer Info | Monthly Key"}
-        description={lang === "ar" ? "معلومات الحساب البنكي للتحويل - المفتاح الشهري" : "Bank account details for transfer - Monthly Key"}
-      />
-      <Navbar />
+    <div className="min-h-screen bg-[#0c1524] relative overflow-hidden" dir={dir}>
+      {/* Background effects */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-gradient-radial from-amber-500/[0.04] to-transparent rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-gradient-radial from-blue-500/[0.02] to-transparent rounded-full blur-3xl" />
+      </div>
 
-      <div className="min-h-screen bg-[#0c1524] relative overflow-hidden" dir={dir}>
-        {/* Background effects */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-gradient-radial from-amber-500/[0.04] to-transparent rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-gradient-radial from-blue-500/[0.02] to-transparent rounded-full blur-3xl" />
-          {/* Subtle grid */}
-          <div className="absolute inset-0 opacity-[0.012]" style={{
-            backgroundImage: "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
-            backgroundSize: "60px 60px"
-          }} />
-        </div>
+      <div className="relative z-10 py-10 px-4">
+        <div className="max-w-lg mx-auto">
 
-        <div className="relative z-10 py-12 px-4">
-          <div className="max-w-lg mx-auto">
-
-            {/* ═══════ Premium Header: Logo + Arabic + English blended ═══════ */}
-            <div className="text-center mb-12">
-              
-              {/* Logo + Brand Name — blended together */}
-              <div className="flex flex-col items-center gap-4 mb-6">
-                {displayImage && (
-                  <div className="relative">
-                    {/* Glow behind logo */}
-                    <div className="absolute inset-0 bg-amber-500/10 rounded-3xl blur-3xl scale-150" />
-                    <img
-                      src={displayImage}
-                      alt="Monthly Key"
-                      className="relative h-24 w-24 sm:h-28 sm:w-28 object-contain drop-shadow-[0_0_30px_rgba(217,170,60,0.15)]"
-                    />
-                  </div>
-                )}
-
-                {/* Arabic Name — large and prominent */}
-                <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight leading-tight" style={{ fontFamily: "'Tajawal', 'Cairo', sans-serif" }}>
-                  المفتاح الشهري
-                </h1>
-
-                {/* English Name — elegant subtitle */}
-                <p className="text-sm sm:text-base text-amber-400/70 font-semibold tracking-[0.25em] uppercase">
-                  Monthly Key
-                </p>
-              </div>
-
-              {/* Tagline */}
-              <p className="text-sm text-slate-500 mb-6 font-medium">
-                {lang === "ar"
-                  ? "منصة التأجير الشهري الرائدة في السعودية"
-                  : "Premium Monthly Rentals in Saudi Arabia"}
-              </p>
-
-              {/* Decorative separator */}
-              <div className="flex items-center justify-center gap-3 mb-6">
-                <div className="h-px w-16 bg-gradient-to-r from-transparent to-amber-500/30" />
-                <div className="flex items-center gap-2">
-                  <div className="w-1 h-1 rounded-full bg-amber-500/30" />
-                  <div className="w-2 h-2 rounded-full bg-amber-400/50 ring-2 ring-amber-400/20" />
-                  <div className="w-1 h-1 rounded-full bg-amber-500/30" />
+          {/* Premium Header: Logo + Arabic + English */}
+          <div className="text-center mb-10">
+            <div className="flex flex-col items-center gap-4 mb-6">
+              {displayImage && (
+                <div className="relative">
+                  <div className="absolute inset-0 bg-amber-500/10 rounded-3xl blur-3xl scale-150" />
+                  <img
+                    src={displayImage}
+                    alt="Monthly Key"
+                    className="relative h-24 w-24 sm:h-28 sm:w-28 object-contain drop-shadow-[0_0_30px_rgba(217,170,60,0.15)]"
+                  />
                 </div>
-                <div className="h-px w-16 bg-gradient-to-l from-transparent to-amber-500/30" />
-              </div>
-
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2.5 bg-white/[0.03] border border-white/[0.06] rounded-full px-6 py-3 backdrop-blur-sm">
-                <Building2 className="h-4 w-4 text-amber-400/80" />
-                <span className="text-xs text-slate-400 font-medium tracking-wider uppercase">
-                  {lang === "ar" ? "معلومات التحويل البنكي" : "Bank Transfer Details"}
-                </span>
-              </div>
-
-              {/* Copy hint */}
-              <p className="text-xs text-slate-600 mt-5 tracking-wide">
-                {lang === "ar" ? "اضغط على أي رقم لنسخه تلقائياً" : "Tap any number to copy it instantly"}
+              )}
+              <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight leading-tight" style={{ fontFamily: "'Tajawal', 'Cairo', sans-serif" }}>
+                المفتاح الشهري
+              </h1>
+              <p className="text-sm sm:text-base text-amber-400/70 font-semibold tracking-[0.25em] uppercase">
+                Monthly Key
               </p>
             </div>
 
-            {/* ═══════ Bank Cards ═══════ */}
-            {hasBank1 && <BankCard prefix="bank" accent="gold" lang={lang} settings={settings} />}
-            {hasBank2 && <BankCard prefix="bank2" accent="emerald" lang={lang} settings={settings} />}
+            <p className="text-sm text-slate-500 mb-6 font-medium">
+              {lang === "ar"
+                ? "منصة التأجير الشهري الرائدة في السعودية"
+                : "Premium Monthly Rentals in Saudi Arabia"}
+            </p>
 
-            {/* Bottom watermark */}
-            <div className="text-center mt-4 mb-8">
-              <p className="text-[10px] text-slate-700 tracking-[0.3em] uppercase font-medium">
-                monthlykey.com
-              </p>
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <div className="h-px w-16 bg-gradient-to-r from-transparent to-amber-500/30" />
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-1 rounded-full bg-amber-500/30" />
+                <div className="w-2 h-2 rounded-full bg-amber-400/50 ring-2 ring-amber-400/20" />
+                <div className="w-1 h-1 rounded-full bg-amber-500/30" />
+              </div>
+              <div className="h-px w-16 bg-gradient-to-l from-transparent to-amber-500/30" />
             </div>
+
+            <div className="inline-flex items-center gap-2.5 bg-white/[0.03] border border-white/[0.06] rounded-full px-6 py-3 backdrop-blur-sm">
+              <Building2 className="h-4 w-4 text-amber-400/80" />
+              <span className="text-xs text-slate-400 font-medium tracking-wider uppercase">
+                {lang === "ar" ? "معلومات التحويل البنكي" : "Bank Transfer Details"}
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-600 mt-5 tracking-wide">
+              {lang === "ar" ? "اضغط على أي رقم لنسخه تلقائياً" : "Tap any number to copy it instantly"}
+            </p>
+          </div>
+
+          {/* Bank Cards */}
+          {hasBank1 && <BankCard prefix="bank" accent="gold" lang={lang} settings={settings} />}
+          {hasBank2 && <BankCard prefix="bank2" accent="emerald" lang={lang} settings={settings} />}
+
+          {/* Bottom watermark */}
+          <div className="text-center mt-4 mb-8">
+            <p className="text-[10px] text-slate-700 tracking-[0.3em] uppercase font-medium">
+              monthlykey.com
+            </p>
           </div>
         </div>
       </div>
-      <Footer />
-    </>
+    </div>
   );
 }
