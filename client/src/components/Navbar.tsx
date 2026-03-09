@@ -318,9 +318,9 @@ export default function Navbar() {
           : "bg-[#0B1E2D]/95 backdrop-blur"
     }`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       <div className="container">
-        <div className="flex h-16 sm:h-20 items-center justify-between">
+        <div className={`flex h-16 sm:h-20 items-center justify-between ${lang === "ar" ? "flex-row-reverse" : ""}`}>
           {/* Logo + Business Name — Premium horizontal layout */}
-          <Link href="/" className="group flex items-center shrink-0 me-3 gap-2.5 sm:gap-3 transition-all duration-300 hover:scale-[1.02]">
+          <Link href="/" className={`group flex items-center shrink-0 me-3 gap-2.5 sm:gap-3 transition-all duration-300 hover:scale-[1.02] ${lang === "ar" ? "flex-row-reverse" : ""}`}>
             {/* Logo icon */}
             <div className="relative">
               <img loading="lazy" 
@@ -343,7 +343,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className={`hidden md:flex items-center gap-1 ${lang === "ar" ? "flex-row-reverse" : ""}`}>
             <Link href="/">
               <Button variant="ghost" size="sm" className={`text-white/90 hover:text-white hover:bg-white/10 ${location === "/" ? "text-[#3ECFC0]" : ""}`}>
                 {t("nav.home")}
@@ -381,7 +381,7 @@ export default function Navbar() {
           </div>
 
           {/* Right side */}
-          <div className="flex items-center gap-2">
+          <div className={`flex items-center gap-2 ${lang === "ar" ? "flex-row-reverse" : ""}`}>
             {/* Theme toggle */}
             <ThemeToggle />
 
@@ -469,19 +469,19 @@ export default function Navbar() {
         <div className={`md:hidden border-t border-white/10 overflow-hidden transition-all duration-500 ease-out ${mobileMenuOpen ? "max-h-96 py-3 opacity-100" : "max-h-0 py-0 opacity-0"}`}>
           <div className="space-y-1">
             <Link href="/" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="ghost" className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10">
+              <Button variant="ghost" className={`w-full ${lang === "ar" ? "justify-end" : "justify-start"} text-white/90 hover:text-white hover:bg-white/10`}>
                 <Home className="h-4 w-4 me-2" />
                 {t("nav.home")}
               </Button>
             </Link>
             <Link href="/search" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="ghost" className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10">
+              <Button variant="ghost" className={`w-full ${lang === "ar" ? "justify-end" : "justify-start"} text-white/90 hover:text-white hover:bg-white/10`}>
                 <Search className="h-4 w-4 me-2" />
                 {t("nav.search")}
               </Button>
             </Link>
             <Link href="/map" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="ghost" className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10">
+              <Button variant="ghost" className={`w-full ${lang === "ar" ? "justify-end" : "justify-start"} text-white/90 hover:text-white hover:bg-white/10`}>
                 <MapPin className="h-4 w-4 me-2" />
                 {t("nav.map")}
               </Button>
@@ -489,13 +489,13 @@ export default function Navbar() {
             {isAuthenticated && (
               <>
                 <Link href={getDashboardLink()} onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10">
+                  <Button variant="ghost" className={`w-full ${lang === "ar" ? "justify-end" : "justify-start"} text-white/90 hover:text-white hover:bg-white/10`}>
                     <LayoutDashboard className="h-4 w-4 me-2" />
                     {t("nav.dashboard")}
                   </Button>
                 </Link>
                 <Link href="/messages" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10">
+                  <Button variant="ghost" className={`w-full ${lang === "ar" ? "justify-end" : "justify-start"} text-white/90 hover:text-white hover:bg-white/10`}>
                     <MessageSquare className="h-4 w-4 me-2" />
                     {t("nav.messages")}
                   </Button>
@@ -503,7 +503,7 @@ export default function Navbar() {
                 {/* List property — only for landlord role; tenants use footer/menu link */}
                 {user?.role === "landlord" && (
                   <Link href="/list-property" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10">
+                    <Button variant="ghost" className={`w-full ${lang === "ar" ? "justify-end" : "justify-start"} text-white/90 hover:text-white hover:bg-white/10`}>
                       <Plus className="h-4 w-4 me-2" />
                       {t("nav.listProperty")}
                     </Button>
