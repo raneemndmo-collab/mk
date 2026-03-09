@@ -1,0 +1,16 @@
+API Response Format for siteSettings.getAll:
+{"result":{"data":{"json":{ "key1": "value1", "key2": "value2", ... }}}}
+
+The data is NOT an array of {key, value} objects.
+It's a flat object at: data.result.data.json
+
+Bank-related keys found:
+- bank.nameAr: "البنك الأهلي السعودي"
+- bank.nameEn: "Saudi National Bank"  
+- bank.accountHolder: "شركة المفتاح الشهري"
+- bank.iban: "SA0580000000608010167519"
+- bank.accountNumber: "608010167519"
+- bank.swiftCode: "NCBKSAJE"
+- bank.transferEnabled: NOT in the response (so it's undefined, not "true")
+
+Logo: site.logoUrl = "https://pub-38c4c6d7eb714a07a24cd2d4c7870282.r2.dev/branding/mk-logo-silver.png"

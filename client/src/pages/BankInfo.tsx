@@ -159,14 +159,11 @@ function useBankSettings() {
     fetch("/api/trpc/siteSettings.getAll")
       .then(res => res.json())
       .then(data => {
-        const allSettings: Record<string, string> = {};
-        const items = data?.result?.data || [];
-        if (Array.isArray(items)) {
-          items.forEach((item: { key: string; value: string }) => {
-            allSettings[item.key] = item.value;
-          });
+        // tRPC response format: { result: { data: { json: { key: value, ... } } } }
+        const json = data?.result?.data?.json;
+        if (json && typeof json === "object") {
+          setSettings(json as Record<string, string>);
         }
-        setSettings(allSettings);
         setIsLoading(false);
       })
       .catch(() => {
@@ -202,7 +199,7 @@ export default function BankInfo() {
     );
   }
 
-  if (!bankEnabled && !hasBank1 && !hasBank2) {
+  if (!hasBank1 && !hasBank2) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0c1524]">
         <p className="text-slate-500">
