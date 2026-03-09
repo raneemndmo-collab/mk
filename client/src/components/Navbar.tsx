@@ -319,14 +319,27 @@ export default function Navbar() {
     }`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       <div className="container">
         <div className="flex h-16 sm:h-20 items-center justify-between">
-          {/* Logo — light variant on dark navbar, fixed height, no stretch */}
-          <Link href="/" className="flex items-center shrink-0 me-3 transition-transform duration-300 hover:scale-105">
-            <img loading="lazy" 
-              src="/assets/brand/mk-logo-dark.svg"
-              alt={lang === "ar" ? "المفتاح الشهري" : "Monthly Key"}
-              className="h-10 sm:h-12 md:h-14 w-auto object-contain"
-              style={{ maxWidth: '280px' }}
-            />
+          {/* Logo + Business Name — Premium horizontal layout */}
+          <Link href="/" className="group flex items-center shrink-0 me-3 gap-2.5 sm:gap-3 transition-all duration-300 hover:scale-[1.02]">
+            {/* Logo icon */}
+            <div className="relative">
+              <img loading="lazy" 
+                src="/assets/brand/mk-logo-dark.svg"
+                alt={lang === "ar" ? "المفتاح الشهري" : "Monthly Key"}
+                className="h-9 sm:h-11 md:h-12 w-auto object-contain drop-shadow-[0_0_8px_rgba(62,207,192,0.15)] group-hover:drop-shadow-[0_0_12px_rgba(62,207,192,0.3)] transition-all duration-500"
+              />
+            </div>
+            {/* Thin separator line */}
+            <div className="hidden sm:block h-7 md:h-8 w-px bg-gradient-to-b from-transparent via-[#3ECFC0]/40 to-transparent" />
+            {/* Business name */}
+            <div className="flex flex-col justify-center leading-none">
+              <span className="text-[15px] sm:text-[17px] md:text-[19px] font-bold tracking-wide bg-gradient-to-r from-white via-[#e0e0e0] to-[#c0c0c0] bg-clip-text text-transparent group-hover:from-[#3ECFC0] group-hover:via-white group-hover:to-[#3ECFC0] transition-all duration-500" style={{ fontFamily: lang === 'ar' ? "'Cairo', 'Tajawal', sans-serif" : "'Inter', 'DM Sans', sans-serif" }}>
+                {lang === "ar" ? "المفتاح الشهري" : "Monthly Key"}
+              </span>
+              <span className="text-[8px] sm:text-[9px] md:text-[10px] font-medium tracking-[0.2em] uppercase text-[#3ECFC0]/60 mt-0.5 group-hover:text-[#3ECFC0]/90 transition-colors duration-500">
+                {lang === "ar" ? "MONTHLY KEY" : "المفتاح الشهري"}
+              </span>
+            </div>
           </Link>
 
           {/* Desktop Nav */}
