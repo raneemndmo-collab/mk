@@ -441,6 +441,7 @@ export async function getDb() {
         "ALTER TABLE `users` ADD COLUMN `kycProviderRef` varchar(255) DEFAULT NULL",
         "ALTER TABLE `users` ADD COLUMN `kycRejectionReason` varchar(100) DEFAULT NULL",
         "ALTER TABLE `users` ADD COLUMN `isBreakglassAdmin` boolean DEFAULT false",
+        "ALTER TABLE `users` ADD COLUMN `isOwner` boolean DEFAULT false",
       ];
       for (const sql of verificationColumns) {
         try {

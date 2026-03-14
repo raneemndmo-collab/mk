@@ -159,7 +159,7 @@ function MaintenanceGate({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [location] = useLocation();
   const maintenanceEnabled = get("maintenance.enabled") === "true";
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin" || (user as any)?.isOwner;
 
   // Always allow access to login, register, forgot-password, and admin routes
   // so admins can authenticate even when maintenance mode is on

